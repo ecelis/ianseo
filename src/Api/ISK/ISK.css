@@ -1,0 +1,51 @@
+@CHARSET "UTF-8";
+
+.TargetContainer {float:left; margin:1em; border:1px solid gray; border-collapse: collapse; min-width:100px; height:110px;}
+.TargetTitle {font-weight:bold; text-align:center; border-bottom:1px solid gray; background-color:#dddddd;}
+.TargetDevices {margin: 0.25em 0;}
+.TargetLetters {text-align:center;}
+.TargetLetters span {display:inline-block; padding:0.25em; font-weight:bold; border:1px solid gray; margin:0.5em; }
+.TargetMessage {min-height:3em;}
+.Let-B {background-color:#3333ff;} /* scored (Blue) */
+.Let-C {background-color:#33ffff;} /* missing (Cyan) */
+.Let-Y {background-color:#dddd00;} /* scoring (Yellow) */
+.Let-O {background-color:#ffaa33;} /* scoring different end (Orange) */
+.Let-G {background-color:#000000; color: #000000;} /* dimmed (Gray) */
+.Let-R {background-color:#dd0000;} /* scoring different distance/session (Red) */
+.Let-Z {background-color:#00A000;} /* scoring in progress (green) */
+.Let-F {background-color:#cccccc;} /* Match Over (darker Gray) */
+
+.Spurious span {padding:0 3px; background-color:#d0d0d0; }
+
+.TargetLetters span.Anomaly {border: 3px solid red;}
+
+.TargetAssigned{font-weight:bold; text-align:center; background-color:#33ffff;}
+.TargetRequested, .BarcodeRequested {font-weight:bold; text-align:center; background-color:#dddddd;}
+.ToBeEnabled {font-weight:bold; text-align:center; background-color:#ffaa33;}
+.hidden {display: none;}
+.Legend {clear: both;}
+.TgtImport {display: none;}
+
+.PopUp {
+	display:none;
+	position:fixed;
+	top:50%;
+	left:50%;
+	min-width:260px;
+	min-height:250px;
+	margin-left:-130px;
+	margin-top:-125px;
+	background-color:white;
+	border:1px solid gray;
+	font-size: 120%;
+}
+
+.PopUp .Let-G {background-color: #ffff00; color:#000000; }
+
+.PopUpEvent {text-align:center;padding:0.1em;margin-bottom:0.5em;}
+.PopUpSpot {padding:0.2em; clear: both; line-height: 2.5em; white-space: nowrap;}
+.PopUpSpot .Let-Z,
+.PopUpSpot .Let-G {font-size:120%; font-weight:bold; border:1px solid gray; padding:0.3em; margin-right:0.5em; float:none;}
+.PopUpSpot .SpanName {display: inline-block; width:80px; overflow:hidden;vertical-align:middle; }
+
+#PopUpCmd {bottom:0;width:100%; position:absolute; text-align:center;}
