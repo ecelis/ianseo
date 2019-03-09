@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 #    && sh -c "echo -e '\n' | pecl install mcrypt-1.0.2" \
 #    && sh -c "echo -e '\n' | pecl install imagick" \
     && docker-php-ext-enable mcrypt imagick \
-    && apt-cache clean all
+    && apt-get clean all
 # Apache settings
 ENV APACHE_DOCUMENT_ROOT /opt/ianseo
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
