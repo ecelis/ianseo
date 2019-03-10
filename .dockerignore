@@ -4,3 +4,4 @@ utilities
 
 .~lock
 .~lock*
+.env
