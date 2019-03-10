@@ -13,17 +13,17 @@ $pdf->CoinTossShort=$PdfData->CoinTossShort;
 if(count($rankData['sections']))
 {
 	$DistSize = 11;
-	$AddSize=0;
+	$AddSize=($pdf->getPageWidth()-210)/2;
 	$pdf->setDocUpdate($rankData['meta']['lastUpdate']);
 	foreach($rankData['sections'] as $section)
 	{
 		//Calcolo Le Misure per i Campi
 		if($section['meta']['numDist']>=4 && !$rankData['meta']['double'])
-			$DistSize = 44/$section['meta']['numDist'];
+			$DistSize = ($pdf->getPageWidth()-166)/$section['meta']['numDist'];
 		elseif($section['meta']['numDist']>=4 && $rankData['meta']['double'])
-			$DistSize = 44/(($section['meta']['numDist']/2)+1);
+			$DistSize = ($pdf->getPageWidth()-166)/(($section['meta']['numDist']/2)+1);
 		else
-			$AddSize = (44-($section['meta']['numDist']*11))/2;
+			$AddSize = ($pdf->getPageWidth()-166-($section['meta']['numDist']*11))/2;
 
 		//Verifico se l'header e qualche riga ci stanno nella stessa pagina altrimenti salto alla prosisma
 		if(!$pdf->SamePage(15+(strlen($section['meta']['printHeader']) ? 8:0)))
@@ -50,7 +50,7 @@ if(count($rankData['sections']))
 					else
 					{
 						$pdf->SetFont($pdf->FontStd,'',1);
-						$pdf->Cell(190, 1,  '', 1, 1, 'C', 1);
+						$pdf->Cell(0, 1,  '', 1, 1, 'C', 1);
 					}
 					if (!$pdf->SamePage(4* $oldScore[3]))
 					{
@@ -71,12 +71,14 @@ if(count($rankData['sections']))
 
 		if($ShootOffScores) {
 			$CellHeight=6;
-			$RestWidth=$pdf->getPageWidth()-151-$CellHeight;
+			$RestWidth=$pdf->getPageWidth()-159-$CellHeight;
 			$pdf->SetFont($pdf->FontStd,'',1);
 			$pdf->Cell(0, 1,  '', 0, 1, 'C', 0);
 			$pdf->SetFont($pdf->FontStd,'B',9);
 			$pdf->Cell(0, 6,  $PdfData->ShootOffArrows, 1, 1, 'C', 1);
+
 			$pdf->SetFont($pdf->FontStd,'B',7);
+			$pdf->Cell(8, 4, $section['meta']['fields']['rank'], 1, 0, 'C', 1);
 			$pdf->Cell(8, 4, $PdfData->TargetShort, 1, 0, 'C', 1);
 			$pdf->Cell(38, 4, $section['meta']['fields']['athlete'], 1, 0, 'C', 1);
 			$pdf->Cell(10, 4, $section['meta']['fields']['class'], 1, 0, 'C', 1);
@@ -87,7 +89,15 @@ if(count($rankData['sections']))
 			$pdf->ln();
 
 
+			$OldPos='';
 			foreach($ShootOffScores as $item) {
+				if($OldPos and $OldPos!=$item['rankBeforeSO']) {
+					$pdf->SetFont($pdf->FontStd,'',1);
+					$pdf->Cell(0, 1,  '', 1, 1, 'C', 1);
+				}
+				$OldPos=$item['rankBeforeSO'];
+				$pdf->SetFont($pdf->FontStd,'b',7);
+				$pdf->Cell(8, $CellHeight,  $item['rankBeforeSO'], 1, 0, 'R', 0);
 				$pdf->SetFont($pdf->FontStd,'',7);
 				$pdf->Cell(8, $CellHeight,  $item['session'] . "- " . substr($item['target'],-1), 1, 0, 'R', 0);
 				//Atleta

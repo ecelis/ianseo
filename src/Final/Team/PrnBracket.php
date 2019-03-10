@@ -8,10 +8,23 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 require_once('Common/OrisFunctions.php');
 require_once('Common/pdf/PdfChunkLoader.php');
 
+
 if(empty($_SESSION['TourId']) && !empty($_REQUEST['TourId'])) CreateTourSession($_REQUEST['TourId']);
+checkACL(AclCompetition, AclReadOnly);
 
 $Events='';
-if(isset($_REQUEST["Event"]) && $_REQUEST["Event"][0]!=".") $Events = $_REQUEST["Event"];
+if(isset($_REQUEST["Event"]) && $_REQUEST["Event"][0]!=".") {
+	$Events=$_REQUEST["Event"];
+	// select all children and subchildren of these events
+	if(!is_array($Events)) {
+		$Events=array($Events);
+	}
+
+	if(empty($_REQUEST['ShowChildren'])) {
+		$Events = getChildrenEvents($_REQUEST["Event"], 1);
+	}
+}
+
 
 $PdfData=getBracketsTeams($Events,
 	false,

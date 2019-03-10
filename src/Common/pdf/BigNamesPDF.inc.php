@@ -16,16 +16,25 @@
 		public $BronzeBox='Bronze';
 		public $SemiBox='1/2';
 		public $BoxWidth=15;
+		public $BigNameLineWidth=1;
+		public $BigNameColors=array(
+			0 => array(128),
+			1 => array(128),
+			2 => array(251, 191, 21),
+			4 => array(239, 46, 49),
+			8 => array(64, 193, 230),
+			16 => array(33, 81, 168),
+			32 => array(79, 190, 55),
+			64 => array(237, 43, 159),
+			);
 
 
-		public function init($Rs)
-		{
+		public function init($Rs){
 			$this->ResultStream=$Rs;
 		}
 
 		//Page Header
-		function Header()
-		{
+		function Header(){
 			global $CFG;
 			if(true or $this->print_header) {
 
@@ -73,8 +82,20 @@
 //		    $this->SetXY(($this->w-80),$this->h - $this->bMargin + 1);    //Position at 1.5 cm from bottom
 //			$this->MultiCell(70, 5, $this->Titolo . " - " . date('Ymd.Hi') ,0, "R", 0);    //Page number
 		}
-		public function Make()
-		{
+		public function Make() {
+			if(empty($_REQUEST['ColouredPhases'])) {
+				$this->BigNameColors=array(
+					0 => array(0),
+					1 => array(0),
+					2 => array(0),
+					4 => array(0),
+					8 => array(0),
+					16 => array(0),
+					32 => array(0),
+					64 => array(0),
+					);
+				$this->BigNameLineWidth=$this->GetLineWidth();
+			}
 			if($this->TeamLeaf) {
 				$this->MakeTeamLeaf();
 			} else {
@@ -85,9 +106,14 @@
 		public function MakeNormal() {
 			global $CFG;
 			$TourCode=(empty($_REQUEST['TestCountries'])?$_SESSION['TourCodeSafe']:'All');
-			while($MyRow=safe_fetch($this->ResultStream))
-			{
-
+			$EnIds=array();
+			while($MyRow=safe_fetch($this->ResultStream)) {
+				if(isset($MyRow->EnId)) {
+					if(in_array($MyRow->EnId, $EnIds)) {
+						continue;
+					}
+					$EnIds[]=$MyRow->EnId;
+				}
 				if(!trim($MyRow->Athlete)) continue;
 
 				$this->AddPage();
@@ -113,7 +139,7 @@
 							$w=58;
 							$h=$w/$ratio;
 						}
-						$this->Image($svg, 5+(60-$w)/2, 55+(40-$h)/2, $w, $h, '', '', '', 2);
+						$this->Image($svg, 10+(60-$w)/2, 55+(40-$h)/2, $w, $h, '', '', '', 2);
 					}
 					$this->rect(10, 55, 60, 40);
 
@@ -147,27 +173,44 @@
 				if($this->TargetAssignment) {
 
 					// PArte di riconoscimento EVENTO e Paglione
-					$tmpY = ($MyRow->GrMatchNo%2 == 0 ? $this->getPageHeight()/2 : $this->getPageHeight()) - 10;
+					$OldLineWidth=$this->GetLineWidth();
+					$OldColor=$this->DrawColor;
 					$this->SetFont('','',20);
+					$this->SetLineWidth($this->BigNameLineWidth);
+
 
 					$this->SetXY($this->getPageWidth()-$this->BoxWidth-10, $this->getPageHeight()-35);
-					$this->Cell($this->BoxWidth,10, $this->GoldBox.": " . ltrim($MyRow->sGo,'0'),1,0,'C',0);
-					$this->SetX($this->getX()-$this->BoxWidth*2);
-					$this->Cell($this->BoxWidth,10, $this->BronzeBox.": " . ltrim($MyRow->sBr,'0'),1,0,'C',0);
-					$this->SetX($this->getX()-$this->BoxWidth*2);
-					$this->Cell($this->BoxWidth,10, $this->SemiBox . ': ' . ltrim($MyRow->s2, '0'),1,0,'C',0);
-					for($i=4; $i<=64;$i=$i*2) {
-						if(!isset($MyRow->{'s' . $i}) or is_null($MyRow->{'s' . $i})) break;
-						$this->SetX($this->getX() - $this->BoxWidth*2);
+                    if(!empty($MyRow->sGo)) {
+						$this->setColorArray('draw', $this->BigNameColors[0]);
+                        $this->Cell($this->BoxWidth, 10, $this->GoldBox . ": " . ltrim($MyRow->sGo, '0'), 1, 0, 'C', 0);
+                        $this->SetX($this->getX() - $this->BigNameLineWidth - $this->BoxWidth * 2);
+                    }
+                    if(!empty($MyRow->sBr)) {
+						$this->setColorArray('draw', $this->BigNameColors[1]);
+                        $this->Cell($this->BoxWidth, 10, $this->BronzeBox . ": " . ltrim($MyRow->sBr, '0'), 1, 0, 'C', 0);
+                        $this->SetX($this->getX() - $this->BigNameLineWidth - $this->BoxWidth*2);
+                    }
+					for($i=2; $i<=valueFirstPhase($MyRow->GrPhase);$i=$i*2) {
+						$this->setColorArray('draw', $this->BigNameColors[$i]);
 						$this->Cell($this->BoxWidth, 10, '1/' . namePhase($MyRow->EvFinalFirstPhase,$i) . ': ' . ltrim($MyRow->{'s' . $i},'0'),1,0,'C',0);
+                        if(empty($MyRow->{'s' . $i})) { //} OR is_null($MyRow->{'s' . $i})) {
+						    $this->line($this->getX(), $this->getY(),$this->getX()-$this->BoxWidth, $this->GetY()+10);
+                        }
+                        $this->SetX($this->getX() - $this->BigNameLineWidth - $this->BoxWidth*2);
 					}
-					$this->SetX($this->getX()-$this->BoxWidth-15);
+
+					$this->DrawColor=$OldColor;
+
+                    //$this->SetX($this->getX()-$this->BoxWidth-15);
 					$this->SetFont('','B',20);
 					$this->Cell(15,10, $MyRow->EvCode,1,0,'C',0);
 					$this->SetFont('','',20);
+
+					$this->SetLineWidth($OldLineWidth);
 				}
 
 			}
+			$this->endPage();
 			$this->Output();
 		}
 

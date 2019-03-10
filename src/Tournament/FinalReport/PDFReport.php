@@ -4,6 +4,7 @@ require_once('Common/pdf/Report.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Various.inc.php');
 require_once 'Tournament/Fun_Tournament.local.inc.php';
+checkACL(AclCompetition, AclReadOnly);
 
 if (!isset($_SESSION['TourId']) && isset($_REQUEST['TourId'])) {
 	CreateTourSession($_REQUEST['TourId']);

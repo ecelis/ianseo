@@ -8,11 +8,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclQualification, AclReadOnly, false);
 
 	$Errore=0;
 	$First='';
@@ -40,9 +40,9 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<minimo>' . $First . '</minimo>' . "\n";
-	print '<massimo>' . $Last . '</massimo>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<minimo>' . $First . '</minimo>';
+	print '<massimo>' . $Last . '</massimo>';
+	print '</response>';
 ?>

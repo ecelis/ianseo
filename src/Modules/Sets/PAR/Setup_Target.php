@@ -12,7 +12,7 @@ require_once(dirname(dirname(__FILE__)).'/lib.php');
 CreateStandardDivisions($TourId);
 
 // default SubClasses
-CreateSubClass($TourId, 1, '00', '00');
+//CreateSubClass($TourId, 1, '00', '00');
 
 // default Classes
 CreateStandardClasses($TourId, $SubRule);
@@ -60,9 +60,15 @@ switch($TourType) {
 	case 8:
 		CreateDistance($TourId, $TourType, '%', '25m-1', '25m-2', '18m-1', '18m-2');
 		break;
+    case 37:
+        CreateDistance($TourId, $TourType, 'C%', '50m-1', '50m-2', '50m-3', '50m-4');
+        CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2', '50m-3', '50m-4');
+        CreateDistance($TourId, $TourType, 'R%', '70m-1', '70m-2', '70m-3', '70m-4');
+        CreateDistance($TourId, $TourType, 'VI%', '30m-1', '30m-2', '30m-3', '30m-4');
+        break;
 }
 
-if($TourType<5 or $TourType==6 or $TourType==18) {
+if($TourType<5 or $TourType==6 or $TourType==18 or $TourType==37) {
 	// default Events
 	CreateStandardEvents($TourId, $SubRule, $TourType!=6);
 
@@ -99,7 +105,7 @@ switch($TourType) {
 	case 3:
 		CreateTargetFace($TourId, 1, '~Default', 'R%', '1', 5, 122, 5, 122);
 		CreateTargetFace($TourId, 2, '~DefaultCO', 'C%', '1', 9, 80, 9, 80);
-		CreateTargetFace($TourId, 3, '~DefaultCO', 'W1%', '1', 5, 80, 5, 80);
+		CreateTargetFace($TourId, 3, '~DefaultW1', 'W1%', '1', 5, 80, 5, 80);
 		CreateTargetFace($TourId, 4, '~DefaultVI', 'VI%', '1', 5, 80, 5, 80);
 		break;
 	case 5:
@@ -130,6 +136,12 @@ switch($TourType) {
 		// optional target faces
 		CreateTargetFace($TourId, 5, '~Option1', 'R%', '',  1, 60, 1, 60,  1, 40, 1, 40);
 		break;
+    case 37:
+        CreateTargetFace($TourId, 1, '~Default', 'R%', '1', 5, 122, 5, 122, 5, 122, 5, 122);
+        CreateTargetFace($TourId, 2, '~DefaultCO', 'C%', '1', 9, 80, 9, 80, 9, 80, 9, 80);
+        CreateTargetFace($TourId, 3, '~DefaultW1', 'W1%', '1', 5, 80, 5, 80, 5, 80, 5, 80);
+        CreateTargetFace($TourId, 4, '~DefaultVI', 'VI%', '1', 5, 80, 5, 80, 5, 80, 5, 80);
+        break;
 }
 
 // create a first distance prototype

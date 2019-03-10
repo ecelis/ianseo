@@ -168,7 +168,9 @@ class ods {
 							$string .= '>';
 
 							if(isset($tableContent['rows'][$n][$o]['value'])) {
-								$string .= '<text:p>' . $tableContent['rows'][$n][$o]['value'] . '</text:p>';
+								foreach(preg_split('/[\r\n]+/', $tableContent['rows'][$n][$o]['value']) as $line) {
+									$string .= '<text:p>' . $line . '</text:p>';
+								}
 							}
 						} else {
 							$string .= '>';

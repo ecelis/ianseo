@@ -78,7 +78,8 @@ function getStartListQuery_NL($ORIS=false, $Event='') {
 			LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament
 			LEFT JOIN Divisions ON TRIM(EnDivision)=TRIM(DivId) AND EnTournament=DivTournament
 			LEFT JOIN Classes ON TRIM(EnClass)=TRIM(ClId) AND EnTournament=ClTournament
-			LEFT JOIN EventCategories AS ec ON ec.EcTeamEvent=0 AND e.EnTournament=ec.EcTournament AND e.EnClass=ec.EcClass AND e.EnDivision=ec.EcDivision
+			left join Individuals on IndId=EnId and IndTournament=EnTournament
+			left join Events on EvCode=IndEvent and EvTournament=EnTournament and EvTeamEvent=0
 			LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId
 		{$where}
 		order by F2FEventCode, F2FPhase, F2FGroup, f.F2FRound, TargetNo
@@ -130,7 +131,8 @@ INNER JOIN (
 	LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament
 	LEFT JOIN Divisions ON TRIM(EnDivision)=TRIM(DivId) AND EnTournament=DivTournament
 	LEFT JOIN Classes ON TRIM(EnClass)=TRIM(ClId) AND EnTournament=ClTournament
-	LEFT JOIN EventCategories AS ec ON ec.EcTeamEvent=0 AND e.EnTournament=ec.EcTournament AND e.EnClass=ec.EcClass AND e.EnDivision=ec.EcDivision
+	left join Individuals on IndId=EnId and IndTournament=EnTournament
+	left join Events on EvCode=IndEvent and EvTeamEvent=0 and EvTournament=EnTournament
 	LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId)
 	 en on en.F2FPhase=g.F2FPhase and g.%2\$s=en.F2FMatchNo and g.F2FGroup=en.F2FGroup WHERE g.F2FRound=1";
 	if($Event) $SubQuery.=" and EvCode='$Event'";

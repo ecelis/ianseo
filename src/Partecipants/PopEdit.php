@@ -11,6 +11,7 @@
 	require_once('Common/Fun_FormatText.inc.php');
 
 	if (!CheckTourSession()) printCrackerror('popup');
+    checkACL(AclParticipants, AclReadWrite);
 
 	$id=isset($_REQUEST['id']) ? $_REQUEST['id'] : null;
 
@@ -91,7 +92,6 @@
 		// sesso e dob
 			$EnDob='0000-00-00';
 			$ctrlCode=ConvertDateLoc($_REQUEST['d_e_EnCtrlCode_']);
-
 			if ($ctrlCode!==false)
 			{
 				$EnDob=$ctrlCode;
@@ -121,8 +121,8 @@
 			$Op=($id!=0 ? 'Up' : 'Ins');
 
 			$recalc=false;
-			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
-			$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
+			$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 			if ($id!=0)
 			{
@@ -137,7 +137,7 @@
 					$x=Params4Recalc($id);
 					if ($x!==false)
 					{
-						list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+						list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld)=$x;
 					}
 				}
 				// se la vecchia matricola è diversa Azzero la foto
@@ -285,14 +285,14 @@
 				$x=Params4Recalc($id);
 				if ($x!==false)
 				{
-					list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+					list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 				}
 
 			// ricalcolo il vecchio e il nuovo
 				if (!is_null($indFEvent)) {
-					RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
+					RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
 				}
-				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 			// rank di classe x tutte le distanze
 				$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";
@@ -794,7 +794,7 @@
 				$selected=' selected="selected"';
 			}
 		}
-		$comboLup.= '<option value="' . $u->LueIocCode . '"'.$selected.'>'.$u->LueIocCode.'</option>';
+		$comboLup.= '<option value="' . $u->LueIocCode . '"'.$selected.'>'.($u->LueIocCode ? get_text('LUE-'.$u->LueIocCode, 'Tournament') : '').'</option>';
 	}
 	$comboLup.='</select>';
 
@@ -877,7 +877,7 @@
 		</tr>
 		<tr>
 			<th class="TitleLeft"><?php print get_text('Country');?></th>
-			<td><input type="text" maxlength="5" name="d_c_CoCode_" id="d_c_CoCode_" value="" onkeyup="SelectCountryCode('');"/></td>
+			<td><input type="text" maxlength="10" name="d_c_CoCode_" id="d_c_CoCode_" value="" onkeyup="SelectCountryCode('');"/></td>
 			<th class="TitleLeft"><?php echo $combos['teamfin']['descr']; ?></th>
 			<td><?php echo $combos['teamfin']['combo']; ?></td>
 		</tr>
@@ -895,7 +895,7 @@
 
 		<tr>
 			<th class="TitleLeft"><?php print get_text('Country') . ' (2)';?></th>
-			<td><input type="text" maxlength="5" name="d_c_CoCode2_" id="d_c_CoCode2_" value=""  onkeyup="SelectCountryCode('2');"/></td>
+			<td><input type="text" maxlength="10" name="d_c_CoCode2_" id="d_c_CoCode2_" value=""  onkeyup="SelectCountryCode('2');"/></td>
 			<th class="TitleLeft"><?php echo $combos['wc']['descr']; ?></th>
 			<td><?php echo $combos['wc']['combo']; ?></td>
 		</tr>
@@ -908,7 +908,7 @@
 
 		<tr>
 			<th class="TitleLeft"><?php print get_text('Country') . ' (3)';?></th>
-			<td colspan="3"><input type="text" maxlength="5" name="d_c_CoCode3_" id="d_c_CoCode3_" value=""  onkeyup="SelectCountryCode('3');"/></td>
+			<td colspan="3"><input type="text" maxlength="10" name="d_c_CoCode3_" id="d_c_CoCode3_" value=""  onkeyup="SelectCountryCode('3');"/></td>
 		</tr>
 		<tr>
 			<th class="TitleLeft"><?php print get_text('NationShort','Tournament') . ' (3)';?></th>

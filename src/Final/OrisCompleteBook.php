@@ -14,6 +14,7 @@ $cbIndElim = (safe_num_rows($Rs)>0);
 $Rs=safe_r_sql('SELECT EvCode FROM Events WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 AND EvShootOff=1');
 $cbTeamFinal = (safe_num_rows($Rs)>0);
 
+checkACL(array(AclIndividuals, AclTeams), AclReadOnly);
 $isCompleteResultBook = true;
 
 $pdf = new OrisBracketPDF('', 'Complete Result Book');

@@ -29,6 +29,7 @@ Each schedule line can be of type:
 
 */
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+$aclLevel = checkACL(AclCompetition, AclReadOnly);
 
 CheckTourSession(true);
 
@@ -51,6 +52,23 @@ require_once('Common/Lib/Fun_Modules.php');
 
 if(!empty($_REQUEST['fop'])) {
 	$Sched=new Scheduler();
+
+	// defines the days
+	if(!empty($_REQUEST['Days'])) {
+		$DaysToPrint=array();
+		foreach($_REQUEST['Days'] as $k => $v) {
+			$Sched->DaysToPrint[]=date('Y-m-d', $_SESSION['ToWhenFromUTS'] + $k*86400);
+		}
+	}
+
+	// defines the Locations (these will be printed on a single page)
+	if(!empty($_REQUEST['Locations'])) {
+		foreach($_REQUEST['Locations'] as $k=>$v) {
+			$Sched->LocationsToPrint[]=$Sched->FopLocations[$k];
+		}
+		$Sched->SplitLocations=true;
+	}
+
 	if(!empty($_REQUEST['day'])) {
 		if(strtolower(substr($_REQUEST['day'], 0, 1))=='d') {
 			$Date=date('Y-m-d', strtotime(sprintf('%+d days', substr($_REQUEST['day'], 1) -1), $_SESSION['ToWhenFromUTS']));
@@ -102,21 +120,22 @@ echo '<table class="Tabella">
 			<input type="text" name="FromDayDay" id="FromDayDay">
 			</form></td></tr>
 	<tr class="Divider"><td colspan="10"></td></tr>
-	<tr><td id="Manager">';
+	<tr valign="top"><td id="Manager">';
 
+if($aclLevel == AclReadWrite) {
 // management
-echo '<table id="ScheduleTexts">';
+    echo '<table id="ScheduleTexts">';
 
 // Get all the texts from the scheduler
-echo getScheduleTexts();
+    echo getScheduleTexts();
 
-echo '</table>';
+    echo '</table>';
 
 
-echo '<table>';
+    echo '<table>';
 
 // Get all the qualification items with date & time
-$q=safe_r_sql("select DiSession,
+    $q = safe_r_sql("select DiSession,
 		DiDistance,
 		if(DiDay=0, '', DiDay) DiDay,
 		if(DiStart=0, '', date_format(DiStart, '%H:%i')) DiStart,
@@ -131,40 +150,40 @@ $q=safe_r_sql("select DiSession,
 	inner join Session on SesTournament=DiTournament and SesOrder=DiSession and SesType=DiType and SesType='Q'
 	where DiTournament={$_SESSION['TourId']}
 	order by DiSession, DiDistance");
-echo '<tr>
-		<th class="Title" colspan="6">'.get_text('Q-Session', 'Tournament').'</th>
-		<th class="Title" colspan="3" width="10%">'.get_text('WarmUp', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('Targets', 'Tournament').'</th>
+    echo '<tr>
+		<th class="Title" colspan="6">' . get_text('Q-Session', 'Tournament') . '</th>
+		<th class="Title" colspan="3" width="10%">' . get_text('WarmUp', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('Targets', 'Tournament') . '</th>
 	</tr>
 	<tr>
-		<th class="Title" width="10%">'.get_text('Session').'</th>
-		<th class="Title" width="10%">'.get_text('Distance', 'Tournament').'</th>
-		<th class="Title" width="10%"><img src="'.$CFG->ROOT_DIR.'Common/Images/Tip.png" title="'.get_Text('TipDate', 'Tournament').'" align="right">'.get_text('Date', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('Delayed', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-		<th class="Title" width="10%">'.get_text('ScheduleNotes', 'Tournament').'</th>
+		<th class="Title" width="10%">' . get_text('Session') . '</th>
+		<th class="Title" width="10%">' . get_text('Distance', 'Tournament') . '</th>
+		<th class="Title" width="10%"><img src="' . $CFG->ROOT_DIR . 'Common/Images/Tip.png" title="' . get_Text('TipDate', 'Tournament') . '" align="right">' . get_text('Date', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('Delayed', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+		<th class="Title" width="10%">' . get_text('ScheduleNotes', 'Tournament') . '</th>
 		<th class="Title" width="10%">#1-#N@Dist<br>[@Cat[@Face]]</th>
 	</tr>';
-while($r=safe_fetch($q)) {
-	echo '<tr>
-		<th nowrap="nowrap">'.$r->Session.'</td>
-		<th nowrap="nowrap">'.$r->DiDistance.'</td>
-		<td><input size="10" type="text" name="Fld[Q][Day]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiDay.'" onchange="DiUpdate(this)"></td>
-		<td><input size="5"  type="text" name="Fld[Q][Start]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiStart.'" onchange="DiUpdate(this)"></td>
-		<td><input size="3"  type="text" name="Fld[Q][Duration]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiDuration.'" onchange="DiUpdate(this)"></td>
-		<td><input size="3"  type="text" name="Fld[Q][Shift]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiShift.'" onchange="DiUpdate(this)"></td>
-		<td><input size="5"  type="text" name="Fld[Q][WarmTime]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiWarmStart.'" onchange="DiUpdate(this)"></td>
-		<td><input size="3"  type="text" name="Fld[Q][WarmDuration]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiWarmDuration.'" onchange="DiUpdate(this)"></td>
-		<td><input size="45" type="text" name="Fld[Q][Options]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiOptions.'" onchange="DiUpdate(this)"></td>
-		<td><input size="15" type="text" name="Fld[Q][Targets]['.$r->DiSession.']['.$r->DiDistance.']" value="'.$r->DiTargets.'" onchange="DiUpdate(this)"></td>
+    while ($r = safe_fetch($q)) {
+        echo '<tr>
+		<th nowrap="nowrap">' . $r->Session . '</td>
+		<th nowrap="nowrap">' . $r->DiDistance . '</td>
+		<td><input size="10" type="text" name="Fld[Q][Day][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiDay . '" onchange="DiUpdate(this)"></td>
+		<td><input size="5"  type="text" name="Fld[Q][Start][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiStart . '" onchange="DiUpdate(this)"></td>
+		<td><input size="3"  type="text" name="Fld[Q][Duration][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiDuration . '" onchange="DiUpdate(this)"></td>
+		<td><input size="3"  type="text" name="Fld[Q][Shift][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiShift . '" onchange="DiUpdate(this)"></td>
+		<td><input size="5"  type="text" name="Fld[Q][WarmTime][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiWarmStart . '" onchange="DiUpdate(this)"></td>
+		<td><input size="3"  type="text" name="Fld[Q][WarmDuration][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiWarmDuration . '" onchange="DiUpdate(this)"></td>
+		<td><input size="45" type="text" name="Fld[Q][Options][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiOptions . '" onchange="DiUpdate(this)"></td>
+		<td><input size="15" type="text" name="Fld[Q][Targets][' . $r->DiSession . '][' . $r->DiDistance . ']" value="' . $r->DiTargets . '" onchange="DiUpdate(this)"></td>
 		</tr>';
-}
+    }
 
 // Get all the Elimination items with date & time
-$q=safe_r_sql("select SesOrder,
+    $q = safe_r_sql("select SesOrder,
 		ElElimPhase,
 		if(DiDay=0, '', DiDay) DiDay,
 		if(DiStart=0, '', date_format(DiStart, '%H:%i')) DiStart,
@@ -179,41 +198,41 @@ $q=safe_r_sql("select SesOrder,
 	where SesTournament={$_SESSION['TourId']}
 	and SesType='E'
 	order by SesOrder, ElElimPhase");
-if(safe_num_rows($q)) {
-	echo '<tr class="Divider"><td colspan="10"></td></tr>
+    if (safe_num_rows($q)) {
+        echo '<tr class="Divider"><td colspan="10"></td></tr>
 		<tr>
-			<th class="Title" colspan="6">'.get_text('E-Session', 'Tournament').'</th>
-			<th class="Title" colspan="4" width="10%">'.get_text('WarmUp', 'Tournament').'</th>
+			<th class="Title" colspan="6">' . get_text('E-Session', 'Tournament') . '</th>
+			<th class="Title" colspan="4" width="10%">' . get_text('WarmUp', 'Tournament') . '</th>
 		</tr>
 		<tr>
-			<th class="Title" width="10%">'.get_text('Session').'</th>
-			<th class="Title" width="10%">'.get_text('Eliminations').'</th>
-			<th class="Title" width="10%">'.get_text('Date', 'Tournament').'</th>
-			<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-			<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-			<th class="Title" width="10%">'.get_text('Delayed', 'Tournament').'</th>
-			<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-			<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-			<th class="Title" colspan="2" width="10%">'.get_text('ScheduleNotes', 'Tournament').'</th>
+			<th class="Title" width="10%">' . get_text('Session') . '</th>
+			<th class="Title" width="10%">' . get_text('Eliminations') . '</th>
+			<th class="Title" width="10%">' . get_text('Date', 'Tournament') . '</th>
+			<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+			<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+			<th class="Title" width="10%">' . get_text('Delayed', 'Tournament') . '</th>
+			<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+			<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+			<th class="Title" colspan="2" width="10%">' . get_text('ScheduleNotes', 'Tournament') . '</th>
 		</tr>';
-		while($r=safe_fetch($q)) {
-		echo '<tr>
-			<th nowrap="nowrap">'.$r->Session.'<br/>'.$r->Events.'</td>
-			<th nowrap="nowrap">'.get_text('Eliminations_'.($r->ElElimPhase+1)).'</td>
-			<td><input size="10" type="text" name="Fld[E][Day]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiDay.'" onchange="DiUpdate(this)"></td>
-			<td><input size="5"  type="text" name="Fld[E][Start]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiStart.'" onchange="DiUpdate(this)"></td>
-			<td><input size="3"  type="text" name="Fld[E][Duration]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiDuration.'" onchange="DiUpdate(this)"></td>
-			<td><input size="3"  type="text" name="Fld[E][Shift]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiShift.'" onchange="DiUpdate(this)"></td>
-			<td><input size="5"  type="text" name="Fld[E][WarmTime]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiWarmStart.'" onchange="DiUpdate(this)"></td>
-			<td><input size="3"  type="text" name="Fld[E][WarmDuration]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiWarmDuration.'" onchange="DiUpdate(this)"></td>
-			<td colspan="2"><input size="45" type="text" name="Fld[E][Options]['.$r->SesOrder.']['.$r->ElElimPhase.']" value="'.$r->DiOptions.'" onchange="DiUpdate(this)"></td>
+        while ($r = safe_fetch($q)) {
+            echo '<tr>
+			<th nowrap="nowrap">' . $r->Session . '<br/>' . $r->Events . '</td>
+			<th nowrap="nowrap">' . get_text('Eliminations_' . ($r->ElElimPhase + 1)) . '</td>
+			<td><input size="10" type="text" name="Fld[E][Day][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiDay . '" onchange="DiUpdate(this)"></td>
+			<td><input size="5"  type="text" name="Fld[E][Start][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiStart . '" onchange="DiUpdate(this)"></td>
+			<td><input size="3"  type="text" name="Fld[E][Duration][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiDuration . '" onchange="DiUpdate(this)"></td>
+			<td><input size="3"  type="text" name="Fld[E][Shift][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiShift . '" onchange="DiUpdate(this)"></td>
+			<td><input size="5"  type="text" name="Fld[E][WarmTime][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiWarmStart . '" onchange="DiUpdate(this)"></td>
+			<td><input size="3"  type="text" name="Fld[E][WarmDuration][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiWarmDuration . '" onchange="DiUpdate(this)"></td>
+			<td colspan="2"><input size="45" type="text" name="Fld[E][Options][' . $r->SesOrder . '][' . $r->ElElimPhase . ']" value="' . $r->DiOptions . '" onchange="DiUpdate(this)"></td>
 			</tr>';
-	}
-}
+        }
+    }
 
-if(!empty($_SESSION['InfoMenu']->RoundRobin)) {
-	// get all the scheduled round robins
-	$SQL="SELECT
+    if (!empty($_SESSION['InfoMenu']->RoundRobin)) {
+        // get all the scheduled round robins
+        $SQL = "SELECT
 		g.F2FPhase AS phase,
 		g.F2FRound AS round,
 		g.F2FMatchNo1 AS matchNo1,
@@ -243,30 +262,30 @@ if(!empty($_SESSION['InfoMenu']->RoundRobin)) {
 	group by f1.F2FSchedule, phase, round, `group`
 	ORDER BY
 		f1.F2FSchedule";
-	$q=safe_r_sql($SQL);
-	if(safe_num_rows($q)) {
-		echo '<tr class="Divider"><td colspan="10"></td></tr>
+        $q = safe_r_sql($SQL);
+        if (safe_num_rows($q)) {
+            echo '<tr class="Divider"><td colspan="10"></td></tr>
 			<tr>
-				<th class="Title" colspan="6">'.get_text('R-Session', 'Tournament').'</th>
-				<th class="Title" colspan="4" width="10%">'.get_text('WarmUp', 'Tournament').'</th>
+				<th class="Title" colspan="6">' . get_text('R-Session', 'Tournament') . '</th>
+				<th class="Title" colspan="4" width="10%">' . get_text('WarmUp', 'Tournament') . '</th>
 			</tr>
 			<tr>
-				<th class="Title" width="10%">'.get_text('Events', 'Tournament').'</th>
-				<th class="Title" width="10%">'.get_text('Phase').'</th>
-				<th class="Title" width="10%">'.get_text('Date', 'Tournament').'</th>
-				<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-				<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-				<th class="Title" width="10%">'.get_text('Delayed', 'Tournament').'</th>
-				<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-				<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-				<th class="Title" colspan="2" width="10%">'.get_text('ScheduleNotes', 'Tournament').'</th>
+				<th class="Title" width="10%">' . get_text('Events', 'Tournament') . '</th>
+				<th class="Title" width="10%">' . get_text('Phase') . '</th>
+				<th class="Title" width="10%">' . get_text('Date', 'Tournament') . '</th>
+				<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+				<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+				<th class="Title" width="10%">' . get_text('Delayed', 'Tournament') . '</th>
+				<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+				<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+				<th class="Title" colspan="2" width="10%">' . get_text('ScheduleNotes', 'Tournament') . '</th>
 			</tr>';
-		while($r=safe_fetch($q)) {
-			echo '<tr>
-				<th nowrap="nowrap">'.$r->Events.'</td>
-				<th nowrap="nowrap">Phase '.$r->phase.' - Round '.$r->round.' - Group '.$r->group.'</td>
-				<td><input size="10" type="text" name="Fld[R][Day]['.$r->F2FDate .']['.$r->F2FTime.']" value="'.$r->ScheduledDate.'" onchange="DiUpdate(this)"></td>
-				<td><input size="5"  type="text" name="Fld[R][Start]['.$r->F2FDate .']['.$r->F2FTime.']" value="'.$r->ScheduledTime.'" onchange="DiUpdate(this)"></td>
+            while ($r = safe_fetch($q)) {
+                echo '<tr>
+				<th nowrap="nowrap">' . $r->Events . '</td>
+				<th nowrap="nowrap">Phase ' . $r->phase . ' - Round ' . $r->round . ' - Group ' . $r->group . '</td>
+				<td><input size="10" type="text" name="Fld[R][Day][' . $r->F2FDate . '][' . $r->F2FTime . ']" value="' . $r->ScheduledDate . '" onchange="DiUpdate(this)"></td>
+				<td><input size="5"  type="text" name="Fld[R][Start][' . $r->F2FDate . '][' . $r->F2FTime . ']" value="' . $r->ScheduledTime . '" onchange="DiUpdate(this)"></td>
 				<td>&nbsp;</td>
 				<td>&nbsp;</td>
 				<td>&nbsp;</td>
@@ -274,12 +293,12 @@ if(!empty($_SESSION['InfoMenu']->RoundRobin)) {
 				<td>&nbsp;</td>
 				<td>&nbsp;</td>
 				</tr>';
-		}
-	}
-}
+            }
+        }
+    }
 
 // Get all the Matches items with date & time
-$SQL="select
+    $SQL = "select
 		FsTeamEvent, GrPhase, FsScheduledDate, FsScheduledTime,
 		if(FsScheduledDate=0, '', FsScheduledDate) ScheduledDate,
 		if(FsScheduledTime=0, '', date_format(FsScheduledTime, '%H:%i')) ScheduledTime,
@@ -305,72 +324,73 @@ $SQL="select
 	where FsTournament={$_SESSION['TourId']}
 	group by FsTeamEvent, GrPhase, FsScheduledDate, FsScheduledTime
 	order by FsScheduledDate, FsScheduledTime, FwTime, FsTeamEvent, GrPhase desc";
-$q=safe_r_sql($SQL);
-if(safe_num_rows($q)) {
-	$OldHeader='';
-	$TeamEvent='I';
-	while($r=safe_fetch($q)) {
-		if($OldHeader!=$r->FsTeamEvent) {
-			$TeamEvent=($r->FsTeamEvent ? 'T' : 'I');
-			echo '<tr class="Divider"><td colspan="10"></td></tr>
+    $q = safe_r_sql($SQL);
+    if (safe_num_rows($q)) {
+        $OldHeader = '';
+        $TeamEvent = 'I';
+        while ($r = safe_fetch($q)) {
+            if ($OldHeader != $r->FsTeamEvent) {
+                $TeamEvent = ($r->FsTeamEvent ? 'T' : 'I');
+                echo '<tr class="Divider"><td colspan="10"></td></tr>
 				<tr>
-					<th class="Title" colspan="6">'.get_text(($r->FsTeamEvent ? 'T' : 'I').'-Session', 'Tournament').'</th>
-					<th class="Title" colspan="4" width="10%">'.get_text('WarmUp', 'Tournament').'</th>
+					<th class="Title" colspan="6">' . get_text(($r->FsTeamEvent ? 'T' : 'I') . '-Session', 'Tournament') . '</th>
+					<th class="Title" colspan="4" width="10%">' . get_text('WarmUp', 'Tournament') . '</th>
 				</tr>
 				<tr>
-					<th class="Title" width="10%">'.get_text('Events', 'Tournament').'</th>
-					<th class="Title" width="10%">'.get_text('Phase').'</th>
-					<th class="Title" width="10%">'.get_text('Date', 'Tournament').'</th>
-					<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-					<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-					<th class="Title" width="10%">'.get_text('Delayed', 'Tournament').'</th>
-					<th class="Title" width="10%">'.get_text('Time', 'Tournament').'</th>
-					<th class="Title" width="10%">'.get_text('Length', 'Tournament').'</th>
-					<th class="Title" colspan="2" width="10%">'.get_text('ScheduleNotes', 'Tournament').'</th>
+					<th class="Title" width="10%">' . get_text('Events', 'Tournament') . '</th>
+					<th class="Title" width="10%">' . get_text('Phase') . '</th>
+					<th class="Title" width="10%">' . get_text('Date', 'Tournament') . '</th>
+					<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+					<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+					<th class="Title" width="10%">' . get_text('Delayed', 'Tournament') . '</th>
+					<th class="Title" width="10%">' . get_text('Time', 'Tournament') . '</th>
+					<th class="Title" width="10%">' . get_text('Length', 'Tournament') . '</th>
+					<th class="Title" colspan="2" width="10%">' . get_text('ScheduleNotes', 'Tournament') . '</th>
 				</tr>';
-			$OldHeader=$r->FsTeamEvent;
-		}
-		echo '<tr>
-			<th nowrap="nowrap">'.$r->Events.'</td>
-			<th nowrap="nowrap">'.get_text(((($r->EvFinalFirstPhase==48 or $r->EvFinalFirstPhase==24) and $r->GrPhase>16) ? ($r->GrPhase==64 ? 48 : 24) : $r->GrPhase).'_Phase').'</td>
-			<td><input size="10" type="text" name="Fld['.$TeamEvent.'][Day]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']" value="'.$r->ScheduledDate.'" onchange="DiUpdate(this)"></td>
-			<td><input size="5"  type="text" name="Fld['.$TeamEvent.'][Start]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']" value="'.$r->ScheduledTime.'" onchange="DiUpdate(this)"></td>
-			<td><input size="3"  type="text" name="Fld['.$TeamEvent.'][Duration]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']" value="'.$r->FsScheduledLen.'" onchange="DiUpdate(this)"></td>
-			<td><input size="3"  type="text" name="Fld['.$TeamEvent.'][Shift]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']" value="'.$r->FsShift.'" onchange="DiUpdate(this)"></td>
+                $OldHeader = $r->FsTeamEvent;
+            }
+            echo '<tr>
+			<th nowrap="nowrap">' . $r->Events . '</td>
+			<th nowrap="nowrap">' . get_text(namePhase($r->EvFinalFirstPhase, $r->GrPhase) . '_Phase') . '</td>
+			<td><input size="10" type="text" name="Fld[' . $TeamEvent . '][Day][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . ']" value="' . $r->ScheduledDate . '" onchange="DiUpdate(this)"></td>
+			<td><input size="5"  type="text" name="Fld[' . $TeamEvent . '][Start][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . ']" value="' . $r->ScheduledTime . '" onchange="DiUpdate(this)"></td>
+			<td><input size="3"  type="text" name="Fld[' . $TeamEvent . '][Duration][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . ']" value="' . $r->FsScheduledLen . '" onchange="DiUpdate(this)"></td>
+			<td><input size="3"  type="text" name="Fld[' . $TeamEvent . '][Shift][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . ']" value="' . $r->FsShift . '" onchange="DiUpdate(this)"></td>
 			<td>';
-		$FwTimes=explode('|', $r->FwTime);
-		foreach($FwTimes as $k => $FwTime) {
-			if($k) echo '<br/>';
-			echo '<input size="5"  type="text" name="Fld['.$TeamEvent.'][WarmTime]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']['.$FwTime.']" value="'.$FwTime.'" onchange="DiUpdate(this)">';
-		}
-		echo '</td>
+            $FwTimes = explode('|', $r->FwTime);
+            foreach ($FwTimes as $k => $FwTime) {
+                if ($k) echo '<br/>';
+                echo '<input size="5"  type="text" name="Fld[' . $TeamEvent . '][WarmTime][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . '][' . $FwTime . ']" value="' . $FwTime . '" onchange="DiUpdate(this)">';
+            }
+            echo '</td>
 			<td>';
-		foreach(explode('|', $r->FwDuration) as $k => $FwDuration) {
-			if($k) echo '<br/>';
-			echo '<input size="3"  type="text" name="Fld['.$TeamEvent.'][WarmDuration]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']['.$FwTimes[$k].']" value="'.$FwDuration.'" onchange="DiUpdate(this)">';
-		}
-		echo '</td>
+            foreach (explode('|', $r->FwDuration) as $k => $FwDuration) {
+                if ($k) echo '<br/>';
+                echo '<input size="3"  type="text" name="Fld[' . $TeamEvent . '][WarmDuration][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . '][' . $FwTimes[$k] . ']" value="' . $FwDuration . '" onchange="DiUpdate(this)">';
+            }
+            echo '</td>
 			<td>';
-		foreach(explode('|', $r->FwOptions) as $k => $FwOption) {
-			if($k) echo '<br/>';
-			echo '<input size="45" type="text" name="Fld['.$TeamEvent.'][Options]['.$r->GrPhase.']['.$r->FsScheduledDate .']['.$r->FsScheduledTime.']['.$FwTimes[$k].']" value="'.$FwOption.'" onchange="DiUpdate(this)">';
-		}
-		echo '</td>
+            foreach (explode('|', $r->FwOptions) as $k => $FwOption) {
+                if ($k) echo '<br/>';
+                echo '<input size="45" type="text" name="Fld[' . $TeamEvent . '][Options][' . $r->GrPhase . '][' . $r->FsScheduledDate . '][' . $r->FsScheduledTime . '][' . $FwTimes[$k] . ']" value="' . $FwOption . '" onchange="DiUpdate(this)">';
+            }
+            echo '</td>
 			<td>';
-		foreach($FwTimes as $k => $FwTime) {
-			if($k) {
-				echo '<br/>';
-				echo '<input type="button" value="'.get_text('CmdDelete', 'Tournament').'" onclick="DiDelSubRow(this, \''.$TeamEvent.'|'.$r->GrPhase.'|'.$r->FsScheduledDate .'|'.$r->FsScheduledTime.'|'.$FwTime.'\')">';
-			} else {
-				echo '<input type="button" value="'.get_text('CmdAdd', 'Tournament').'" onclick="DiAddSubRow(this)">';
-			}
-		}
-		echo '</td>
+            foreach ($FwTimes as $k => $FwTime) {
+                if ($k) {
+                    echo '<br/>';
+                    echo '<input type="button" value="' . get_text('CmdDelete', 'Tournament') . '" onclick="DiDelSubRow(this, \'' . $TeamEvent . '|' . $r->GrPhase . '|' . $r->FsScheduledDate . '|' . $r->FsScheduledTime . '|' . $FwTime . '\')">';
+                } else {
+                    echo '<input type="button" value="' . get_text('CmdAdd', 'Tournament') . '" onclick="DiAddSubRow(this)">';
+                }
+            }
+            echo '</td>
 			</tr>';
-	}
+        }
+    }
+    echo '</table>';
+    echo '</td>';
 }
-echo '</table>';
-echo '</td>';
 
 // Schedule
 echo '<td id="TrueScheduler" width="100%">';

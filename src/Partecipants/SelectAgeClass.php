@@ -10,11 +10,11 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$Errore=0;
 	$Classes='#';

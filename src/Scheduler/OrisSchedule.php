@@ -2,10 +2,13 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/OrisPDF.inc.php');
 require_once('Common/Lib/Obj_RankFactory.php');
+checkACL(AclCompetition, AclReadOnly);
 
 define("CellH",10);
 
 CheckTourSession(true);
+
+$PrintNames=isset($_REQUEST['teamcomponents']);
 
 $pdf = new OrisPDF('C58', 'DETAILED COMPETITION SCHEDULE');
 
@@ -59,13 +62,21 @@ foreach($SessionMatches as $vSes => $items) {
 		$ChangePage=false;
 		$Continue='';
 
+		$item=$rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0];
+		$ExtraLineHeight=0;
+		$AthlBorder=1;
+		if($isTeam and $PrintNames) {
+			$ExtraLineHeight=3*$rankData["sections"][$eventCode]['meta']['maxTeamPerson'];
+			$AthlBorder='LTR';
+		}
+
 		if(!$i) {
 			if(!$pdf->samePage(3, CellH, '', false)
 					or (!$pdf->samePage($NumItems, CellH, '', false))) {
 				// first item in a block... needs at least 3 rows to print the sessions data
 				// not able to split in 3+3
 				$ChangePage=true;
-				if($runningDay == $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["scheduledDate"]) $Continue=' (Cont.)';
+				if($runningDay == $item["scheduledDate"]) $Continue=' (Cont.)';
 			}
 		} elseif (($NumItems-$i == 4 and !$pdf->samePage(3, CellH, '', false))
 				or !$pdf->samePage(1, CellH, '', false)) {
@@ -74,7 +85,7 @@ foreach($SessionMatches as $vSes => $items) {
 			$Continue=' (Cont.)';
 		}
 
-		if($runningDay != $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["scheduledDate"]
+		if($runningDay != $item["scheduledDate"]
 				or $ChangePage) {
 			// close the cell...
 			if(!$FirstPage) $pdf->Line(OrisPDF::leftMargin, $y1=$pdf->GetY(), OrisPDF::leftMargin+25, $y1);
@@ -105,14 +116,14 @@ foreach($SessionMatches as $vSes => $items) {
 			$pdf->SetXY($pdf->GetX(), $pdf->GetY()-CellH/2);
 			$pdf->Cell(42, CellH, "Participant 2 (Target 2)", 1, 1, 'L', 0);
 			$pdf->SetFont('','');
-			if($runningDay != $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["scheduledDate"]) {
+			if($runningDay != $item["scheduledDate"]) {
 				$sesInDay=0;
 			} else {
 				$evInSession=-1;
 // 				$pdf->dy(1);
 			}
 
-			$runningDay = $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["scheduledDate"];
+			$runningDay = $item["scheduledDate"];
 		}
 		$FirstPage=false;
 		if($lastSes != $vSes) {
@@ -125,15 +136,17 @@ foreach($SessionMatches as $vSes => $items) {
 			$evInSession++;
 		}
 
-		$pdf->Cell(25, CellH, ($evInSession==0 ? (new DateTime($runningDay))->format('D j M').$Continue:($evInSession==1 ? "Session ".$sesInDay:($evInSession==2 ? $Sessions[$sesCnt]['Name']:''))), 'LR'.($evInSession==0 ? 'T':''), 0, 'L', 0);
-		$pdf->Cell(10, CellH, (new DateTime($rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["scheduledTime"]))->format('H:i'), 1, 0, 'C', 0);
-		$pdf->Cell(31, CellH, $rankData["sections"][$eventCode]["meta"]["eventName"], 1, 0, 'L', 0);
-		$pdf->Cell(10, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["meta"]["phaseName"], 1, 0, 'L', 0);
+		$OrgY=$pdf->getY();
+
+		$pdf->Cell(25, CellH+$ExtraLineHeight, ($evInSession==0 ? (new DateTime($runningDay))->format('D j M').$Continue:($evInSession==1 ? "Session ".$sesInDay:($evInSession==2 ? (in_array($sesCnt,$Sessions) ? $Sessions[$sesCnt]['Name']:''):''))), 'LR'.($evInSession==0 ? 'T':''), 0, 'L', 0);
+		$pdf->Cell(10, CellH+$ExtraLineHeight, (new DateTime($item["scheduledTime"]))->format('H:i'), 1, 0, 'C', 0);
+		$pdf->Cell(31, CellH+$ExtraLineHeight, $rankData["sections"][$eventCode]["meta"]["eventName"], 1, 0, 'L', 0);
+		$pdf->Cell(10, CellH+$ExtraLineHeight, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["meta"]["phaseName"], 1, 0, 'L', 0);
 
 		$SqlWR = "SELECT RankRanking
 			FROM Rankings
 			WHERE RankTournament={$_SESSION["TourId"]} AND
-				RankCode='".$rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0][$isTeam ? "countryCode":"bib"]."' AND
+				RankCode='".$item[$isTeam ? "countryCode":"bib"]."' AND
 				RankIocCode='FITA' AND
 				RankTeam={$isTeam} AND
 				RankEvent='{$eventCode}'";
@@ -143,15 +156,16 @@ foreach($SessionMatches as $vSes => $items) {
 			$wrank = (safe_fetch($wrQ)->RankRanking);
 		}
 
-		$pdf->Cell(7, CellH, $wrank, 1, 0, 'R', 0);
-		$pdf->Cell(8, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["qualRank"], 1, 0, 'R', 0);
-		$pdf->Cell(34, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0][$isTeam ? "countryName":"athlete"], 1, 0, 'L', 0);
-		$pdf->Cell(8, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["countryCode"], 1, 0, 'L', 0);
+		$pdf->Cell(7, CellH+$ExtraLineHeight, $wrank, 1, 0, 'R', 0);
+		$pdf->Cell(8, CellH+$ExtraLineHeight, $item["qualRank"], 1, 0, 'R', 0);
+		$pdf->Cell(34, CellH, $item[$isTeam ? "countryName":"athlete"], $AthlBorder, 0, 'L', 0);
+		$pdf->Cell(8, CellH+$ExtraLineHeight, $item["countryCode"], 1, 0, 'L', 0);
+
 
 		$SqlWR = "SELECT RankRanking
 			FROM Rankings
 			WHERE RankTournament={$_SESSION["TourId"]} AND
-			RankCode='".$rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0][$isTeam ? "oppCountryCode":"oppBib"]."' AND
+			RankCode='".$item[$isTeam ? "oppCountryCode":"oppBib"]."' AND
 			RankIocCode='FITA' AND
 			RankTeam={$isTeam} AND
 			RankEvent='{$eventCode}'";
@@ -160,11 +174,29 @@ foreach($SessionMatches as $vSes => $items) {
 		if(safe_num_rows($wrQ)) {
 			$wrank = (safe_fetch($wrQ)->RankRanking);
 		}
-		$pdf->Cell(7, CellH, $wrank, 1, 0, 'R', 0);
-		$pdf->Cell(8, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["oppQualRank"], 1, 0, 'R', 0);
-		$pdf->Cell(34, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0][$isTeam ? "oppCountryName":"oppAthlete"], 1, 0, 'L', 0);
-		$pdf->Cell(8, CellH, $rankData["sections"][$eventCode]["phases"][key($rankData["sections"][$eventCode]["phases"])]["items"][0]["oppCountryCode"], 1, 1, 'L', 0);
+		$pdf->Cell(7, CellH+$ExtraLineHeight, $wrank, 1, 0, 'R', 0);
+		$pdf->Cell(8, CellH+$ExtraLineHeight, $item["oppQualRank"], 1, 0, 'R', 0);
+		$pdf->Cell(34, CellH, $item[$isTeam ? "oppCountryName":"oppAthlete"], $AthlBorder, 0, 'L', 0);
+		$pdf->Cell(8, CellH+$ExtraLineHeight, $item["oppCountryCode"], 1, 1, 'L', 0);
 
+		if($isTeam and $PrintNames) {
+			$OrgX=$pdf->getX()+95;
+			$Font=$pdf->getFontSizePt();
+			$pdf->SetFontSize(8);
+			foreach($rankData["sections"][$eventCode]['athletes'][$item['teamId']][0] as $k => $Component) {
+				$pdf->setxy($OrgX, 3*$k + $OrgY+8);
+				$pdf->Cell(30, 3, $Component['athlete'], '', 0, 'L', 0);
+			}
+			$pdf->Line($OrgX-4, $OrgY+CellH+$ExtraLineHeight, $OrgX+30, $OrgY+CellH+$ExtraLineHeight);
+			$OrgX+=57;
+			foreach($rankData["sections"][$eventCode]['athletes'][$item['oppTeamId']][0] as $k => $Component) {
+				$pdf->setxy($OrgX, 3*$k + $OrgY+8);
+				$pdf->Cell(30, 3, $Component['athlete'], '', 0, 'L', 0);
+			}
+			$pdf->Line($OrgX-4, $OrgY+CellH+$ExtraLineHeight, $OrgX+30, $OrgY+CellH+$ExtraLineHeight);
+			$pdf->SetY($OrgY+CellH+$ExtraLineHeight);
+			$pdf->SetFontSize($Font);
+		}
 		$lastSes=$vSes;
 	}
 }

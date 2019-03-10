@@ -5,6 +5,7 @@
 	CheckTourSession(true);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Various.inc.php');
+    checkACL(AclParticipants, AclReadWrite);
 
 	if(!empty($_REQUEST['delete']) and $CoId=intval($_REQUEST['delete'])) {
 		$q=safe_r_sql("select EnId from Entries where EnTournament={$_SESSION['TourId']} and (EnCountry=$CoId or EnCountry2=$CoId or EnCountry3=$CoId) limit 1");
@@ -25,7 +26,7 @@
 			. '<td class="Title" width="30%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?ordNationComplete=' . (isset($_REQUEST['ordNationComplete']) && $_REQUEST['ordNationComplete']=='ASC' ? 'DESC' : 'ASC') . '">' . get_text('CompleteCountryName') . '</a></td>'
 			. '<td class="Title" width="20%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?ordParent1=' . (isset($_REQUEST['ordParent1']) && $_REQUEST['ordParent1']=='ASC' ? 'DESC' : 'ASC') . '">' . get_text('CountryNameParent1') . '</a></td>'
 			. '<td class="Title" width="20%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?ordParent2=' . (isset($_REQUEST['ordParent2']) && $_REQUEST['ordParent2']=='ASC' ? 'DESC' : 'ASC') . '">' . get_text('CountryNameParent2') . '</a></td>'
-	. '</tr>' . "\n";
+	. '</tr>';
 
 	$OrderBy='c.CoCode ASC ';
 
@@ -112,7 +113,7 @@
 		<?php print $MyHeader;?>
 
 		<tr>
-			<td class="Right"><input type="text" name="fCoCode" size="5" value="<?php print isset($_REQUEST['fCoCode']) ? $_REQUEST['fCoCode'] : '';?>" /></td>
+			<td class="Right"><input type="text" name="fCoCode" size="10" value="<?php print isset($_REQUEST['fCoCode']) ? $_REQUEST['fCoCode'] : '';?>" /></td>
 			<td><input type="text" name="fCoName" size="30" value="<?php print isset($_REQUEST['fCoName']) ? $_REQUEST['fCoName'] : '';?>"/></td>
 			<td><input type="text" name="fCoNameComplete" size="50" value="<?php print isset($_REQUEST['fCoNameComplete']) ? $_REQUEST['fCoNameComplete'] : '';?>"/></td>
 			<td><input type="text" name="CoParent1" size="5" value="<?php print isset($_REQUEST['CoParent1']) ? $_REQUEST['CoParent1'] : '';?>" /></td>
@@ -124,7 +125,7 @@
 
 		<?php while ($row=safe_fetch($rs)) { ?>
 			<tr>
-				<td class="Right Bold"><input type="text" id="d_c_CoCode_<?php print $row->CoId;?>" size="8" maxlength="5" value="<?php print $row->CoCode;?>" onblur="UpdateField('d_c_CoCode_<?php print $row->CoId;?>');" /></td>
+				<td class="Right Bold"><input type="text" id="d_c_CoCode_<?php print $row->CoId;?>" size="10" maxlength="10" value="<?php print $row->CoCode;?>" onblur="UpdateField('d_c_CoCode_<?php print $row->CoId;?>');" /></td>
 				<td><input type="text" id="d_c_CoName_<?php print $row->CoId;?>" size="30" maxlength="30" value="<?php print $row->CoName;?>" onblur="UpdateField('d_c_CoName_<?php print $row->CoId;?>');" /></td>
 				<td><input type="text" id="d_c_CoNameComplete_<?php print $row->CoId;?>" size="50" maxlength="80" value="<?php print $row->CoNameComplete;?>"  onblur="UpdateField('d_c_CoNameComplete_<?php print $row->CoId;?>');" /></td>
 				<td><input type="text" id="d_c_CoParent1_<?php print $row->CoId;?>" size="5" maxlength="5" value="<?php print $row->p1Code;?>"  onblur="UpdateField('d_c_CoParent1_<?php print $row->CoId;?>');" />&nbsp;<?php print $row->p1Name;?></td>

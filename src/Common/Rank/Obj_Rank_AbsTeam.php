@@ -97,6 +97,33 @@
 		{
 			$filter="";
 
+			if(!empty($this->opts['session'])) {
+				// need to check which team events are being shot in those sessions...
+				$QuFilter='';
+				if(is_array($this->opts['session'])) {
+					$QuFilter .= " QuSession in (".implode(', ', $this->opts['session']).") ";
+				} else {
+					if($ses=intval($this->opts['session'])) {
+						$QuFilter .= " QuSession=$ses ";
+					}
+				}
+				if($QuFilter) {
+					if(empty($this->opts['events'])) {
+						$this->opts['events']=array();
+					} elseif(!is_array($this->opts['events'])) {
+						$this->opts['events']=array($this->opts['events']);
+					}
+					$t=safe_r_sql("select distinct EvCode 
+						from Events
+						inner join TeamComponent on TcEvent=EvCode and TcTournament=EvTournament and EvTeamEvent=1
+						inner join Qualifications on QuId=TcId and $QuFilter
+						where EvTournament={$this->tournament}");
+					while($u=safe_fetch($t)) {
+						$this->opts['events'][]=$u->EvCode;
+					}
+				}
+			}
+
 			if (!empty($this->opts['events'])) {
 				if (is_array($this->opts['events'])) {
 					$tmp=array();
@@ -154,8 +181,15 @@
 			$f=$this->safeFilter();
 			$filter=($f!==false ? $f : "");
 
-			if (array_key_exists('cutRank',$this->opts) && is_numeric($this->opts['cutRank']) && $this->opts['cutRank']>0)
-				$filter.= "AND Teams.teRank<={$this->opts['cutRank']} ";
+			$TeamFilter='';
+			if (array_key_exists('cutRank',$this->opts)) {
+				if(is_numeric($this->opts['cutRank']) && $this->opts['cutRank']>0) {
+					$TeamFilter.= " AND Teams.teRank<={$this->opts['cutRank']} ";
+				} elseif (strtolower($this->opts['cutRank'])=='cut') {
+					$TeamFilter.= " AND Teams.teRank<=EvNumQualified ";
+				}
+			}
+
 
 			$q="
 				SELECT
@@ -163,9 +197,9 @@
 					EvMaxTeamPerson, EvProgr, EvFinalFirstPhase,
 					ClDescription, DivDescription,
 					EnId,EnCode,EnSex,EnNameOrder,EnFirstName,upper(EnFirstName) EnFirstNameUpper,EnName,EnClass,EnDivision,EnAgeClass,EnSubClass,
-					IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) AS QualifiedNo,	EvQualPrintHead,
+					EvNumQualified AS QualifiedNo,	EvQualPrintHead,
 					SUBSTRING(QuTargetNo,1,1) AS Session, SUBSTRING(QuTargetNo,2) AS TargetNo,
-					QuHits*EvMaxTeamPerson AS Arrows_Shot, QuScore, TeScore,TeRank, TeGold, TeXnine, ToGolds, ToXNine,TeHits,
+					TeHits AS Arrows_Shot, QuScore, TeScore,TeRank, TeGold, TeXnine, ToGolds, ToXNine,TeHits,
 					TeRank, EvRunning, IF(EvRunning=1,IFNULL(ROUND(TeScore/TeHits,3),0),0) as RunningScore,
 					ABS(TeSO) AS RankBeforeSO,
 					tie.Quanti,
@@ -174,7 +208,7 @@
 					TeTimeStamp, DiEnds, DiArrows,
 					ifnull(concat(DV2.DvMajVersion, '.', DV2.DvMinVersion) ,concat(DV1.DvMajVersion, '.', DV1.DvMinVersion)) as DocVersion,
 					date_format(ifnull(DV2.DvPrintDateTime, DV1.DvPrintDateTime), '%e %b %Y %H:%i UTC') as DocVersionDate,
-					ifnull(DV2.DvNotes, DV1.DvNotes) as DocNotes, TeNotes
+					ifnull(DV2.DvNotes, DV1.DvNotes) as DocNotes, TeNotes, (EvShootOff OR EvE1ShootOff OR EvE2ShootOff) as ShootOffSolved
 				FROM
 					Tournament
 					INNER JOIN
@@ -240,11 +274,11 @@
 					WHERE
 					Teams.TeTournament={$this->tournament}
 					{$filter}
+					{$TeamFilter}
 				ORDER BY
-					EvProgr,TeEvent, RunningScore DESC, TeRank ASC, TeGold DESC, TeXnine DESC, CoCode, TeSubTeam, EnFirstName, tc.TcOrder
+					EvProgr,TeEvent, RunningScore DESC, TeRank ASC, TeGold DESC, TeXnine DESC, CoCode, TeSubTeam, EnSex desc, EnFirstName, tc.TcOrder
 			";
 
-// 					debug_svela($q);
 			$r=safe_r_sql($q);
 
 			$this->data['meta']['title']=get_text('ResultSqAbs','Tournament');
@@ -330,11 +364,12 @@
 								'printHeader'=>$row->EvQualPrintHead,
 								'order' => $row->EvProgr,
 								'numDist' => $distValid,
-								'maxScore' => $row->ToMaxDistScore*$row->EvMaxTeamPerson,
-								'maxArrows' => ($row->DiEnds ? $row->DiEnds*$row->DiArrows : $row->ToNumEnds*3)*$row->EvMaxTeamPerson,
+								'maxScore' => $row->ToMaxDistScore*$row->EvMaxTeamPerson*$distValid,
+								'maxArrows' => ($row->DiEnds ? $row->DiEnds*$row->DiArrows : $row->ToNumEnds*3)*$row->EvMaxTeamPerson*$distValid,
 								'arrowsShot'=> array(),
 								'sesArrows'=> array(),
 								'running' => ($row->EvRunning==1 ? 1:0),
+                                'finished' => ($row->ShootOffSolved==1 ? 1:0),
 								'fields'=>$fields,
 								'version' => $row->DocVersion,
 								'versionDate' => $row->DocVersionDate,
@@ -354,6 +389,14 @@
 						$tmpArr=array();
 						for($countArr=0; $countArr<strlen(trim($row->TeTieBreak)); $countArr = $countArr+$row->EvMaxTeamPerson)
 							$tmpArr[]= ValutaArrowString(substr(trim($row->TeTieBreak),$countArr,$row->EvMaxTeamPerson)) . ",";
+                        if($row->TeRank==127) {
+                            $tmpRank = 'DSQ';
+                        } else if ($row->TeRank==126) {
+                            $tmpRank = 'DNS';
+                        } else {
+                            $tmpRank= $row->TeRank;
+                        }
+
 						$item=array(
 							'id' 			=> $row->CoId,
 							'countryCode' 	=> $row->CoCode,
@@ -361,7 +404,7 @@
 							'countryName' 	=> $row->CoName,
 							'subteam' 		=> $row->TeSubTeam,
 							'athletes'		=> array(),
-							'rank'			=> $row->TeRank,
+							'rank'			=> $tmpRank,
 							'rankBeforeSO'	=> $row->RankBeforeSO,
 							'score' 		=> ($row->EvRunning==1 ? $row->RunningScore : $row->TeScore),
 							'completeScore' => $row->TeScore,

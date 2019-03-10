@@ -23,7 +23,7 @@ class IanseoPdf extends TCPDF {
 
 	var $Titolo;
 	var $ColorDocument;
-	var $Code, $Name, $Oc, $Where, $WhenF, $WhenT, $prnGolds, $prnXNine, $goldsChars ,$xNineChars;
+	var $Code, $Name, $Oc, $Where, $WhenF, $WhenT, $prnGolds, $prnXNine, $goldsChars ,$xNineChars, $IsOris;
 	var $imgR = false, $imgL = false, $imgB = false;
 	var $Judge, $Dos, $Resp, $Jury;
 	var $ShowAwards=false;
@@ -81,7 +81,7 @@ class IanseoPdf extends TCPDF {
 		}
 		elseif(CheckTourSession())
 		{
-			$Sql = "SELECT ToCode, ToName, ToComDescr, ToWhere, ToTimeZone, ".
+			$Sql = "SELECT ToCode, ToName, ToComDescr, ToWhere, ToTimeZone, ToIsOris, ".
 				"date_format(ToWhenFrom, '".get_text('DateFmtDB')."') as ToWhenFrom, date_format(ToWhenTo, '".get_text('DateFmtDB')."') as ToWhenTo," .
 			// riga di patch
 				"ToWhenFrom AS DtFrom,ToWhenTo AS DtTo," .
@@ -105,6 +105,7 @@ class IanseoPdf extends TCPDF {
 				$this->imgB		= $r->ImgB;
 				$this->prnGolds = $r->TtGolds;
 				$this->prnXNine = $r->TtXNine;
+				$this->IsOris   = $r->ToIsOris;
 				$this->goldsChars = $r->ToGoldsChars;
 				$this->xNineChars = $r->ToXNineChars;
 				$this->docUpdate=date('Ymd.His e');
@@ -210,6 +211,10 @@ class IanseoPdf extends TCPDF {
 		$this->pushMargins();
 		$this->setFontSubsetting(false);
 		$this->setViewerPreferences(array('PrintScaling' => 'none'));
+	}
+
+	public function getDrawColor() {
+		return $this->DrawColor;
 	}
 
 	public function setDocUpdate($newDate)

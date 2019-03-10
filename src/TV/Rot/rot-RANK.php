@@ -28,9 +28,6 @@ function rotRank($TVsettings, $RULE) {
 		$options['cutRank'] = $TVsettings->TVPNumRows;
 	if(isset($TVsettings->TVPSession) && $TVsettings->TVPSession>0)
 		$options['session'] = $TVsettings->TVPSession;
-// debug_svela($TVsettings);
-
-
 
 	$Columns=(isset($TVsettings->TVPColumns) && !empty($TVsettings->TVPColumns) ? explode('|',$TVsettings->TVPColumns) : array());
 	$ViewTeams=(in_array('TEAM', $Columns) or in_array('ALL', $Columns));
@@ -57,9 +54,11 @@ function rotRank($TVsettings, $RULE) {
 
 	if($SubBlock>count($rankData['sections'])) $SubBlock=1;
 
-	while($SubBlock) {
-		list($IdEvent, $data)=each($rankData['sections']);
+	foreach($rankData['sections'] as $IdEvent => $data) {
 		$SubBlock--;
+		if(!$SubBlock) {
+			break;
+		}
 	}
 
 	$FieldForGold='gold';
@@ -75,7 +74,10 @@ function rotRank($TVsettings, $RULE) {
 	// TITLE
 	$tmp = '';
 
-	$ret[]='<div class="Title">'.$rankData['meta']['title'].$Title2Rows.$data['meta']['descr']
+	$ret[]='<div class="Title">
+				<div class="TitleImg" style="float:left;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
+				<div class="TitleImg" style="float:right;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
+		'.$rankData['meta']['title'].$Title2Rows.$data['meta']['descr']
 	.'</div>';
 
 	// Header header;
@@ -115,7 +117,6 @@ function rotRank($TVsettings, $RULE) {
 			continue;
 
 		}
-// 		debug_svela($archer);
 		if($Fixed and $archer['rank']>$Fixed and !$FixedDone) {
 			$ret[]='<div id="content" data-direction="up">';
 			$FixedDone=true;
@@ -145,7 +146,6 @@ function rotRank($TVsettings, $RULE) {
 
 		if($ViewTeams) {
 			$tmp.='<div class="CountryDescr">' . $archer['countryName'] . '</div>';
-// 			debug_svela($archer);
 		}
 
 		$tmp.='</div>';
@@ -188,14 +188,14 @@ function rotRankSettings($Settings) {
 function getPageDefaults(&$RMain) {
 	global $CFG;
 	$ret=array(
-			'Title' => '',
-			'Rank' => 'flex: 0 0 4rem; text-align:right;',
-			'CountryCode' => 'flex: 0 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-			'FlagDiv' => 'flex: 0 0 3.95rem;',
-			'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-			'Target' => 'flex: 0 0 4rem; font-size:75%; text-align:right;',
-			'CountryDescr' => 'flex: 1 1 15rem;overflow:hidden;white-space:nowrap;',
-			'Athlete' => 'flex: 1 1 15rem;',
+		'Title' => '',
+		'Rank' => 'flex: 0 0 4vw; text-align:right;',
+		'CountryCode' => 'flex: 0 0 3.5vw; font-size:0.8vw; margin-left:-3.75ch',
+		'FlagDiv' => 'flex: 0 0 4.35vw;',
+		'Flag' => 'height:2.8vw; border:0.05vw solid #888;box-sizing:border-box;',
+		'Target' => 'flex: 0 0 6vw; text-align:right;margin-right:0.5em;',
+		'Athlete' => 'flex: 1 1 20vw;white-space:nowrap;overflow:hidden;',
+		'CountryDescr' => 'flex: 0 1 20vw;white-space:nowrap;overflow:hidden;',
 	);
 	foreach($ret as $k=>$v) {
 		if(!isset($RMain[$k])) $RMain[$k]=$v;

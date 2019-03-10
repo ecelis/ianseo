@@ -8,8 +8,8 @@ $pdf->AddPage();
 $pdf->Bookmark($PdfData->IndexName, 0);
 
 foreach($PdfData->Data['Items'] as $Rows) {
-	$pdf->SamePage(count($Rows) + 2);
 	$pdf->lastY += 1;
+	$pdf->SamePage(count($Rows), 3.5, $pdf->lastY);
 	$first=true;
 
 	foreach($Rows as $MyRow) {

@@ -32,8 +32,8 @@
 //		"U" => array("P" => "19", "N" => "19", 'W' => 290),
 		"V" => array("P" => "20", "N" => "20", 'W' => 290),
 //		"W" => array("P" => "21", "N" => "17", 'W' => 300),
-//		"X" => array("P" => "22", "N" => "18", 'W' => 310),
-//		"Y" => array("P" => "23", "N" => "19", 'W' => 320),
+		"X" => array("P" => "X", "N" => "11", 'W' => 205),
+		"Y" => array("P" => "X", "N" => "6", 'W' => 160),
 		"Z" => array("P" => "X", "N" => "5", 'W' => 160),
 	);
 
@@ -329,6 +329,50 @@
 		return $Target;
 	}
 
+/*
+- GetHigerArrowValue($EventCode,$TeamEvent=0,$curValue='',$TourId=-1)
+Returns the next Higher value than the passed one
+@param String $EventCode: Event Code.
+@param String $TeamEvent: 0 if Indivudual Event, 1 if Team Event.
+@param String $curValue: actual arrow value (print value)
+@param String $TourId: Tournament id, if -1 $_SESSION['TourId'] is used
+*/
+function GetHigerArrowValue($EventCode,$TeamEvent=0,$curValue='',$TourId=-1)
+{
+    global $LetterPoint;
+    $ToId=($TourId!=-1 ? $TourId : StrSafe_DB($_SESSION['TourId']));
+
+    $Sql = "SELECT Targets.* 
+        FROM Events INNER JOIN Targets ON EvFinalTargetType=TarId AND EvTeamEvent=" . StrSafe_DB($TeamEvent) . "
+        WHERE EvTournament=" . $ToId . " AND EvCode=" . StrSafe_DB($EventCode);
+    $q=safe_r_sql($Sql);
+    if(!($MyRow=safe_fetch($q))) {
+        return $curValue;
+    }
+
+    $ret=array();
+    $CurValueWeight=0;
+    foreach(range('Z','B') as $key) {
+        if($MyRow->{$key.'_size'}) {
+            if($LetterPoint[$key]['P'] == $curValue) {
+                $CurValueWeight = $LetterPoint[$key]['W'];
+            }
+            if($LetterPoint[$key]['W']>$CurValueWeight) {
+                $ret[$LetterPoint[$key]['W']] = $LetterPoint[$key]['P'];
+            }
+        }
+    }
+    ksort($ret,SORT_NUMERIC);
+
+    foreach (array_keys($ret) as $v) {
+        if($v>$CurValueWeight) {
+            return $ret[$v];
+        }
+    }
+    return $curValue;
+}
+
+
 /**
  * Ritorna true se il bersaglio $Target è completo
  *
@@ -528,12 +572,12 @@
 	 *  @return string: stringa vuota in caso di problemi oppure colonna "P" di $LetterPoint
 	 */
 	//XXX tolto il parametro $Target e sganciato dal sorgente
-	function DecodeFromString($Letter='',$sum=false)
+	function DecodeFromString($Letter='', $sum=false, $forceArray=false)
 	{
 		global $LetterPoint;
 		$SumMaybe='';
 		$SumReturn=0;
-
+		//$Letter=rtrim($Letter);
 		IF(!$Letter) RETURN array();
 		$maybe=false;
 
@@ -561,7 +605,7 @@
 
 		}
 		if($sum) return ValutaArrowString($Letter).($maybe ? '*' : '');
-		if(strlen($Letter)==1) return $ret[0];
+		if(!$forceArray and strlen($Letter)==1) return $ret[0];
 		return $ret;
 
 	}
@@ -752,22 +796,21 @@
 
 		$ToId=($TourId!=-1 ? $TourId : StrSafe_DB($_SESSION['TourId']));
 
-		$Select
-			= "SELECT"
-			. " Targets.* "
-			. " , EvMatchMode, EvFinalTargetType, EvTargetSize"
-			. " , @Phase:=ifnull(2*pow(2,truncate(log2($MatchNo/2),0)),1) Phase"
-			. ' , @PhaseMatch:=(@Phase & EvMatchArrowsNo)'
-			. ' , if(@PhaseMatch, EvElimEnds, EvFinEnds) CalcEnds'
-			. ' , if(@PhaseMatch, EvElimArrows, EvFinArrows) CalcArrows'
-			. ' , if(@PhaseMatch, EvElimSO, EvFinSO) CalcSO '
-			. "FROM"
-			. " Events"
-			. " INNER JOIN Targets ON EvFinalTargetType=TarId "
-			. "WHERE"
-			. " EvTournament=" . $ToId . ""
-			. " AND EvCode=" . StrSafe_DB($EventCode) . " "
-			. " AND EvTeamEvent=" . StrSafe_DB($TeamEvent) . " ";
+		if($MatchNo<=1) {
+			$Phase=0;
+		} else {
+			$Phase= pow(2, intval(log($MatchNo, 2)));
+		}
+		$Select = "SELECT Targets.*, EvMatchMode, EvFinalTargetType, EvTargetSize, EvDistance,
+				@PhaseMatch:=($Phase & EvMatchArrowsNo), 
+				if(@PhaseMatch, EvElimEnds, EvFinEnds) CalcEnds, 
+				if(@PhaseMatch, EvElimArrows, EvFinArrows) CalcArrows, 
+				if(@PhaseMatch, EvElimSO, EvFinSO) CalcSO 
+			FROM Events
+			INNER JOIN Targets ON EvFinalTargetType=TarId 
+			WHERE EvTournament=" . $ToId . "
+				AND EvCode=" . StrSafe_DB($EventCode) . " 
+				AND EvTeamEvent=" . StrSafe_DB($TeamEvent);
 			$Rs=safe_r_sql($Select);
 
 		if ($MyRow=safe_fetch($Rs))
@@ -775,24 +818,52 @@
 			$ret['Arrows']=array('A' => array(0, '', ''));
 			$ret['MaxPoint']=0;
 			$ret['MinPoint']=999;
-			$oldcolor='';
 			if(isset($GLOBALS['CurrentTarget'])) {
 				$GLOBALS['CurrentTarget']['A'] = $LetterPoint['A'];
 			}
 			$size=0;
+			$targetRings=array(PHP_INT_MAX => array(
+                'size'=>0,
+                'fillColor'=>'',
+                'lineColor'=>'',
+                'letter'=>'A',
+                'value'=>$LetterPoint['A']['N'],
+                'print'=>$LetterPoint['A']['P'],
+                'radius'=>-1)
+            );
 			foreach(range('A','Z') as $key) {
 				if($MyRow->{$key.'_size'}) {
-					if($size < $MyRow->{$key.'_size'})
-						$size = $MyRow->{$key.'_size'};
-					// fills the accepted arrows array
-					$ret['Arrows'][$key]=array($MyRow->{$key.'_size'}, $MyRow->{$key.'_color'}, ($MyRow->{$key.'_color'}=='000000' && $oldcolor=='000000')?'FFFFFF':'000000');
-					$oldcolor=$MyRow->{$key.'_color'};
+				    $targetRings[$MyRow->{$key.'_size'}] = array(
+				        "size"=>$MyRow->{$key.'_size'},
+                        "fillColor"=>$MyRow->{$key.'_color'},
+                        "lineColor"=>'000000',
+                        "letter"=>$key,
+				        "value"=>$LetterPoint[$key]['N'],
+				        "print"=>$LetterPoint[$key]['P'],
+                        "radius"=>0
+                    );
 
+					if($size < $MyRow->{$key.'_size'}) {
+                        $size = $MyRow->{$key . '_size'};
+                    }
+                    /*
+					// fills the accepted arrows array
+					$ret['Arrows'][$key]=array(
+					    $MyRow->{$key.'_size'},
+                        $MyRow->{$key.'_color'},
+                        ($MyRow->{$key.'_color'}=='000000' && $oldcolor=='000000')?'FFFFFF':'000000'
+                    );
+					$oldcolor=$MyRow->{$key.'_color'};
+*/
 					// check the maxpoint
-					if($LetterPoint[$key]['N']>$ret['MaxPoint']) $ret['MaxPoint']=$LetterPoint[$key]['N'];
+					if($LetterPoint[$key]['N']>$ret['MaxPoint']) {
+					    $ret['MaxPoint']=$LetterPoint[$key]['N'];
+                    }
 
 					// check the minpoint
-					if($LetterPoint[$key]['N'] and $LetterPoint[$key]['N']<$ret['MinPoint']) $ret['MinPoint']=$LetterPoint[$key]['N'];
+					if($LetterPoint[$key]['N'] and $LetterPoint[$key]['N']<$ret['MinPoint']) {
+					    $ret['MinPoint']=$LetterPoint[$key]['N'];
+                    }
 
 					if(isset($GLOBALS['CurrentTarget'])) {
 						$GLOBALS['CurrentTarget'][$key] = $LetterPoint[$key];
@@ -806,7 +877,24 @@
 			$ret['ArrowsPerEnd']=$MyRow->CalcArrows;
 			$ret['Ends']=$MyRow->CalcEnds;
 			$ret['SO']=$MyRow->CalcSO;
-			$ret['Size']= ($MyRow->EvTargetSize ? $MyRow->EvTargetSize : 122) * 50 * ($size/100);
+			$ret['Distance']=$MyRow->EvDistance;
+			$ret['TargetRadius'] = ($MyRow->TarFullSize ? ($MyRow->EvTargetSize ? $MyRow->EvTargetSize : 122) * ($size/$MyRow->TarFullSize) * 5 : 0);
+			$ret['Size']=($MyRow->EvTargetSize ? $MyRow->EvTargetSize : 122) * ($size/2);
+			$ret['TargetSize']= ($MyRow->EvTargetSize ? $MyRow->EvTargetSize : 122);
+			$ret['FullSize']= $MyRow->TarFullSize;
+			$ret['MaxSize']= $size;
+            krsort($targetRings);
+            $oldColor='';
+
+            foreach ($targetRings as $k=>$v) {
+                $v['radius'] = ($ret['TargetRadius'] / $size) * $v['size'];
+                if($oldColor == $v['fillColor'] AND $v['fillColor']=='000000') {
+                    $v['lineColor'] = 'FFFFFF';
+                }
+                $ret['Arrows'][$v['letter']] = $v;
+
+                $oldColor= $v['fillColor'];
+            }
 		}
 
 		return $ret;

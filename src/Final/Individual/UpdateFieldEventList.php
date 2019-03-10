@@ -4,56 +4,41 @@
 	Aggiorna il campo di Events passato in querystring.
 */
 
-	define('debug',false);
+require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+if (!CheckTourSession()) {
+	print get_text('CrackError');
+	exit;
+}
+checkACL(AclCompetition, AclReadWrite, false);
 
-	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+$JSON=array('error' => 1, 'which' => '#');
 
-	if (!CheckTourSession())
-	{
-		print get_text('CrackError');
-		exit;
-	}
+foreach ($_REQUEST as $Key => $Value) {
+	if (substr($Key,0,2)=='d_') {
+		$JSON['which'] = $Key;
+		$cc = '';
+		$ee = '';
+		list (,$cc,$ee)=explode('_',$Key);
 
-	$Errore=0;
+		if (!IsBlocked(BIT_BLOCK_TOURDATA)) {
+			$Update
+				= "UPDATE Events SET "
+				. $cc . "=" . StrSafe_DB($Value) . " "
+				. "WHERE EvCode=" . StrSafe_DB($ee) . " AND EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
+			$RsUp=safe_w_sql($Update);
 
-	$Which='#';
+			if ($cc == 'EvMatchMode' || $cc == 'EvFinalTargetType') {
+				if(safe_w_affected_rows()!=0) {
+					safe_w_sql("UPDATE Events SET EvTourRules='' where EvCode=" . StrSafe_DB($ee) . " AND EvTeamEvent='0' AND EvTournament = " . StrSafe_DB($_SESSION['TourId']));
 
-	foreach ($_REQUEST as $Key => $Value)
-	{
-		if (substr($Key,0,2)=='d_')
-		{
-			$Which = $Key;
-			$cc = '';
-			$ee = '';
-			list (,$cc,$ee)=explode('_',$Key);
+					// check secondary competitions and in case delete them if phase is not coherent
 
-			if (!IsBlocked(BIT_BLOCK_TOURDATA))
-			{
-				$Update
-					= "UPDATE Events SET "
-					. $cc . "=" . StrSafe_DB($Value) . " "
-					. "WHERE EvCode=" . StrSafe_DB($ee) . " AND EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
-				$RsUp=safe_w_sql($Update);
-				if (debug)
-					print $Update . '<br>';
-				if (!$RsUp) {
-					$Errore=1;
-				} else if ($cc == 'EvMatchMode' || $cc == 'EvFinalTargetType') {
-					if(safe_w_affected_rows()!=0) {
-						safe_w_sql("UPDATE Events SET EvTourRules='' where EvCode=" . StrSafe_DB($ee) . " AND EvTeamEvent='0' AND EvTournament = " . StrSafe_DB($_SESSION['TourId']));
-					}
 				}
 			}
-			else
-				$Errore=1;
+
+			$JSON['error']=0;
 		}
 	}
+}
 
-	if (!debug)
-		header('Content-Type: text/xml');
-
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<which>' . $Which . '</which>' . "\n";
-	print '</response>' . "\n";
-?>
+JsonOut($JSON);

@@ -4,6 +4,7 @@
 	require_once('Common/Fun_Sessions.inc.php');
 
 	CheckTourSession(true);
+    $aclLevel = checkACL(AclCompetition,AclNoAccess);
 
 	if(!empty($_REQUEST['redraw'])) {
 		include_once('Common/CheckPictures.php');
@@ -122,8 +123,7 @@
 <th class="TitleLeft" width="15%"><?php print get_text('SessionDescr', 'Tournament');?></th>
 <td>
 <?php
-		if ($MyRow->ToNumSession>0)
-		{
+		if ($MyRow->ToNumSession>0) {
 		// info sessioni
 			$sessions=GetSessions('Q');
 
@@ -131,9 +131,7 @@
 			{
 				print get_text('Session') . ' ' . $s->SesOrder . ': ' . $s->SesName . ' --> ' . $s->SesTar4Session . ' ' . get_text('Targets', 'Tournament') . ', ' . $s->SesAth4Target . ' ' . get_text('Ath4Target', 'Tournament')  . '<br>';
 			}
-		}
-		else
-		{
+		} else {
 			print get_text('NoSession','Tournament');
 		}
 ?>
@@ -165,11 +163,21 @@
 ?>
 </td>
 </tr>
-<tr>
-<th class="TitleLeft" width="15%"><?php print get_text('Photo','Tournament');?></th>
-<td><a href="?redraw=1" class="Link"><?php echo get_text('RedrawPictures','Tournament'); ?></a><br/><a href="?redraw=1&force=1" class="Link"><?php echo get_text('RecreatePictures','Tournament'); ?></a></td>
-</tr>
-</table>
+<?php
+    if($aclLevel == AclReadWrite) {
+        echo '<tr>';
+        echo '<th class="TitleLeft" width="15%">' . get_text('Photo', 'Tournament') . '</th>';
+        echo '<td><a href="?redraw=1" class="Link">' . get_text('RedrawPictures', 'Tournament') . '</a><br/><a href="?redraw=1&force=1" class="Link">' . get_text('RecreatePictures', 'Tournament') . '</a></td>';
+        echo '</tr>';
+    } else if($INFO->ACLEnabled AND $aclLevel == AclNoAccess) {
+        echo '<tr class="Divider"><td colspan="2"></td></tr>';
+        echo '<tr>';
+        echo '<th class="TitleLeft" width="15%">'.get_text('Block_IP','Tournament').'</th>';
+        echo '<td style="font-size: 200%;">'.$_SERVER["REMOTE_ADDR"].'</td>';
+        echo '</tr>';
+    }
+?>
+        </table>
 <?php
 	}
 

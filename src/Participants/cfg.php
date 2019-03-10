@@ -12,6 +12,7 @@ if($_SESSION['AccreditationTourIds']) $TourId=$_SESSION['AccreditationTourIds'];
 
 $AllTargets=(isset($_REQUEST['AllTargets']) ? intval($_REQUEST['AllTargets']) : 0);
 $ShowTourCode=(isset($_REQUEST['ShowTourCode']) ? intval($_REQUEST['ShowTourCode']) : 0);
+$ShowPicture=(isset($_REQUEST['ShowPicture']) ? intval($_REQUEST['ShowPicture']) : 1);
 $ShowLocalBib=(isset($_REQUEST['ShowLocalBib']) ? intval($_REQUEST['ShowLocalBib']) : 0);
 $ShowEmail=(isset($_REQUEST['ShowEmail']) ? intval($_REQUEST['ShowEmail']) : 1);
 $ShowCaption=(isset($_REQUEST['ShowCaption']) ? intval($_REQUEST['ShowCaption']) : 1);
@@ -29,6 +30,10 @@ $SortOrder=(isset($_REQUEST['sortOrder']) ? ($_REQUEST['sortOrder']=='asc' ? 'as
 $NegSort=array('asc' => 'desc', 'desc' => 'asc');
 
 switch($Sort) {
+	case 'sortPicture':
+		$OrderBy="PhPhoto is not null $SortOrder, `Session` ASC, `TargetNo` ASC ";
+		$RowKey='concat(PhPhoto is not null, "-", QuSession, "-", QuTarget) as RowKey';
+		break;
 	case 'sortTour':
 		$OrderBy="ToCode $SortOrder, `Session` ASC, `TargetNo` ASC ";
 		$RowKey='concat(ToCode, "-", QuSession, "-", QuTarget) as RowKey';

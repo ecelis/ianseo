@@ -11,6 +11,7 @@
 
 	$options['tournament']=$CompId;
 	$options['events']=array();
+	$options['matchno']=$MatchNo;
 	$options['events'][] =  $Event . '@' . $Phase;
 
 	$rank=null;
@@ -31,85 +32,112 @@
 				if($vItem['matchNo']!=$MatchNo && $vItem['oppMatchNo']!=$MatchNo)
 					continue;
 
-				$firstTmpEnd = 0;
-				$SQL = "SELECT DISTINCT IskDtEndNo
-					FROM IskData
-					WHERE IskDtTournament={$CompId} AND IskDtMatchNo IN (".$vItem['matchNo'].",".$vItem['oppMatchNo'].") AND IskDtEvent='{$Event}' AND IskDtTeamInd={$EventType} AND IskDtType='{$EventTypeLetter}' AND IskDtTargetNo='' AND IskDtDistance=0
-					ORDER BY IskDtEndNo ASC";
-				$q=safe_r_SQL($SQL);
-				if($r=safe_fetch($q)) {
-					$firstTmpEnd=$r->IskDtEndNo;
+				// only for pro!
+				if($iskModePro) {
+					$firstTmpEnd = 0;
+					$SQL = "SELECT *
+						FROM IskData
+						WHERE IskDtTournament={$CompId} AND IskDtMatchNo IN (".$vItem['matchNo'].",".$vItem['oppMatchNo'].") AND IskDtEvent='{$Event}' AND IskDtTeamInd={$EventType} AND IskDtType='{$EventTypeLetter}' AND IskDtTargetNo='' AND IskDtDistance=0
+						ORDER BY IskDtEndNo ASC";
+					$q=safe_r_SQL($SQL);
+					while($r=safe_fetch($q)) {
+						if($r->IskDtEndNo > $objParam->ends) {
+							// tie break
+							$fld = ($r->IskDtMatchNo == $vItem['matchNo'] ? 'tiebreakArrowstring' : 'oppTiebreakArrowstring');
+							$vItem[$fld]=str_repeat(' ', strlen($r->IskDtArrowstring));
+							$idx = 0;
+						} else {
+							// normal scoring
+							$fld = ($r->IskDtMatchNo == $vItem['matchNo'] ? 'arrowstring' : 'oppArrowstring');
+							$idx = ($r->IskDtEndNo-1)*$objParam->arrows;
+							$vItem[$fld]=str_pad($vItem[$fld], $idx+1, ' ', STR_PAD_RIGHT);
+						}
+						for($i=0; $i<strlen($r->IskDtArrowstring); $i++) {
+							$vItem[$fld][$idx++] = $r->IskDtArrowstring[$i];
+						}
+					}
+				}
+
+				$end = array();
+				$oppEnd = array();
+				// rebuild points
+				$chunks0=str_split(rtrim($vItem['arrowstring']), $objParam->arrows);
+				$chunks1=str_split(rtrim($vItem['oppArrowstring']), $objParam->arrows);
+				$Tot0=0;
+				$Tot1=0;
+				foreach($chunks0 as $End => $Arrows) {
+					if(!$Arrows and !$chunks1[$End]) continue;
+					$pts0=ValutaArrowString($Arrows);
+					$pts1=ValutaArrowString($chunks1[$End]);
+
+					if($vSec['meta']['matchMode']) {
+						$endtot0 = ($pts0==$pts1 ? 1 : ($pts0>$pts1 ? 2 : 0));
+						$endtot1 = ($pts0==$pts1 ? 1 : ($pts0<$pts1 ? 2 : 0));
+					} else {
+						$endtot0 = $pts0;
+						$endtot1 = $pts1;
+					}
+					$Tot0+=$endtot0;
+					$Tot1+=$endtot1;
+					$end[]=array('endnum'=>$End+1, 'endscore'=>$pts0, 'points'=>$endtot0);
+					$oppEnd[]=array('endnum'=>$End+1, 'endscore'=>$pts1, 'points'=>$endtot1);
+				}
+
+				// check tiebreak
+				$SO=false;
+				if(!empty($vItem['tiebreakArrowstring']) or !empty($vItem['oppTiebreakArrowstring'])) {
+					if(!trim($vItem['tiebreakArrowstring']) and ! trim($vItem['oppTiebreakArrowstring'])) continue;
+					$SO=true;
+					$pts0=ValutaArrowString($vItem['tiebreakArrowstring']);
+					$pts1=ValutaArrowString($vItem['oppTiebreakArrowstring']);
+
+					if($vSec['meta']['matchMode']) {
+						$endtot0 = ($pts0==$pts1 ? 0 : (($pts0>$pts1 or $vItem['tiebreakArrowstring']!=strtoupper($vItem['tiebreakArrowstring'])) ? 1 : 0));
+						$endtot1 = ($pts0==$pts1 ? 0 : (($pts0<$pts1 or $vItem['oppTiebreakArrowstring']!=strtoupper($vItem['oppTiebreakArrowstring'])) ? 1 : 0));
+						$Tot0+=$endtot0;
+						$Tot1+=$endtot1;
+					} else {
+						$endtot0 = $pts0;
+						$endtot1 = $pts1;
+					}
+					$end[]=array('endnum'=>'S.O.', 'endscore'=>$pts0, 'points'=>$endtot0);
+					$oppEnd[]=array('endnum'=>'S.O.', 'endscore'=>$pts1, 'points'=>$endtot1);
+				}
+
+				// check winner if no winners and pro mode
+				if($iskModePro and !$vItem['winner']
+						and !$vItem['oppWinner']
+						and ($vSec['meta']['matchMode'] ? ($Tot0>$vSec['meta']['finEnds'] or $Tot1>$vSec['meta']['finEnds']) : (strlen(rtrim($vItem['arrowstring']))==$vSec['meta']['finEnds']*$vSec['meta']['finArrows'] and strlen(rtrim($vItem['oppArrowstring']))==$vSec['meta']['finEnds']*$vSec['meta']['finArrows']))) {
+					if($vSec['meta']['matchMode']) {
+						if($Tot0>$vSec['meta']['finEnds']) {
+							$vItem['winner']=1;
+						} else {
+							$vItem['oppWinner']=1;
+						}
+					} else {
+						if($Tot0>$Tot1) {
+							$vItem['winner']=1;
+						} elseif($Tot0<$Tot1) {
+							$vItem['oppWinner']=1;
+						} elseif($SO) {
+							if($pts0>$pts1) {
+								$vItem['winner']=1;
+							} elseif($pts0<$pts1) {
+								$vItem['oppWinner']=1;
+							} else {
+								// check star?
+							}
+
+						}
+					}
 				}
 
 				$json_array['matchover'] = ($vItem['winner'] or $vItem['oppWinner']);
-				$end = array();
-				$oppEnd = array();
-				if($vSec['meta']['matchMode']) {
-					$tmp0 = explode("|",$vItem['setPoints']);
-					$tmp1 = explode("|",$vItem['oppSetPoints']);
-					for($i=0; $i<$objParam->ends; $i++){
-						if($firstTmpEnd && $firstTmpEnd<=$i+1) {
-							$aTmp = getMatchTotals($Event, $vItem['matchNo'], $EventType, $i+1, $objParam->arrows, $objParam->ends, $objParam->so);
-							$bTmp = getMatchTotals($Event, $vItem['oppMatchNo'], $EventType, $i+1, $objParam->arrows, $objParam->ends, $objParam->so);
-							if($aTmp['curendscore'] || $bTmp['curendscore']) {
-								$end[]=array('endnum'=>$i+1, 'endscore'=>$aTmp['curendscore'], 'points'=>($aTmp['curendscore']==$bTmp['curendscore'] ? 1 : ($aTmp['curendscore']>$bTmp['curendscore'] ? 2 : 0)));
-								$oppEnd[]=array('endnum'=>$i+1, 'endscore'=>$bTmp['curendscore'], 'points'=>($bTmp['curendscore']==$aTmp['curendscore'] ? 1 : ($bTmp['curendscore']>$aTmp['curendscore'] ? 2 : 0)));
-							}
-						} elseif($tmp0[$i] || $tmp1[$i]) {
-							$end[]=array('endnum'=>$i+1, 'endscore'=>$tmp0[$i], 'points'=>($tmp0[$i]>$tmp1[$i] ? 2 : ($tmp0[$i]==$tmp1[$i] ? 1 : 0)));
-							$oppEnd[]=array('endnum'=>$i+1, 'endscore'=>$tmp1[$i], 'points'=>($tmp1[$i]>$tmp0[$i] ? 2 : ($tmp0[$i]==$tmp1[$i] ? 1 : 0)));
-						}
-					}
-					if($firstTmpEnd && $firstTmpEnd<=$objParam->ends+1) {
-						$aTmp = getMatchTotals($Event, $vItem['matchNo'], $EventType, $objParam->ends+1, $objParam->arrows, $objParam->ends, $objParam->so);
-						$bTmp = getMatchTotals($Event, $vItem['oppMatchNo'], $EventType, $objParam->ends+1, $objParam->arrows, $objParam->ends, $objParam->so);
-						if($aTmp['curendscore'] || $bTmp['curendscore']) {
-							$end[]=array('endnum'=>'S.O.', 'endscore'=>$aTmp['curendscore'], 'points'=>'-');
-							$oppEnd[]=array('endnum'=>'S.O.', 'endscore'=>$bTmp['curendscore'], 'points'=>'-');
-						}
-					}elseif($vItem['tiebreakDecoded'] && $vItem['oppTiebreakDecoded']) {
-						$end[]=array('endnum'=>'S.O.', 'endscore'=>$vItem['tiebreakDecoded'], 'points'=>($vItem['tie'] ? 1:0));
-						$oppEnd[]=array('endnum'=>'S.O.', 'endscore'=>$vItem['oppTiebreakDecoded'], 'points'=>($vItem['oppTie'] ? 1:0));
-					}
-				} else {
-					$running=array(0,0);
-					for($i=0; $i<$objParam->ends; $i++){
-						$tmp=array(ValutaArrowString(substr($vItem['arrowstring'],$i*$objParam->arrows, $objParam->arrows)), ValutaArrowString(substr($vItem['oppArrowstring'],$i*$objParam->arrows, $objParam->arrows)));
-						$running[0]+=$tmp[0];
-						$running[1]+=$tmp[1];
-						if($firstTmpEnd && $firstTmpEnd<=$i+1) {
-							$aTmp = getMatchTotals($Event, $vItem['matchNo'], $EventType, $i+1, $objParam->arrows, $objParam->ends, $objParam->so);
-							$bTmp = getMatchTotals($Event, $vItem['oppMatchNo'], $EventType, $i+1, $objParam->arrows, $objParam->ends, $objParam->so);
-							if($aTmp['curendscore'] || $bTmp['curendscore']) {
-								$end[]=array('endnum'=>$i+1, 'endscore'=>$aTmp['curendscore'], 'points'=>$aTmp['curscoreatend']);
-								$oppEnd[]=array('endnum'=>$i+1, 'endscore'=>$bTmp['curendscore'], 'points'=>$bTmp['curscoreatend']);
-							}
-						} elseif($tmp[0] || $tmp[1]) {
-							$end[]=array('endnum'=>$i+1, 'endscore'=>$tmp[0], 'points'=>$running[0]);
-							$oppEnd[]=array('endnum'=>$i+1, 'endscore'=>$tmp[1], 'points'=>$running[1]);
-						}
-					}
-					if($firstTmpEnd && $firstTmpEnd<=$objParam->ends+1) {
-						$aTmp = getMatchTotals($Event, $vItem['matchNo'], $EventType, $objParam->ends+1, $objParam->arrows, $objParam->ends, $objParam->so);
-						$bTmp = getMatchTotals($Event, $vItem['oppMatchNo'], $EventType, $objParam->ends+1, $objParam->arrows, $objParam->ends, $objParam->so);
-						if($aTmp['curendscore'] || $bTmp['curendscore']) {
-							$end[]=array('endnum'=>'S.O.', 'endscore'=>$aTmp['curendscore'], 'points'=>'-');
-							$oppEnd[]=array('endnum'=>'S.O.', 'endscore'=>$bTmp['curendscore'], 'points'=>'-');
-						}
-					}elseif($vItem['tiebreakDecoded'] && $vItem['oppTiebreakDecoded']) {
-						$end[]=array('endnum'=>'S.O.', 'endscore'=>$vItem['tiebreakDecoded'], 'points'=>$running[0]);
-						$oppEnd[]=array('endnum'=>'S.O.', 'endscore'=>$vItem['oppTiebreakDecoded'], 'points'=>$running[1]);
-					}
-				}
 
+				// sends summary
 				$json_array['competitors'] = Array();
-				$json_array['competitors'][] = Array('winner'=>(int)$vItem['winner'], 'matchid'=>$kSec . "|" . ($EventType ? "T" : "I") . "|" . $vItem['matchNo'], 'score'=>($vSec['meta']['matchMode'] ? $vItem['setScore'] : $vItem['score']), 'ends'=>$end);
-				$json_array['competitors'][] = Array('winner'=>(int)$vItem['oppWinner'], 'matchid'=>$kSec . "|" . ($EventType ? "T" : "I") . "|" . $vItem['oppMatchNo'], 'score'=>($vSec['meta']['matchMode'] ? $vItem['oppSetScore'] : $vItem['oppScore']), 'ends'=>$oppEnd);
-
-				if($firstTmpEnd!=0) {
-					$json_array['competitors'][0]['score']="--";
-					$json_array['competitors'][1]['score']="--";
-				}
+				$json_array['competitors'][] = Array('winner'=>(int)$vItem['winner'], 'matchid'=>$kSec . "|" . ($EventType ? "T" : "I") . "|" . $vItem['matchNo'], 'score'=>$Tot0, 'ends'=>$end);
+				$json_array['competitors'][] = Array('winner'=>(int)$vItem['oppWinner'], 'matchid'=>$kSec . "|" . ($EventType ? "T" : "I") . "|" . $vItem['oppMatchNo'], 'score'=>$Tot1, 'ends'=>$oppEnd);
 
 				$JsonResult[] = $json_array;
 			}

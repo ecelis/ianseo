@@ -10,6 +10,8 @@ require_once('TV/Fun_HTML.local.inc.php');
 
 $RuleId=intval($_REQUEST['RuleId']);
 $TourId=intval($_REQUEST['TourId']);
+checkACL(AclOutput,AclReadOnly, false, $TourId);
+
 
 // get the defaults of the rule
 $q=safe_r_sql("select * from TVRules where TVRId=$RuleId AND TVRTournament=$TourId");

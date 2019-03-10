@@ -14,6 +14,8 @@
 	} else {
 		$TourId=(empty($_REQUEST['TourCode']) ? $_SESSION['TourId'] : getIdFromCode($_REQUEST['TourCode']));
 	}
+    checkACL(AclOutput,AclReadOnly, false, $TourId);
+
 	$LastUpdated=(empty($_REQUEST['Time']) ? 0 : $_REQUEST['Time']);
 	$WinWidth=(empty($_REQUEST['Width']) ? 800 : $_REQUEST['Width']);
 
@@ -71,7 +73,7 @@
 	list($rows,$cols,$so)=CalcScoreRowsColsSO($myRow, $TourId);
 
 	// i due score da stampare a video
-	$scores=array(1=>'',2=>'');
+	$scores=array(1=>array(),2=>array());
 
 	for($archer=1; $archer<3; $archer++) {
 		for($row=0; $row<$rows; $row++) {
@@ -129,7 +131,6 @@
 			}
 			$Out.='</tr>';
 		} else {
-// 		debug_svela($myRow);
 			$Out.='<tr style="height:20%"><td id="name1" colspan="'.$cols.'">'.$myRow->name1.'</td><td id="name2" colspan="'.$cols.'">'.$myRow->name2.'</td></tr>';
 			if(!$myRow->tiebreak1 and !$myRow->tiebreak2) {
 				$Out.='<tr style="width:100%;height:80%"><td id="Score1" colspan="'.$cols.'">'.$myRow->score1.'</td><td id="Score2" colspan="'.$cols.'">'.$myRow->score2.'</td></tr>';

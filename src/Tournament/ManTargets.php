@@ -3,6 +3,8 @@
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Partecipants/Fun_Targets.php');
 
+    checkACL(AclCompetition, AclReadWrite);
+
 	CheckTourSession(true); // will print the crack error string if not inside a tournament!
 
 	$Advanced = (ProgramRelease!='FITARCO' AND ProgramRelease!='STABLE');

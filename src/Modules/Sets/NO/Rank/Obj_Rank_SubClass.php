@@ -431,6 +431,9 @@
 				}
 			}
 
+			if (!empty($this->opts['sessions'])) {
+				$filter.=" AND QuSession in (" . implode(',', $this->opts['sessions'])  . ") " ;
+			}
 			return $filter;
 		}
 	/**

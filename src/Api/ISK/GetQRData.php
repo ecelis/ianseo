@@ -5,6 +5,9 @@ require_once('Common/Lib/ArrTargets.inc.php');
 require_once('Common/Lib/CommonLib.php');
 require_once('Common/Lib/Fun_Modules.php');
 
+CheckTourSession(true);
+checkACL(AclISKServer, AclReadWrite);
+
 $PAGE_TITLE=get_text('ISK-GetQRData');
 
 include('Common/Templates/head-min.php');
@@ -32,16 +35,16 @@ if(!isset($_REQUEST["Data"])) {
 				$endNum=($end->e+1);
 				$tgt = $qValue[0];
 
-				$SQL="SELECT QuId, QuSession, QuTargetNo, DIDistance, DIEnds, DIArrows, ToGoldsChars, ToXNineChars, AEId from Qualifications
+				$SQL="SELECT QuId, QuSession, QuTargetNo, DIDistance, DIEnds, DIArrows, ToGoldsChars, ToXNineChars, QuConfirm & ".pow(2, $dist)."=1 as StopImport 
+					from Qualifications
 					INNER JOIN Entries ON QuId=EnId
 					INNER JOIN Tournament ON ToId=EnTournament
 					INNER JOIN DistanceInformation ON DITournament=EnTournament AND DISession=QuSession AND DIDistance=".StrSafe_DB($dist)." AND DIType='Q'
-					left join AccEntries on AETournament={$CompId} and AEId=EnId and AEOperation=".(100+$dist)."
 					WHERE EnTournament=$CompId and QuTargetNo=".StrSafe_DB($tgt);
 				$q=safe_r_SQL($SQL);
 				$ArrowSearch=safe_fetch($q);
 
-				if($ArrowSearch->AEId) {
+				if($ArrowSearch->StopImport) {
 					continue;
 				}
 

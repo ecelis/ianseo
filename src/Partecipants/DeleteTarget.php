@@ -1,6 +1,7 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite);
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Various.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
@@ -12,8 +13,8 @@ $delSession=(isset($_REQUEST['delSession']) && $_REQUEST['delSession']==1 ? $_RE
 
 // sessioni
 $comboSession
-	= '<select name="session" id="session">' . "\n"
-	. '<option value="0">' . get_text('AllSessions','Tournament') . '</option>' . "\n";
+	= '<select name="session" id="session">'
+	. '<option value="0">' . get_text('AllSessions','Tournament') . '</option>';
 
 $q="SELECT * FROM Session WHERE SesTournament=". StrSafe_DB($_SESSION['TourId']) . " AND SesType='Q' ORDER BY SesOrder ASC ";
 $r=safe_r_sql($q);
@@ -22,14 +23,14 @@ $sessions=GetSessions('Q');
 
 foreach($sessions as $s)
 {
-	$comboSession.='<option value="' . $s->SesOrder. '"' . (!is_null($session) && $s->SesOrder==$session ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
+	$comboSession.='<option value="' . $s->SesOrder. '"' . (!is_null($session) && $s->SesOrder==$session ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
 }
 
-$comboSession.='</select>' . "\n";
+$comboSession.='</select>';
 
 $msg=get_text('Error');
 
-if (isset($_REQUEST['command']) and $_REQUEST['command']=='OK' and !IsBlocked(BIT_BLOCK_PARTICIPANT) and $filter!='') {
+if (isset($_REQUEST['command']) and !IsBlocked(BIT_BLOCK_PARTICIPANT) and $filter!='') {
 	$query="";
 	if ($isEvent==0) {
 		$Where="EnTournament=" . StrSafe_DB($_SESSION['TourId']) . "
@@ -65,10 +66,14 @@ if (isset($_REQUEST['command']) and $_REQUEST['command']=='OK' and !IsBlocked(BI
 		if ($delSession==1) {
 			$Fields[]= "QuSession=0";
 		}
-		safe_w_sql("UPDATE Entries INNER JOIN Qualifications ON EnId=QuId AND EnIndFEvent=1 INNER JOIN EventClass ON EnDivision=EcDivision AND EnClass=EcClass AND EnTournament=EcTournament AND EcTeamEvent=0
+		safe_w_sql("UPDATE Entries 
+            INNER JOIN Qualifications ON EnId=QuId AND EnIndFEvent=1 
+            INNER JOIN EventClass ON EnDivision=EcDivision AND EnClass=EcClass AND EnTournament=EcTournament and if(EcSubClass='', true, EcSubClass=EnSubClass) AND EcTeamEvent=0
 			SET EnTimestamp='".date('Y-m-d H:i:s')."'
 			WHERE (".implode(' or ', $Fields).") and $Where");
-		$query = "UPDATE Entries INNER JOIN Qualifications ON EnId=QuId AND EnIndFEvent=1 INNER JOIN EventClass ON EnDivision=EcDivision AND EnClass=EcClass AND EnTournament=EcTournament AND EcTeamEvent=0
+		$query = "UPDATE Entries 
+            INNER JOIN Qualifications ON EnId=QuId AND EnIndFEvent=1 
+            INNER JOIN EventClass ON EnDivision=EcDivision AND EnClass=EcClass AND EnTournament=EcTournament and if(EcSubClass='', true, EcSubClass=EnSubClass) AND EcTeamEvent=0
 			SET QuTimestamp=QuTimestamp, QuBacknoPrinted=0, ".implode(', ', $Fields).", QuTarget=0, QuLetter=''
 			WHERE $Where";
 	}

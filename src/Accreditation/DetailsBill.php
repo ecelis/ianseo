@@ -6,6 +6,7 @@
 	require_once('Common/Fun_FormatText.inc.php');
 
 	CheckTourSession(true,'popup');
+    checkACL(AclAccreditation, AclReadWrite);
 
 	if (!(isset($_SESSION['chk_Turni']) && is_array($_SESSION['chk_Turni']) &&
 		isset($_SESSION['AccOp']) && is_numeric($_SESSION['AccOp'])))

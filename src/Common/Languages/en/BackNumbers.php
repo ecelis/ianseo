@@ -1,8 +1,10 @@
 <?php
 $lang['A-Badge']='Accreditation badge';
 $lang['Access']='Access Areas';
+$lang['AccessGraphics']='Access Area - Icons';
 $lang['Accomodation']='Accomodation, Meal, Transport';
 $lang['AccreditationKO']='Accreditation problem... PLEASE PROCEED TO THE DESK';
+$lang['AccreditationMatches']='This Badge is specific for the following categories:';
 $lang['AccreditationOK']='Accreditation process successfull!';
 $lang['AccreditationTwice']='Accreditation already done.';
 $lang['AlignC']='Center';
@@ -16,6 +18,7 @@ $lang['Athlete']='Athlete Name';
 $lang['AthQrCode']='Athlete Code (QR code)';
 $lang['AutoCheckin']='Auto Check-In';
 $lang['AutoCHK-Camera']='Use Camera to read QR-Codes';
+$lang['AutoCHK-CanEdit']='Devices can edit Name Spelling and Category';
 $lang['AutoCHK-Code']='Competition Code';
 $lang['AutoCHK-Confirm']='Confirm Check-In';
 $lang['AutoCHK-IP']='IPs of the Auto-Checkin Devices (one per line)';
@@ -44,8 +47,18 @@ $lang['BadgeName']='Badge Name';
 $lang['BadgeSetup']='Badge Setup';
 $lang['BadgeTest']='Test Badge';
 $lang['Barcode']='Barcode';
+$lang['BarCodeFields']='<ul>
+<li><b>Blank: </b>a dash-separated string with Entry Code, Division and Class will be printed</li>
+<li><b>{ENCODE}: </b>{ENCODE} will be translated into the Entry Code</li>
+<li><b>{COUNTRY}: </b>{COUNTRY} will be translated into the Country Code</li>
+<li><b>{DIVISION}: </b>{DIVISION} will be translated into the Division Code</li>
+<li><b>{CLASS}: </b>{CLASS} will be translated into the Class Code</li>
+<li><b>{TOURNAMENT}: </b>{TOURNAMENT} will be translated into the Competition Code</li>
+</ul>';
 $lang['BarcodeSeparator']='Barcode Separator';
 $lang['BgImage']='Background Image';
+$lang['BibNumber']='Bib Number';
+$lang['BlackWhite']='Black and White';
 $lang['Bold']='Bold';
 $lang['Category']='Category';
 $lang['CharColor']='Char. Color';
@@ -56,6 +69,7 @@ $lang['Club']='Country/Club Details';
 $lang['ClubCamel']='ClubName';
 $lang['ClubCaps']='CLUBNAME';
 $lang['ColoredArea']='Text Block';
+$lang['Coloured']='Coloured';
 $lang['CompDetails']='Competition Details';
 $lang['CompName']='Competition Name';
 $lang['Content']='Content';
@@ -69,6 +83,7 @@ $lang['E-Badge']='Elimination Athlete Number';
 $lang['EvCode']='Event Code';
 $lang['EvCode-EvDescr']='Event Code and Description';
 $lang['EvDescr']='Event Description';
+$lang['EvDescrUpper']='EVENT DESCRIPTION';
 $lang['Event']='Event';
 $lang['ExportPhotos']='Export Pictures';
 $lang['FamCamel']='FamilyName';
@@ -102,6 +117,7 @@ $lang['IdMarginT']='Top Margin';
 $lang['IdMarginW']='Width margin';
 $lang['Image']='Image';
 $lang['Images']='Images';
+$lang['ImageSvg']='SVG Image';
 $lang['IncludeLogo']='Print Country Flags/Club Logo';
 $lang['IncludeSession']='Include Session in Printout';
 $lang['Italic']='Italic';
@@ -122,7 +138,16 @@ $lang['PosX']='Position (X)';
 $lang['PosY']='Position (Y)';
 $lang['PrintBackNo']='Print Back Numbers';
 $lang['PrintHasPlastic']='Cards of Lanyards holders only';
+$lang['PrintSpecificBadges']='Print Using Auto-matching Badges';
 $lang['Q-Badge']='Qualification Athlete Number';
+$lang['QrCodeFields']='<ul>
+<li><b>Blank: </b>a dash-separated string with Entry Code, Division and Class will be printed</li>
+<li><b>{ENCODE}: </b>{ENCODE} will be translated into the Entry Code</li>
+<li><b>{COUNTRY}: </b>{COUNTRY} will be translated into the Country Code</li>
+<li><b>{DIVISION}: </b>{DIVISION} will be translated into the Division Code</li>
+<li><b>{CLASS}: </b>{CLASS} will be translated into the Class Code</li>
+<li><b>{TOURNAMENT}: </b>{TOURNAMENT} will be translated into the Competition Code</li>
+</ul>';
 $lang['RandomImage']='Random Image';
 $lang['Ranking']='Qualification Rank';
 $lang['ReadSeparator']='Read Separator';
@@ -131,10 +156,12 @@ $lang['ResetBarcodeSeparator']='Reset Barcode Separator';
 $lang['Schedule']='Schedule';
 $lang['Session']='Qualification Session';
 $lang['SessionTarget']='Sesssion Code and Target';
+$lang['SetAccreditationMatches']='This Badge can be made specific to the following categories:';
 $lang['SkipPrinted']='Skip printed Athlete Numbers';
 $lang['T-Badge']='Team matches Athlete Number';
 $lang['Target']='Target';
 $lang['TeamComponents']='Team Components';
+$lang['TgtSequence']='Target Sequence (will always be placed from the right of the assigned place)';
 $lang['ToBottom']='Competition Logo (Bottom)';
 $lang['ToLeft']='Competition Logo (Left)';
 $lang['ToRight']='Competition Logo (Right)';

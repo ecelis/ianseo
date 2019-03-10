@@ -7,11 +7,11 @@ require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Modules.php');
 require_once('Common/Lib/CommonLib.php');
 
-if (!CheckTourSession())
-{
+if (!CheckTourSession()) {
 	print get_text('CrackError');
 	exit;
 }
+checkACl(AclCompetition,AclReadWrite);
 
 if(!empty($_REQUEST['delAwarder'])) {
 	delModuleParameter('Awards','Aw-Awarder-1-'. intval($_REQUEST['delAwarder']));
@@ -101,7 +101,7 @@ if (isset($_REQUEST['Command'])) {
 			$RsSwitch = safe_w_sql($Switch);
 		}
 	} elseif ($_REQUEST['Command']=='OPTION') {
-		if(isset($_REQUEST['OptSwitch']) && in_array($_REQUEST["OptSwitch"],array('RepresentCountry','PlayAnthem','SecondLanguage'))) {
+		if(isset($_REQUEST['OptSwitch']) && in_array($_REQUEST["OptSwitch"],array('RepresentCountry','PlayAnthem','SecondLanguage','ShowPoints'))) {
 			$tmp = getModuleParameter('Awards', $_REQUEST["OptSwitch"], 1);
 			setModuleParameter('Awards', $_REQUEST["OptSwitch"], ($tmp ? 0 : 1));
 		}
@@ -294,6 +294,10 @@ $CustomAwards=0;
 	echo '<tr><td class="Center" onclick="switchOption(\'RepresentCountry\')"><img src="' . $CFG->ROOT_DIR . 'Common/Images/Enabled' . $tmp. '.png" width="20" alt="' .  get_text($tmp ? 'Yes' : 'No'). '"></td>';
 	echo '<td colspan="10">'. get_text('AwardRepresentCountry','Tournament') . '</td></tr>';
 
+	$tmp = getModuleParameter('Awards','ShowPoints', 0);
+	echo '<tr><td class="Center" onclick="switchOption(\'ShowPoints\')"><img src="' . $CFG->ROOT_DIR . 'Common/Images/Enabled' . $tmp. '.png" width="20" alt="' .  get_text($tmp ? 'Yes' : 'No'). '"></td>';
+	echo '<td colspan="10">'. get_text('AwardShowPoints','Tournament') . '</td></tr>';
+
 	echo '<tr><td class="Center" onclick="switchOption(\'SecondLanguage\')"><img src="' . $CFG->ROOT_DIR . 'Common/Images/Enabled' . $SecondLanguage. '.png" width="20" alt="' .  get_text($SecondLanguage ? 'Yes' : 'No'). '"></td>';
 	$tmp=getModuleParameter('Awards', 'SecondLanguageCode');
 	$tmp2=getModuleParameter('Awards', 'FirstLanguageCode');
@@ -337,6 +341,10 @@ $CustomAwards=0;
 		'Aw-Anthem-TPE',
 		'Aw-Applause',
 	);
+	$tmp = getModuleParameter('Awards','PrintPositions', array('Usher','2A','2B','2C','1A','1B','1C','3A','3B','3C', 'Tray Bearer 1', 'Tray Bearer 2', 'Tray Bearer 3', 'VIP Usher', 'V1', 'V2', 'VIP Usher'));
+	echo '<tr><th colspan="3" nowrap="nowrap">Print Positions</th>';
+	echo '<td colspan="7" onclick="insertInput(this, \'PrintPositions\')">'.(is_array($tmp) ? implode(', ', $tmp) : $tmp).'</td></tr>';
+
 	foreach($Lines as $k) {
 		echo '<tr>
 			<th colspan="3" nowrap="nowrap">'.substr($k,3).'</th>

@@ -17,6 +17,8 @@ $Team=intval($_REQUEST['team']);
 $Event=$_REQUEST['event'];
 $Matchno=intval($_REQUEST['match']);
 
+checkACL(($Team ? AclTeams : AclIndividuals), AclReadWrite, false);
+
 $m=array($Matchno, ($Matchno%2) ? $Matchno-1 : $Matchno+1);
 $TabPrefix=($Team ? 'Tf' : 'Fin');
 $Table=($Team ? 'Team' : '');

@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclEliminations, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
 
 	$PAGE_TITLE=get_text('PrintList', 'Tournament');
@@ -62,27 +63,27 @@
 		$Rs = safe_r_sql($MySql);
 		if(safe_num_rows($Rs)>0)
 		{
-			echo get_text('Event') . '<br><select id="event1" name="Event[]" multiple="multiple" rows="'.(safe_num_rows($Rs)+1).'">';
+			echo get_text('Event') . '<br><select id="event1" name="Event[]" multiple="multiple" size="'.(safe_num_rows($Rs)+1).'">';
 			while($MyRow=safe_fetch($Rs))
 				echo '<option value="' . $MyRow->EvCode . '@1">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';
 			echo '</select>';
 			safe_free_result($Rs);
+			echo '<br><br><a class="Link" href="javascript:SelectAllOpt(\'event1\');">' . get_text('SelectAll') . '</a>';
 		}
-		echo '<br><br><a class="Link" href="javascript:SelectAllOpt(\'event1\');">' . get_text('SelectAll') . '</a>';
 		print '</td>';
 //2o girone eliminatorio
 		print '<td colspan="2" width="50%" class="Center">';
-		$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvElim2!=0 AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY EvProgr";
+		$MySql = "SELECT EvElimType, EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvElim2!=0 AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY EvProgr";
 		$Rs = safe_r_sql($MySql);
 		if(safe_num_rows($Rs)>0)
 		{
-			echo get_text('Event') . '<br><select id="event2" name="Event[]" multiple="multiple" rows="'.(safe_num_rows($Rs)+1).'">';
+			echo get_text('Event') . '<br><select id="event2" name="Event[]" multiple="multiple" size="'.(safe_num_rows($Rs)+1).'">';
 			while($MyRow=safe_fetch($Rs))
-				echo '<option value="' . $MyRow->EvCode . '@2">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';
+				echo '<option value="' . $MyRow->EvCode . ($MyRow->EvElimType>=3 ? '' : '@2') .'">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';
 			echo '</select>';
 			safe_free_result($Rs);
+			echo '<br><br><a class="Link" href="javascript:SelectAllOpt(\'event2\');">' . get_text('SelectAll') . '</a>';
 		}
-		echo '<br><br><a class="Link" href="javascript:SelectAllOpt(\'event2\');">' . get_text('SelectAll') . '</a>';
 		print '</td>';
 	echo '</tr>';
 //Oris e Pulsante

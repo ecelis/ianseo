@@ -15,6 +15,7 @@ $Error=1;
 $Out='';
 
 foreach($_REQUEST['first'] as $Team => $Events) {
+    checkACL(($Team ? AclTeams : AclIndividuals), AclReadWrite, false);
 	foreach($Events as $Event => $Matches) {
 		foreach($Matches as $Matchno => $Ends) {
 			foreach($Ends as $End => $Start) {
@@ -41,11 +42,13 @@ foreach($_REQUEST['first'] as $Team => $Events) {
 							}
 						}
 						// SO, each member shoots 1 arrow alternate
-						for($l=0; $l<$Params->so; $l++) {
-							for($k=0; $k<2; $k++) {
-								$Out.='<t id="'.'t_' . $m[$k] . '_' . ($l).'" val="'.($TabIndex + $Params->ends*2*$Params->arrows + $l*2 + $k).'"/>';
-							}
-						}
+                        for($pSo=0; $pSo<3; $pSo++ ) {
+                            for ($l = 0; $l < $Params->so; $l++) {
+                                for ($k = 0; $k < 2; $k++) {
+                                    $Out .= '<t id="' . 't_' . $m[$k] . '_' . (($pSo*$Params->so)+$l) . '" val="' . ($TabIndex + (2*$Params->ends * $Params->arrows )+ (2*$pSo*$Params->so) +  $l * 2 + $k) . '"/>';
+                                }
+                            }
+                        }
 					} else {
 						$Sql1="update Finals set FinShootFirst=(FinShootFirst | ".pow(2, $End)."), FinDateTime=" . StrSafe_DB(date('Y-m-d H:i:s')) . "  where FinTournament={$_SESSION['TourId']} and FinEvent='$Event' and FinMatchNo=$Matchno";
 						$Sql2="update Finals set FinShootFirst=(FinShootFirst & ~".pow(2, $End)."), FinDateTime=" . StrSafe_DB(date('Y-m-d H:i:s')) . "  where FinTournament={$_SESSION['TourId']} and FinEvent='$Event' and FinMatchNo={$m[1]}";
@@ -57,11 +60,13 @@ foreach($_REQUEST['first'] as $Team => $Events) {
 							}
 						}
 						// SO
-						for($j=0; $j<$Params->so; $j++) {
-							for($k=0; $k<2; $k++) {
-								$Out.='<t id="'.'t_' . $m[$k] . '_' . ($j).'" val="'.($TabIndex + $Params->ends*2*$Params->arrows + $j*2 + $k).'"/>';
-							}
-						}
+                        for($pSo=0; $pSo<3; $pSo++ ) {
+                            for ($j = 0; $j < $Params->so; $j++) {
+                                for ($k = 0; $k < 2; $k++) {
+                                    $Out .= '<t id="' . 't_' . $m[$k] . '_' . (($pSo*$Params->so)+$j) . '" val="' . ($TabIndex + (2* $Params->ends * $Params->arrows) + (2*$pSo*$Params->so) + $j * 2 + $k) . '"/>';
+                                }
+                            }
+                        }
 					}
 				} else {
 					$Sql1="update Finals set FinShootFirst=FinShootFirst & ~".pow(2, $End)." where FinTournament={$_SESSION['TourId']} and FinEvent='$Event' and FinMatchNo=$Matchno";
@@ -78,11 +83,12 @@ foreach($_REQUEST['first'] as $Team => $Events) {
 	}
 }
 
-runJack("FinShootingFirst", $_SESSION['TourId'],array("Event"=>$Event ,"Team"=>$Team,"MatchNo"=>($Matchno % 2 ? $Matchno-1 : $Matchno) ,"TourId"=>$_SESSION['TourId']));
-
 header('Content-Type: text/xml');
 echo '<response error="'.$Error.'">';
 echo $Out;
 echo '</response>';
+
+runJack("FinShootingFirst", $_SESSION['TourId'],array("Event"=>$Event ,"Team"=>$Team,"MatchNo"=>($Matchno % 2 ? $Matchno-1 : $Matchno) ,"TourId"=>$_SESSION['TourId']));
+
 die();
 

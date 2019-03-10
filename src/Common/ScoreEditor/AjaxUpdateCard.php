@@ -67,20 +67,20 @@
 		$validData=GetMaxScores($event, $match, $TeamEvent);
 
 		//Se ho la posizione, salvo la posizione e ri-setto per i punti
-		if(!(is_null($size) || is_null($xpos) || is_null($ypos)))
-		{
-			$target = new Obj_Target($validData["Arrows"]);
-			$arrowHit = $target->getHitValue($size, $xpos, $ypos);
-
-			$arrUpdate = UpdateArrowPosition($match2edit, $event, $TeamEvent, $arrowHit["X"], 0, $arrowHit["Y"]);
-			if(!is_null($arrUpdate))
-			{
-				list($what,$index)=preg_split("/[|]/",$arrUpdate);
-				$what = ($what == 1 ? 't' : 's');
-				$arrow = DecodeFromLetter($arrowHit["V"]);
-			}
-
-		}
+		//if(!(is_null($size) || is_null($xpos) || is_null($ypos)))
+		//{
+		//	$target = new Obj_Target($validData["Arrows"]);
+		//	$arrowHit = $target->getHitValue($size, $xpos, $ypos);
+		//
+		//	$arrUpdate = UpdateArrowPosition($match2edit, $event, $TeamEvent, $arrowHit["X"], 0, $arrowHit["Y"]);
+		//	if(!is_null($arrUpdate))
+		//	{
+		//		list($what,$index)=preg_split("/[|]/",$arrUpdate);
+		//		$what = ($what == 1 ? 't' : 's');
+		//		$arrow = DecodeFromLetter($arrowHit["V"]);
+		//	}
+		//
+		//}
 // 		if($arrow==='0') $arrow='M';
 // 		elseif($arrow==='0*') $arrow='M*';
 		//Se ho i valori di freccia, indice della textbox e tipo textbox (std o so) procedo con il salvataggio dei punti
@@ -107,8 +107,8 @@
 					$ArrowStart=($rows*$cols)+1+$index;
 				}
 				UpdateArrowString($match2edit,$event,$TeamEvent,$arrow,$ArrowStart,$ArrowStart);
-				if($arrow == ' ')
-					UpdateArrowPosition($match2edit, $event, $TeamEvent, '', '', 0, ($what == 's' ? '0':'1') . "|" . $index);
+				//if($arrow == ' ')
+				//	UpdateArrowPosition($match2edit, $event, $TeamEvent, '', '', 0, ($what == 's' ? '0':'1') . "|" . $index);
 
 				$spotLimit[0]=($what == 's' ? 0:1);
 		}

@@ -3,7 +3,8 @@ define('debug',false);	// settare a true per l'output di debug
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
-if (BlockExperimental) printcrackerror(false,'Blocked');
+
+checkACL(array(AclIndividuals,AclTeams), AclReadWrite);
 
 require_once('Common/Lib/CommonLib.php');
 require_once('Common/Fun_Sessions.inc.php');
@@ -34,17 +35,21 @@ $q=safe_r_sql("select EvCode, EvFinalFirstPhase, EvTeamEvent from Events where E
 while($r=safe_fetch($q)) {
 	$Events[$r->EvTeamEvent][$r->EvCode]='<input type="checkbox" id="Event['.$r->EvTeamEvent.'][]='.$r->EvCode.'">'.$r->EvCode;
 	if($r->EvFinalFirstPhase and empty($Phases[$r->EvTeamEvent][$r->EvFinalFirstPhase])) {
-		for($n=$r->EvFinalFirstPhase; $n>=0; $n/=2) {
-			$Phases[$r->EvTeamEvent][$n]='<input type="checkbox" id="Phase['.$r->EvTeamEvent.'][]='.($n==48 ? 64 : ($n==24 ? 32 : $n)).'">'.get_text($n.'_Phase');
+		for($n=valueFirstPhase($r->EvFinalFirstPhase); $n>=0; $n/=2) {
+			$Phases[$r->EvTeamEvent][$n]='<input type="checkbox" id="Phase['.$r->EvTeamEvent.'][]='.valueFirstPhase($n).'">'.get_text(namePhase($r->EvFinalFirstPhase,$n).'_Phase');
 			if($n==0) break; // escape from this zoo :D
-			if($n==24) $n=32; // returns to the normal flow
 			if($n==1) $n=0; // makes the gold medal match ;)
 		}
 	}
 }
 
-krsort($Phases[0], SORT_NUMERIC );
-krsort($Phases[1], SORT_NUMERIC );
+if(!empty($Phases[0])) {
+    krsort($Phases[0], SORT_NUMERIC );
+}
+if(!empty($Phases[1])) {
+    krsort($Phases[1], SORT_NUMERIC );
+}
+
 include('Common/Templates/head.php');
 
 // data list for the Notes field

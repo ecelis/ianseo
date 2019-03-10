@@ -2,6 +2,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/ScorePDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 $pdf = new ScorePDF(true);
 $pdf->BottomImage=empty($_REQUEST['QRCode']);
@@ -53,9 +54,11 @@ if(!empty($_REQUEST['QRCode'])) {
 
 
 if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
-	$pdf->AddPage();
-	$pdf->DrawScoreField($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd/2,3,array());
-	$pdf->DrawScoreField($defScoreX, $defScoreY2, $defScoreW, $defScoreH, $NumEnd/2,3,array());
+	$session = (isset($_REQUEST['x_Session']) AND $_REQUEST['x_Session']>0) ? $_REQUEST['x_Session'] : 1;
+    $pdf->NoLineNumbers();
+    $pdf->AddPage();
+	$pdf->DrawScoreField($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd/2,3,array('Dist'=>'', 'CurDist'=>$reqDist, 'Session'=>$session));
+	$pdf->DrawScoreField($defScoreX, $defScoreY2, $defScoreW, $defScoreH, $NumEnd/2,3,array('Dist'=>'', 'CurDist'=>$reqDist, 'Session'=>$session));
 	if(!empty($_REQUEST['QRCode'])) {
 		foreach($_REQUEST['QRCode'] as $k => $Api) {
 			require_once('Api/'.$Api.'/DrawQRCode.php');
@@ -100,6 +103,7 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 				"startTarget"=>(substr($MyRow->tNo,0,-1)*1),
 				"Cat"=>$MyRow->Cat,
 				"Dist"=>$MyRow->TfName,
+                "CurDist"=>$reqDist,
 				"Ath"=>$MyRow->Ath,
 				"Noc"=>$MyRow->Noc,
 				"CoCode"=>$MyRow->CoCode,
@@ -110,6 +114,7 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 				"QuD"=>$MyRow->ScoreX,
 				"QuGD"=>$MyRow->GoldX,
 				"QuXD"=>$MyRow->XNineX,
+                "Session"=>$_REQUEST['x_Session']
 			);
 		} else {
 			$Value = array(
@@ -118,8 +123,9 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 				"Cls"=>$MyRow->EnClass,
 				"tNo"=>$MyRow->tNo,
 				"startTarget"=>(substr($MyRow->tNo,0,-1)*1),
-				"Cat"=>'',
-				"Dist"=>'',
+                "Cat"=>$MyRow->Cat,
+                "Dist"=>$MyRow->TfName,
+                "CurDist"=>$reqDist,
 				"Ath"=>'',
 				"Noc"=>'',
 				"CoCode"=>'',
@@ -130,6 +136,7 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 				"QuD"=>'',
 				"QuGD"=>'',
 				"QuXD"=>'',
+                "Session"=>$_REQUEST['x_Session']
 			);
 		}
 

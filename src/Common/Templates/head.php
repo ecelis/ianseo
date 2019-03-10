@@ -7,6 +7,7 @@
 if(!empty($PAGE_TITLE)) echo $PAGE_TITLE . ' - ';
 print ProgramName . ' ' . ProgramVersion . (defined('ProgramBuild') ? ' ('.ProgramBuild.')' : '');;?></title>
 <link href="<?php echo $CFG->ROOT_DIR ?>Common/Styles/Blue_screen.css" media="screen" rel="stylesheet" type="text/css">
+<link href="<?php echo $CFG->ROOT_DIR ?>Common/Styles/Blue_screen-print.css" media="print" rel="stylesheet" type="text/css">
 <link href="<?php echo $CFG->ROOT_DIR ?>Common/Styles/Menu.css" rel="stylesheet" type="text/css">
 <?php
 
@@ -20,11 +21,6 @@ if(!empty($JS_SCRIPT)) {
 	foreach($JS_SCRIPT as $script) echo "$script\n";
 }
 ?>
-
-<?php if (false) { // true per attivare firebug lite (x ie, safari etc...)?>
-	<script type="text/javascript" src="<?php print $CFG->ROOT_DIR.'Partecipants-exp/firebuglite/firebug-lite-compressed.js';?>"></script>
-	<script type="text/javascript">firebug.env.css = "<?php print $CFG->ROOT_DIR.'Partecipants-exp/firebuglite/firebug-lite.css';?>"</script>
-<?php }?>
 
 </head>
 <body<?php echo (!empty($ONLOAD)?$ONLOAD:'') ?>>

@@ -5,11 +5,11 @@
 	require_once('Common/Fun_FormatText.inc.php');
 
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly,false);
 
 	$Errore=0;
 	$xml='';
@@ -60,17 +60,17 @@
 			while ($MyRow=safe_fetch($Rs))
 			{
 				$xml
-					.= '<ath>' . "\n"
-					. '<code>' . (trim($MyRow->LueCode)!='' ? $MyRow->LueCode : '#') . '</code>' . "\n"
-					. '<firstname><![CDATA[' . (trim($MyRow->LueFamilyName)!='' ? $MyRow->LueFamilyName : '#') . ']]></firstname>' . "\n"
-					. '<name><![CDATA[' . (trim($MyRow->LueName)!='' ? $MyRow->LueName : '#') . ']]></name>' . "\n"
-					. '<country_code>' . (trim($MyRow->LueCountry)!='' ? $MyRow->LueCountry : '#') . '</country_code>' . "\n"
-					. '<country_name><![CDATA[' . (trim($MyRow->LueCoShort)!='' ? $MyRow->LueCoShort : '#') . ']]></country_name>' . "\n"
-					. '<division>' . (trim($MyRow->LueDivision)!='' ? $MyRow->LueDivision : '#') . '</division>' . "\n"
-					. '<ageclass>' . (trim($MyRow->LueClass)!='' ? $MyRow->LueClass : '') . '</ageclass>' . "\n"
-					. '<subclass>' . (trim($MyRow->LueSubClass)!='' ? str_pad($MyRow->LueSubClass,2,'0',STR_PAD_LEFT) : '0') . '</subclass>' . "\n"
-					. '<status>' . (trim($MyRow->LueStatus)!='' ? ($_SESSION['TourRealWhenFrom']>$MyRow->LueStatusValidUntil && $MyRow->LueStatusValidUntil!='0000-00-00' ? 5 : $MyRow->LueStatus) : '0') . '</status>' . "\n"
-					. '</ath>' . "\n";
+					.= '<ath>'
+					. '<code>' . (trim($MyRow->LueCode)!='' ? $MyRow->LueCode : '#') . '</code>'
+					. '<firstname><![CDATA[' . (trim($MyRow->LueFamilyName)!='' ? $MyRow->LueFamilyName : '#') . ']]></firstname>'
+					. '<name><![CDATA[' . (trim($MyRow->LueName)!='' ? $MyRow->LueName : '#') . ']]></name>'
+					. '<country_code>' . (trim($MyRow->LueCountry)!='' ? $MyRow->LueCountry : '#') . '</country_code>'
+					. '<country_name><![CDATA[' . (trim($MyRow->LueCoShort)!='' ? $MyRow->LueCoShort : '#') . ']]></country_name>'
+					. '<division>' . (trim($MyRow->LueDivision)!='' ? $MyRow->LueDivision : '#') . '</division>'
+					. '<ageclass>' . (trim($MyRow->LueClass)!='' ? $MyRow->LueClass : '') . '</ageclass>'
+					. '<subclass>' . (trim($MyRow->LueSubClass)!='' ? str_pad($MyRow->LueSubClass,2,'0',STR_PAD_LEFT) : '0') . '</subclass>'
+					. '<status>' . (trim($MyRow->LueStatus)!='' ? ($_SESSION['TourRealWhenFrom']>$MyRow->LueStatusValidUntil && $MyRow->LueStatusValidUntil!='0000-00-00' ? 5 : $MyRow->LueStatus) : '0') . '</status>'
+					. '</ath>';
 			}
 		}
 	}
@@ -90,15 +90,15 @@
 		/*print '<?xml version="1.0" encoding="' . PageEncode . '"?>';*/
 	}
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<title>' . get_text('SearchResults','Tournament') . '</title>' . "\n";
-	print '<head_code>' . get_text('Code','Tournament') . '</head_code>' . "\n";
-	print '<head_archer>' . get_text('Archer') . '</head_archer>' . "\n";
-	print '<head_country>' . get_text('Country') . '</head_country>' . "\n";
-	print '<head_div>' . get_text('Div') . '</head_div>' . "\n";
-	print '<head_agecl>' . get_text('AgeCl') . '</head_agecl>' . "\n";
-	print '<head_subcl>' . get_text('SubCl','Tournament') . '</head_subcl>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<title>' . get_text('SearchResults','Tournament') . '</title>';
+	print '<head_code>' . get_text('Code','Tournament') . '</head_code>';
+	print '<head_archer>' . get_text('Archer') . '</head_archer>';
+	print '<head_country>' . get_text('Country') . '</head_country>';
+	print '<head_div>' . get_text('Div') . '</head_div>';
+	print '<head_agecl>' . get_text('AgeCl') . '</head_agecl>';
+	print '<head_subcl>' . get_text('SubCl','Tournament') . '</head_subcl>';
 	print $xml;
-	print '</response>' . "\n";
+	print '</response>';
 ?>

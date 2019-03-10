@@ -214,7 +214,7 @@
 					IF(EvRunning=1,IFNULL(ROUND(QuScore/QuHits,3),0),0) as RunningScore,
 					EvCode,EvEventName,EvRunning, EvFinalFirstPhase, EvElim1, EvElim2,
 					{$tmp} AS Arrows_Shot,
-					IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) ,IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo, EvQualPrintHead as PrintHeader,
+					IF(EvElim1=0 && EvElim2=0, EvNumQualified ,IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo, EvQualPrintHead as PrintHeader,
 					{$MyRank} AS Rank, " . (!empty($comparedTo) ? 'IFNULL(IopRank,0)' : '0') . " as OldRank, Qu{$dd}Score AS Score, Qu{$dd}Gold AS Gold,Qu{$dd}Xnine AS XNine, Qu{$dd}Hits AS Hits, ";
 
 			if(!empty($this->opts['runningDist']) && $this->opts['runningDist']>0)
@@ -241,9 +241,8 @@
 				INNER JOIN Entries ON ToId=EnTournament
 				INNER JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament AND EnTournament={$this->tournament}
 				INNER JOIN Qualifications ON EnId=QuId
-				INNER JOIN EventClass ON EnClass=EcClass AND EnDivision=EcDivision AND EnTournament=EcTournament AND EcTeamEvent=0
-				INNER JOIN Individuals ON EcTournament=IndTournament AND EcCode=IndEvent AND EnId=IndId
-				INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=EcTeamEvent AND EvTournament=EcTournament
+				INNER JOIN Individuals ON EnTournament=IndTournament AND EnId=IndId
+				INNER JOIN Events ON EvCode=IndEvent AND EvTeamEvent=0 AND EvTournament=EnTournament
 				LEFT JOIN TournamentDistances ON ToType=TdType AND TdTournament=ToId AND CONCAT(TRIM(EnDivision),TRIM(EnClass)) LIKE TdClasses
 				left join DistanceInformation on EnTournament=DiTournament and DiSession=1 and DiDistance=1 and DiType='Q' ";
 			if(!empty($comparedTo))
@@ -423,8 +422,16 @@
 					$oldGold = $myRow->OrderGold;
 					$oldXnine = $myRow->OrderXnine;
 
+					if($myRow->Rank==9999) {
+						$tmpRank = 'DSQ';
+					} else if ($myRow->Rank==9998) {
+						$tmpRank = 'DNS';
+					} else {
+						$tmpRank= (($WheelChair or (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0)) ? $myRank : ($myRow->EvRunning==1 ? $runningRank: $myRow->Rank));
+					}
 
-				// creo un elemento per la sezione
+
+					// creo un elemento per la sezione
 					$item=array(
 						'id'  => $myRow->EnId,
 						'bib' => $myRow->EnCode,
@@ -443,7 +450,7 @@
 						'contAssoc' => $myRow->FlContAssoc,
 						'countryIocCode' => $myRow->EnIocCode,
 						'countryName' => $myRow->CoName,
-						'rank' => (($WheelChair or (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0)) ? $myRank : ($myRow->EvRunning==1 ? $runningRank: $myRow->Rank)),
+						'rank' => $tmpRank,
 						'oldRank' => $myRow->OldRank,
 						'rankBeforeSO'=>(isset($myRow->RankBeforeSO) ? $myRow->RankBeforeSO:0),
 						'score' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRow->OrderScore : ($myRow->EvRunning==1 ? $myRow->RunningScore: $myRow->Score)),

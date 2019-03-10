@@ -5,6 +5,9 @@ var ctx;
 
 function snapshot() {
 	if (window.stream) {
+	    canvas.crossOrigin='anonymous';
+	    videoElement.crossOrigin='anonymous';
+
     	canvas.height=videoElement.videoHeight;
     	canvas.width=videoElement.videoWidth;
     	ctx.drawImage(videoElement, 0, 0, videoElement.videoWidth, videoElement.videoHeight);

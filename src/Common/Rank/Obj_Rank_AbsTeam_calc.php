@@ -106,7 +106,7 @@
 				SELECT
 					TeTournament,TeCoId,TeSubTeam,TeEvent,
 					IFNULL(IF(EvRunning=1, TeScore/TeHits,TeScore),0) as TeScore, TeGold, TeXnine,
-					IF(EvFinalFirstPhase=0,9999,IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2)))) AS QualifiedNo,
+					IF(EvFinalFirstPhase=0,9999,(EvFinalFirstPhase*2)) AS QualifiedNo, EvFinalFirstPhase, 
 					TeRank AS ActualRank
 				 FROM
 				 	Teams
@@ -123,11 +123,7 @@
 
 			$r=safe_r_sql($q);
 
-			if (!$r)
-				return false;
-
-			if (safe_num_rows($r)>0)
-			{
+			if (safe_num_rows($r)>0) {
 				$curGroup = "";
 				$myRank = 1;
 				$myPos = 0;
@@ -136,16 +132,14 @@
 				$myScoreOld = 0;
 				$myGoldOld = 0;
 				$myXNineOld = 0;
-				$myEndScore=-1;
+                $mySoScore=array();
 				$myGroupStartPos=0;
 				$currentRow=-1;
 
-				while($myRow=safe_fetch($r))
-				{
-					++$currentRow;
+				while($myRow=safe_fetch($r)) {
+					$currentRow++;
 
-					if ($curGroup != $myRow->TeEvent)
-					{
+					if ($curGroup != $myRow->TeEvent) {
 						$curGroup = $myRow->TeEvent;
 
 						$myRank = 1;
@@ -153,37 +147,46 @@
 						$myScoreOld = 0;
 						$myGoldOld = 0;
 						$myXNineOld = 0;
+                        $mySoScore=array();
 						$endQualified = false;
 						$myGroupStartPos = $currentRow;
+
+                        /*
+                         * If starting phase is 1/12, I check the 8th position for shootoff,
+                         */
+                        if($Saved=SavedInPhase($myRow->EvFinalFirstPhase )) {
+                            if(safe_num_rows($r) > ($myGroupStartPos + $Saved)) {
+                                safe_data_seek($r,$myGroupStartPos + $Saved - 1);
+                                $tmpMyRow = safe_fetch($r);
+                                if($curGroup == $tmpMyRow->TeEvent) {
+                                    $tmpScore = $tmpMyRow->TeScore;
+                                    $tmpMyRow = safe_fetch($r);
+                                    //Controllo se c'è parimerito per entrare
+                                    if ($tmpScore == $tmpMyRow->TeScore AND $curGroup == $tmpMyRow->TeEvent) {
+                                        $mySoScore[] = $tmpScore;
+                                    }
+                                }
+                                $tmpMyRow = NULL;
+                            }
+                            safe_data_seek($r,$myGroupStartPos+1);
+                        }
 
 					/*
 					 * Carico l'ultimo punteggio per entrare.
 					 * Vado a brancare la riga con l'ultimo Score buono
 					 */
-						if(safe_num_rows($r) > ($myGroupStartPos + $myRow->QualifiedNo))
-						{
+						if(safe_num_rows($r) > ($myGroupStartPos + $myRow->QualifiedNo)) {
 							safe_data_seek($r,$myGroupStartPos + $myRow->QualifiedNo -1);
 							$tmpMyRow = safe_fetch($r);
-							if($curGroup == $tmpMyRow->TeEvent)
-							{
-								$myEndScore = $tmpMyRow->TeScore;
+							if($curGroup == $tmpMyRow->TeEvent) {
+                                $tmpScore = $tmpMyRow->TeScore;
 								$tmpMyRow = safe_fetch($r);
 								//Controllo se c'è parimerito per entrare
-								if ($myEndScore != $tmpMyRow->TeScore || $curGroup != $tmpMyRow->TeEvent)
-								{
-									$myEndScore *= -1;
+								if ($tmpScore == $tmpMyRow->TeScore AND $curGroup == $tmpMyRow->TeEvent) {
+                                    $mySoScore[] = $tmpScore;
 								}
 							}
-							else
-								$myEndScore = -1;
-
 							$tmpMyRow = NULL;
-						}
-						else
-						{
-							safe_data_seek($r,safe_num_rows($r)-1);
-							$tmpMyRow = safe_fetch($r);
-							$myEndScore = -1;
 						}
 						safe_data_seek($r,$myGroupStartPos+1);
 					}
@@ -192,31 +195,29 @@
 					$so=-1;
 
 				// Se non ho parimerito il ranking è uguale alla posizione
-					if($myEndScore == $myRow->TeScore)  //so che c'è uno spareggio per come ho caricato $myEndScore
-					{
+                    //so che c'è uno spareggio per come ho caricato $myEndScore
+                    if(in_array($myRow->TeScore,$mySoScore)) {
 						if ($myRow->TeScore!=$myScoreOld)
 							$myRank = $myPos;
 
 						$so=1;	// rosso
 
-					}
-					else	//tutti gli altri pareggi...
-					{
-						if (!($myRow->TeScore==$myScoreOld && $myRow->TeGold==$myGoldOld && $myRow->TeXnine==$myXNineOld)) {
+					} else {
+						if (!($myRow->TeScore==$myScoreOld AND $myRow->TeGold==$myGoldOld AND $myRow->TeXnine==$myXNineOld)) {
 							$myRank = $myPos;
 						}
 					}
 
-					if($myRank>$myRow->QualifiedNo)
-						$so=0;
+					if($myRank>$myRow->QualifiedNo) {
+                        $so = 0;
+                    }
 
 					$myScoreOld = $myRow->TeScore;
 					$myGoldOld = $myRow->TeGold;
 					$myXNineOld = $myRow->TeXnine;
 
 					$x = false;
-					if($myRow->ActualRank!=0 && array_key_exists('skipExisting',$this->opts) && $this->opts['skipExisting']==1)
-					{
+					if($myRow->ActualRank!=0 AND array_key_exists('skipExisting',$this->opts) AND $this->opts['skipExisting']==1) {
 						$x=$this->setRow(array(
 							array(	// passo 1 item alla volta
 								'team' 		=> $myRow->TeCoId,
@@ -225,9 +226,7 @@
 								'so'		=> ($so * $myRank)
 							)
 						));
-					}
-					else
-					{
+					} else {
 						$x=$this->setRow(array(
 							array(	// passo 1 item alla volta
 								'team' 		=> $myRow->TeCoId,
@@ -235,6 +234,7 @@
 								'event'		=> $myRow->TeEvent,
 								'so'		=> ($so * $myRank),
 								'rank'		=> $myRank,
+                                'finalrank' => ($myRow->EvFinalFirstPhase ? -1 : $myRank),
 								'tiebreak'	=> ''
 							)
 						));
@@ -279,15 +279,13 @@
 	 * @return mixed: ritorna le affected_rows oppure false se c'è qualche errore
 	 * 		(non salva gli eventuali elementi successivi a quello che ha generato l'errore)
 	 */
-		public function setRow($items=array())
-		{
+		public function setRow($items=array()) {
 		// campi mandatory per $item
 			$params=array('team','subteam','event');
 
 			$affected=0;
 
-			foreach ($items as $item)
-			{
+			foreach ($items as $item) {
 				/*print '<pre>';
 				print_r($item);
 				print '</pre>';*/
@@ -299,10 +297,8 @@
 		/*
 		 *  controllo che ci siano i campi mandatory
 		 */
-				foreach ($params as $p)
-				{
-					if (!array_key_exists($p,$item))
-					{
+				foreach ($params as $p) {
+					if (!array_key_exists($p,$item)) {
 						$paramsOk=false;
 						$ret=false;
 						break;
@@ -314,69 +310,39 @@
 
 				$date=date('Y-m-d H:i:s');
 
-				$q
-					= "UPDATE "
-						. "Teams "
-					. "SET "
-						. "TeTimeStamp='{$date}' "
-				;
+				$q = "UPDATE Teams SET TeTimeStamp='{$date}' ";
 
 			/* campi opzionali e basta */
-				if (array_key_exists('rank',$item))
-				{
+				if (array_key_exists('rank',$item)) {
 					$canUp=true;
 					$q.=",TeRank={$item['rank']}";
+                    if (array_key_exists('finalrank',$item) AND $item['finalrank']!=-1) {
+                        $q.=",TeRankFinal={$item['finalrank']}";
+                    }
 				}
 
-				if (array_key_exists('tiebreak',$item))
-				{
+
+				if (array_key_exists('tiebreak',$item)) {
 					$canUp=true;
 					$q.=",TeTiebreak='{$item['tiebreak']}'";
 				}
 
-				if (array_key_exists('so',$item))
-				{
+				if (array_key_exists('so',$item)) {
 					$canUp=true;
 					$q.=",TeSO={$item['so']}";
 				}
 
 
-				$q
-					.=" WHERE "
-						. "TeCoId=" . $item['team'] . " AND TeSubTeam=" . $item['subteam']. " AND TeFinEvent=1 AND TeEvent='" . $item['event'] . "' AND TeTournament=" . $this->tournament . " ";
-				;
+				$q .=" WHERE TeCoId=" . $item['team'] . " AND TeSubTeam=" . $item['subteam']. " AND TeFinEvent=1 AND TeEvent='" . $item['event'] . "' AND TeTournament=" . $this->tournament;
+
 				//print $q.'<br><br>';
 
-				if (!$canUp)
-				{
+				if (!$canUp) {
 					return false;
 				}
 				$r=safe_w_sql($q);
 
-				if (!$r)
-				{
-					$affected=false;
-				}
-				else
-				{
-					$affected+=safe_w_affected_rows();
-				}
-
-				if (!$canUp)
-				{
-					return false;
-				}
-				$r=safe_w_sql($q);
-
-				if (!$r)
-				{
-					$affected=false;
-				}
-				else
-				{
-					$affected+=safe_w_affected_rows();
-				}
-
+				$affected+=safe_w_affected_rows();
 			}
 
 			return $affected;

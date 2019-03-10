@@ -18,15 +18,11 @@ if(IsBlocked(BIT_BLOCK_PARTICIPANT) or !$ToId or !$Field or !$EnId) {
 	if(IsBlocked(BIT_BLOCK_PARTICIPANT)) {
 		$JSON['msg']=get_text('Blocked');
 	}
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
 
 require_once('./lib.php');
 
 saveField($Field, $Value, $EnId, $ToId);
 
-
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

@@ -104,38 +104,40 @@ function searchAthletes() {
 
 						document.getElementById("ListBody").innerHTML="";
 						if(Error==0) {
-							var Arr_id = XMLRoot.getElementsByTagName('id');
-							var Arr_Ath = XMLRoot.getElementsByTagName('ath');
-							var Arr_Team = XMLRoot.getElementsByTagName('team');
-							var Arr_Cat = XMLRoot.getElementsByTagName('cat');
-							var Arr_Pic = XMLRoot.getElementsByTagName('pic');
-							var Arr_Prn = XMLRoot.getElementsByTagName('prn');
+							var Arr_Row = XMLRoot.getElementsByTagName('athlete');
+							// var Arr_id = XMLRoot.getElementsByTagName('id');
+							// var Arr_Ath = XMLRoot.getElementsByTagName('ath');
+							// var Arr_Team = XMLRoot.getElementsByTagName('team');
+							// var Arr_Cat = XMLRoot.getElementsByTagName('cat');
+							// var Arr_Pic = XMLRoot.getElementsByTagName('pic');
+							// var Arr_Prn = XMLRoot.getElementsByTagName('prn');
 
 							var Missing=XMLRoot.getAttribute('missing');
 							document.getElementById('missingPhotos').innerHTML=Missing;
 
-							for (i=0; i<Arr_id.length; i++) {
+							for (i=0; i<Arr_Row.length; i++) {
+							    var XmlRow=Arr_Row[i];
 								var newRow = document.createElement('tr');
-								newRow.id = Arr_id.item(i).firstChild.data;
+								newRow.id = XmlRow.getAttribute('id');
 								newRow.onclick = function() {selectedAthlete(this)};
-								if(Arr_Prn.item(i).firstChild.data==1) {
+								if(XmlRow.getAttribute('prn')==1) {
 									newRow.className='Reverse';
 								}
 
 								var td = document.createElement('td');
 								var img = document.createElement('img');
-								img.src = ROOT_DIR+'Common/Images/Enabled'+ Arr_Pic.item(i).firstChild.data +'.png';
+								img.src = ROOT_DIR+'Common/Images/Enabled'+ XmlRow.getAttribute('pic') +'.png';
 								img.height='20';
 								td.appendChild(img);
 								newRow.appendChild(td);
 								var td = document.createElement('td');
-								td.innerHTML=Arr_Ath.item(i).firstChild.data;
+								td.innerHTML=XmlRow.getAttribute('ath');
 								newRow.appendChild(td);
 								var td = document.createElement('td');
-								td.innerHTML=Arr_Cat.item(i).firstChild.data;
+								td.innerHTML=XmlRow.getAttribute('cat');
 								newRow.appendChild(td);
 								var td = document.createElement('td');
-								td.innerHTML=Arr_Team.item(i).firstChild.data;
+								td.innerHTML=XmlRow.getAttribute('team');
 								newRow.appendChild(td);
 
 								document.getElementById("ListBody").appendChild(newRow);

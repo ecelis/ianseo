@@ -9,12 +9,11 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_Sessions.inc.php');
 
-	if (!CheckTourSession() ||
-		!isset($_REQUEST['Session']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['Session'])) {
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(AclParticipants, AclReadOnly, false);
 
 	$Errore=0;
 	$Troppi=0;
@@ -77,9 +76,9 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<troppi>' . $Troppi . '</troppi>' . "\n";
-	print '<msg><![CDATA[' . $Msg . ']]></msg>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<troppi>' . $Troppi . '</troppi>';
+	print '<msg><![CDATA[' . $Msg . ']]></msg>';
+	print '</response>';
 ?>

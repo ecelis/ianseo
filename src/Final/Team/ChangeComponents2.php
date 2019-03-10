@@ -4,11 +4,11 @@
 	require_once('Common/Fun_FormatText.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclTeams, AclReadWrite);
 
 	$ev=isset($_REQUEST['ev']) ? $_REQUEST['ev'] : null;
 
-	if (is_null($ev))
-	{
+	if (is_null($ev)) {
 		header('Location: ChangeComponents1.php');
 		exit;
 	}

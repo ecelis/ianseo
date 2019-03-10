@@ -1,7 +1,7 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-$JSON=array('error' => 1, 'reload'=>false, 'page' => $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php');
+$JSON=array('error' => 1, 'reload'=>false, 'page' => getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php');
 
 $Channel=1;
 
@@ -27,7 +27,7 @@ if($r=safe_fetch($q)) {
 	switch($r->TVORuleType) {
 		case 1:
 			// HTML text...
-			$JSON['page']=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelHtmlContent.php?id='.$r->TVOId;
+			$JSON['page']=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelHtmlContent.php?id='.$r->TVOId;
 			break;
 		case 2:
 			// URL...
@@ -35,21 +35,19 @@ if($r=safe_fetch($q)) {
 			break;
 		case 3:
 			// Rot standard rules...
-			$JSON['page']=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rotation.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
+			$JSON['page']=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rotation.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
 			break;
 		case 4:
 			// Rot light rules...
-			$JSON['page']=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/LightRot.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
+			$JSON['page']=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/LightRot.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
 			break;
 		case 5:
 			// CSS3 rules...
-			$JSON['page']=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rot/?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
+			$JSON['page']=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rot/?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
 			break;
 		default:
-			$JSON['page']=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php';
+			$JSON['page']=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php';
 	}
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
-
+JsonOut($JSON);

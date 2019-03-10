@@ -152,6 +152,22 @@
 
 		$athletes=array();
 
+		// check the editable ageclasses...
+		$EditableClasses=array();
+		$sql="select distinct c1.ClId from Classes c1 
+			inner join Divisions d1 on d1.DivTournament=c1.ClTournament and (c1.ClDivisionsAllowed='' or find_in_set(d1.DivId, c1.ClDivisionsAllowed))
+			inner join Classes c2 on c2.ClTournament=c1.ClTournament 
+				and (c2.ClDivisionsAllowed='' or find_in_set(d1.DivId, c2.ClDivisionsAllowed)) 
+				and c2.ClId!=c1.ClId 
+				and c2.ClSex=c1.ClSex 
+				and (c1.ClAgeFrom between c2.ClAgeFrom and c2.ClAgeTo or c1.ClAgeTo between c2.ClAgeFrom and c2.ClAgeTo)
+			where c1.ClTournament={$_SESSION['TourId']}
+			";
+		$q=safe_r_sql($sql);
+		while($r=safe_fetch($q)) {
+			$EditableClasses[]=$r->ClId;
+		}
+
 		$query
 			= "SELECT "
 				. "e.*, if(year(EnDob)>0, year(ToWhenFrom) - year(EnDob),'') as EnYears, DATE_FORMAT(EnDob,'" . $dtFormat . "') AS Dob, IF(PhPhoto IS NULL OR PhPhoto='',0,1) AS HasPhoto,c.CoCode,c.CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2,c3.CoCode AS CoCode3,c3.CoName AS CoName3,q.QuSession,SUBSTRING(q.QuTargetNo,2) AS TargetNo,ToWhenFrom "
@@ -169,15 +185,13 @@
 		$rs=safe_r_sql($query);
 
 		while ($myRow=safe_fetch($rs)) {
-			$ageClassEditable='0';
-			$ageClass='';
 
 		/*
 		 * Se EnYears > 0 allora c'è l'età
 		 */
 			$ageClassEditable='1';
 			$ageClass=$myRow->EnAgeClass;
-			if ($myRow->EnYears) {
+			if ($myRow->EnYears and !in_array($myRow->EnAgeClass, $EditableClasses)) {
 				$ageClassEditable='0';
 			}
 

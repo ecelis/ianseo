@@ -9,9 +9,9 @@
 	require_once('Common/Fun_Sessions.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/Obj_RankFactory.php');
+    checkACL(AclQualification, AclReadWrite, false);
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
@@ -29,7 +29,7 @@
 	// produco l'xml di ritorno
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print '<msg>' . ($Errore==1 ? get_text('CalcRankError','Tournament') : get_text('CalcRankOk','Tournament')) . '</msg>';
-	print '</response>' . "\n";
+	print '</response>';

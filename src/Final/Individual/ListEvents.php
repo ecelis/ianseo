@@ -1,8 +1,8 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
 
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
-	CheckTourSession(true);
+    CheckTourSession(true);
+    checkACL(AclCompetition, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
 	require_once('Common/Fun_Various.inc.php');
@@ -26,10 +26,11 @@
 		phpVars2js(array(
 			'StrResetElimError' => get_text('ResetElimError', 'Tournament'),
 			)),
-		'<script type="text/javascript" src="../../Common/ajax/ObjXMLHttpRequest.js"></script>',
-		'<script type="text/javascript" src="Fun_AJAX_ListEvents.js"></script>',
-		'<script type="text/javascript" src="../../Common/js/Fun_JS.inc.js"></script>',
+		//'<script type="text/javascript" src="../../Common/ajax/ObjXMLHttpRequest.js"></script>',
+		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-2.1.4.min.js"></script>',
+		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>',
 		'<script type="text/javascript" src="Fun_JS.js"></script>',
+		'<script type="text/javascript" src="Fun_AJAX_ListEvents.js"></script>',
 		);
 
 	$ONLOAD=' onLoad="javascript:ChangeNew_EvElim();"';
@@ -55,17 +56,16 @@ if($Elim)
 <th width="5%"><?php print get_text('Distance', 'Tournament');?></th>
 <th width="5%">&nbsp;</th>
 </tr>
+<tbody id="mainTable">
 <?php
 	$ComboPhase = array();
 
-	$Select = "SELECT PhId FROM Phases WHERE PhId>1 ORDER BY PhId DESC";
-	$RsPh=safe_r_sql($Select);
-
-	while($Phase=safe_fetch($RsPh))
-	{
-		$ComboPhase[$Phase->PhId]=get_text($Phase->PhId . '_Phase');
-	}
-	$ComboPhase[0]='---';
+    $Sql= "SELECT PhId FROM Phases WHERE (PhIndTeam & 1)!=0 AND PhId>1 and PhRuleSets in ('', '{$_SESSION['TourLocRule']}') Order by PhId DESC ";
+    $q=safe_r_sql($Sql);
+    while($r=safe_fetch($q)) {
+        $ComboPhase[$r->PhId] = get_text($r->PhId . '_Phase');
+    }
+    $ComboPhase[0]='---';
 
 	$ComboMatchMode = array();
 	for($i=0; $i<=1; $i++)
@@ -87,7 +87,8 @@ if($Elim)
 
 	$Select
 		= "SELECT * FROM Events "
-		. "INNER JOIN Targets ON EvFinalTargetType=TarId "
+		. "LEFT JOIN Targets ON EvFinalTargetType=TarId "
+        . "LEFT JOIN (SELECT EcCode, COUNT(*) as ruleCnt FROM EventClass WHERE EcTeamEvent=0 AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) . " GROUP BY EcCode) as sqy on EvCode=EcCode "
 		. "WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='0' "
 		. "ORDER BY EvProgr ASC,EvCode ASC, EvTeamEvent ASC ";
 
@@ -97,8 +98,8 @@ if($Elim)
 	{
 		while ($MyRow=safe_fetch($Rs))
 		{
-			print '<tr id="Row_' . $MyRow->EvCode . '">';
-			print '<td class="Center"><a class="Link" href="SetEventRules.php?EvCode=' . $MyRow->EvCode . '">' . $MyRow->EvCode . '</a></td>';
+			print '<tr id="Row_' . $MyRow->EvCode . '" class="rowHover">';
+			print '<td class="Center"><input type="button" ' . ($MyRow->ruleCnt == 0 ? 'class="red"' : '') . ' value="'.$MyRow->EvCode .'" onclick="location=\'SetEventRules.php?EvCode=' . $MyRow->EvCode . '\'"></td>';
 
 			print '<td class="Center"><input type="text" size="50" maxlength="64" name="d_EvEventName_' . $MyRow->EvCode . '" id="d_EvEventName_' . $MyRow->EvCode . '" value="' . $MyRow->EvEventName . '" onBlur="javascript:UpdateField(\'d_EvEventName_' . $MyRow->EvCode . '\');">';
 			print '</td>';
@@ -108,45 +109,75 @@ if($Elim)
 			print '</td>';
 
 
-			if($Elim)
-			{
+			if($Elim) {
 				print '<td class="Center">';
-				print '<input type="hidden" name="old_EvElim_' . $MyRow->EvCode . '" id="old_EvElim_' . $MyRow->EvCode . '" />';
-				print '<select name="d_EvElim_' . $MyRow->EvCode . '" id="d_EvElim_' . $MyRow->EvCode . '" onFocus="javascript:document.getElementById(\'old_EvElim_' . $MyRow->EvCode . '\').value=this.value;" onChange="javascript:ManageElim(\'' . $MyRow->EvCode . '\');"' . ($Elim==0 ? ' disabled' : '') . '>' . "\n";
-				print '<option value="0"' . ($MyRow->EvElim1==0 && $MyRow->EvElim2==0 ? ' selected'  :'') . '>' . get_text('Eliminations_0') . '</option>' . "\n";
-				print '<option value="1"' . ($MyRow->EvElim1==0 && $MyRow->EvElim2>0 ? ' selected' : '') . '>' . get_text('Eliminations_1') . '</option>' . "\n";
-				print '<option value="2"' . ($MyRow->EvElim1>0 && $MyRow->EvElim2>0 ? ' selected' : '') . '>' . get_text('Eliminations_2') . '</option>' . "\n";
-				print '</select>&nbsp;' . "\n";
-				print '<input type="hidden" name="old_EvElim1_' . $MyRow->EvCode . '" id="old_EvElim1_' . $MyRow->EvCode . '" />';
-				print '<input type="hidden" name="old_EvElim2_' . $MyRow->EvCode . '" id="old_EvElim2_' . $MyRow->EvCode . '" />';
-				print '<input type="text" size="3" maxlength="3" name="d_EvElim1_' . $MyRow->EvCode . '" id="d_EvElim1_' . $MyRow->EvCode . '" value="' . $MyRow->EvElim1 . '" ' . ($MyRow->EvElim1>0 ? '' : ' readOnly') . ($Elim==0 ? ' disabled' : '') . ' onFocus="javascript:document.getElementById(\'old_EvElim1_' . $MyRow->EvCode . '\').value=this.value;" onBlur="javascript:UpdateField(\'d_EvElim1_' . $MyRow->EvCode . '\');">&nbsp;';
-				print '<input type="text" size="3" maxlength="3" name="d_EvElim2_' . $MyRow->EvCode . '" id="d_EvElim2_' . $MyRow->EvCode . '" value="' . $MyRow->EvElim2 . '" ' . ($MyRow->EvElim2>0 ? '' : ' readOnly') . ($Elim==0 ? ' disabled' : '') . ' onFocus="javascript:document.getElementById(\'old_EvElim2_' . $MyRow->EvCode . '\').value=this.value;" onBlur="javascript:UpdateField(\'d_EvElim2_' . $MyRow->EvCode . '\');">';
+				echo '<div>';
+				echo '<div><input type="button" value="'.htmlspecialchars(get_text('Edit', 'Tournament'), ENT_QUOTES).'" onclick="location=\'ListEvents-Eliminations.php?Event='.$MyRow->EvCode.'\'" /></div>';
+				echo '<div>';
+				if($MyRow->EvElimType == 1 OR $MyRow->EvElimType == 2) {
+                    if ($MyRow->EvElim1) {
+                        echo '<div class="Flex-line">';
+                        echo '<div><b>' . get_text('StageE1', 'ISK') . '</b></div>';
+                        echo '<div>' . get_text('Ends', 'Tournament') . ': ' . $MyRow->EvE1Ends . '</div>';
+                        echo '<div>' . get_text('Arrows', 'Tournament') . ': ' . $MyRow->EvE1Arrows . '</div>';
+                        echo '<div>' . get_text('ShotOff', 'Tournament') . ': ' . $MyRow->EvE1SO . '</div>';
+                        echo '<div>' . get_text('Archers') . ': ' . $MyRow->EvElim1 . '</div>';
+                        echo '</div>';
+                    }
+                    if ($MyRow->EvElim2) {
+                        echo '<div class="Flex-line">';
+                        echo '<div><b>' . get_text('StageE2', 'ISK') . '</b></div>';
+                        echo '<div>' . get_text('Ends', 'Tournament') . ': ' . $MyRow->EvE2Ends . '</div>';
+                        echo '<div>' . get_text('Arrows', 'Tournament') . ': ' . $MyRow->EvE2Arrows . '</div>';
+                        echo '<div>' . get_text('ShotOff', 'Tournament') . ': ' . $MyRow->EvE2SO . '</div>';
+                        echo '<div>' . get_text('Archers') . ': ' . $MyRow->EvElim2 . '</div>';
+                        echo '</div>';
+                    }
+                } elseif($MyRow->EvElimType == 3) {
+                    echo '<div class="Flex-line">';
+                    echo '<div><b>' . get_text('StagePool2', 'ISK') . '</b></div>';
+                    echo '<div>' . get_text('Ends', 'Tournament') . ': ' . $MyRow->EvElimEnds . '</div>';
+                    echo '<div>' . get_text('Arrows', 'Tournament') . ': ' . $MyRow->EvElimArrows . '</div>';
+                    echo '<div>' . get_text('ShotOff', 'Tournament') . ': ' . $MyRow->EvElimSO . '</div>';
+                    echo '<div>' . get_text('Archers') . ': ' . $MyRow->EvElim2 . '</div>';
+                    echo '</div>';
+                } elseif($MyRow->EvElimType == 4) {
+                    echo '<div class="Flex-line">';
+                    echo '<div><b>' . get_text('StagePool4', 'ISK') . '</b></div>';
+                    echo '<div>' . get_text('Ends', 'Tournament') . ': ' . $MyRow->EvElimEnds . '</div>';
+                    echo '<div>' . get_text('Arrows', 'Tournament') . ': ' . $MyRow->EvElimArrows . '</div>';
+                    echo '<div>' . get_text('ShotOff', 'Tournament') . ': ' . $MyRow->EvElimSO . '</div>';
+                    echo '<div>' . get_text('Archers') . ': ' . $MyRow->EvElim2 . '</div>';
+                    echo '</div>';
+                }
+				echo '</div>';
+				echo '</div>';
 				print '</td>';
 			}
 
 			print '<td class="Center">';
-			print '<select name="d_EvMatchMode_' . $MyRow->EvCode . '" id="d_EvMatchMode_' . $MyRow->EvCode . '" onChange="javascript:UpdateField(\'d_EvMatchMode_' . $MyRow->EvCode . '\');">' . "\n";
+			print '<select name="d_EvMatchMode_' . $MyRow->EvCode . '" id="d_EvMatchMode_' . $MyRow->EvCode . '" onChange="javascript:UpdateField(\'d_EvMatchMode_' . $MyRow->EvCode . '\');">';
 			foreach ($ComboMatchMode as $Key => $Value)
-				print '<option value="' . $Key . '"' . ($Key==$MyRow->EvMatchMode ? ' selected' : '') . '>' . $Value . '</option>' . "\n";
-			print '</select>' . "\n";
+				print '<option value="' . $Key . '"' . ($Key==$MyRow->EvMatchMode ? ' selected' : '') . '>' . $Value . '</option>';
+			print '</select>';
 			print '</td>';
 
 			print '<td class="Center">';
-			print '<select name="d_EvFinalFirstPhase_' . $MyRow->EvCode . '" id="d_EvFinalFirstPhase_' . $MyRow->EvCode . '" onChange="javascript:UpdatePhase(\'' . $MyRow->EvCode . '\',' . $MyRow->EvFinalFirstPhase . ',\'' . get_text('MsgAreYouSure') . '\');">' . "\n";
+			print '<select name="d_EvFinalFirstPhase_' . $MyRow->EvCode . '" id="d_EvFinalFirstPhase_' . $MyRow->EvCode . '" onChange="javascript:UpdatePhase(\'' . $MyRow->EvCode . '\',' . $MyRow->EvFinalFirstPhase . ',\'' . get_text('MsgAreYouSure') . '\');">';
 			foreach ($ComboPhase as $Key => $Value)
-				print '<option value="' . $Key . '"' . ($Key==$MyRow->EvFinalFirstPhase ? ' selected' : '') . '>' . $Value . '</option>' . "\n";
-			print '</select>' . "\n";
+				print '<option value="' . $Key . '"' . ($Key==$MyRow->EvFinalFirstPhase ? ' selected' : '') . '>' . $Value . '</option>';
+			print '</select>';
 			print '</td>';
 
 			print '<td class="Center">';
-			print '<select name="d_EvFinalTargetType_' . $MyRow->EvCode . '" id="d_EvFinalTargetType_' . $MyRow->EvCode . '" onChange="javascript:UpdateField(\'d_EvFinalTargetType_' . $MyRow->EvCode . '\');">' . "\n";
+			print '<select name="d_EvFinalTargetType_' . $MyRow->EvCode . '" id="d_EvFinalTargetType_' . $MyRow->EvCode . '" onChange="javascript:UpdateField(\'d_EvFinalTargetType_' . $MyRow->EvCode . '\');">';
 			foreach ($ComboTarget as $Key => $Value)
 			{
-				print '<option value="' . $Key . '"' . ($Key==$MyRow->EvFinalTargetType ? ' selected' : '') . '>' . $Value . '</option>' . "\n";
+				print '<option value="' . $Key . '"' . ($Key==$MyRow->EvFinalTargetType ? ' selected' : '') . '>' . $Value . '</option>';
 			}
-			print '</select>' . "\n";
+			print '</select>';
 			print '</td>';
-			
+
 			print '<td class="Center">';
 			print '<input type="text" size="3" maxlength="3" name="d_EvTargetSize_' . $MyRow->EvCode . '" id="d_EvTargetSize_' . $MyRow->EvCode . '" value="' . $MyRow->EvTargetSize . '" onBlur="javascript:UpdateField(\'d_EvTargetSize_' . $MyRow->EvCode . '\');">';
 			print '</td>';
@@ -154,14 +185,15 @@ if($Elim)
 			print '<td class="Center">';
 			print '<input type="text" size="12" maxlength="10" name="d_EvDistance_' . $MyRow->EvCode . '" id="d_EvDistance_' . $MyRow->EvCode . '" value="' . $MyRow->EvDistance . '" onBlur="javascript:UpdateField(\'d_EvDistance_' . $MyRow->EvCode . '\');">';
 			print '</td>';
-			
+
 			print '<td class="Center">';
 			print '<a href="javascript:DeleteEvent(\'' . $MyRow->EvCode . '\',\'' . urlencode(get_text('MsgAreYouSure')) . '\');"><img src="../../Common/Images/drop.png" border="0" alt="#" title="#"></a>';
 			print '</td>';
-			print '</tr>' . "\n";
+			print '</tr>';
 		}
 	}
 ?>
+</tbody>
 <tr id="RowDiv" class="Divider"><td colspan="10"></td></tr>
 <tr id="NewRow">
 <td class="Center"><input type="text" name="New_EvCode" id="New_EvCode" size="4" maxlength="4"></td>
@@ -171,7 +203,8 @@ if($Elim)
 if($Elim)
 {
 ?>
-<td class="Center">
+<td class="Center" id="listEventEliminations">
+    <!--
 <select name="New_EvElim" id="New_EvElim"<?php print ($Elim==0 ? ' disabled' : '');?> onChange="javascript:ChangeNew_EvElim();">
 <option value="0"><?php print get_text('Eliminations_0'); ?></option>
 <option value="1"><?php print get_text('Eliminations_1'); ?></option>
@@ -179,6 +212,7 @@ if($Elim)
 </select>&nbsp;
 <input type="text" size="3" maxlength="3" name="New_EvElim1" id="New_EvElim1" value="0"<?php print ($Elim==0 ? ' disabled' : '');?>>&nbsp;
 <input type="text" size="3" maxlength="3" name="New_EvElim2" id="New_EvElim2" value="0"<?php print ($Elim==0 ? ' disabled' : '');?>>
+-->
 </td>
 <?php
 }
@@ -187,7 +221,7 @@ if($Elim)
 <select name="New_EvMatchMode" id="New_EvMatchMode">
 <?php
 	foreach ($ComboMatchMode as $Key => $Value)
-		print '<option value="' . $Key . '">' . $Value . '</option>' . "\n";
+		print '<option value="' . $Key . '">' . $Value . '</option>';
 ?>
 </select>
 </td>
@@ -195,7 +229,7 @@ if($Elim)
 <select name="New_EvFinalFirstPhase" id="New_EvFinalFirstPhase">
 <?php
 	foreach ($ComboPhase as $Key => $Value)
-		print '<option value="' . $Key . '">' . $Value . '</option>' . "\n";
+		print '<option value="' . $Key . '">' . $Value . '</option>';
 ?>
 </select>
 </td>
@@ -203,7 +237,7 @@ if($Elim)
 <select name="New_EvFinalTargetType" id="New_EvFinalTargetType">
 <?php
 	foreach ($ComboTarget as $Key => $Value)
-		print '<option value="' . $Key . '">' . $Value . '</option>' . "\n";
+		print '<option value="' . $Key . '">' . $Value . '</option>';
 ?>
 </select>
 </td>

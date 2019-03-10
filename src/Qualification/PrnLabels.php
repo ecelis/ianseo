@@ -19,6 +19,8 @@ Horizontal Spacing 	Report – Column Spacing 	0.15625
  */
 
 if(CheckTourSession()) {
+    checkACL(AclQualification, AclReadOnly);
+
 	if($_SESSION['ToPaper']) {
 		$pdf = new LabelPDF(216, 280);
 	} else {
@@ -74,48 +76,48 @@ if(CheckTourSession()) {
 	$Etichetta=0;
 	if(!empty($PdfData->Data['Items'])) {
 		$Etichetta=0;
-		foreach($PdfData->Data['Items'] as $Entry) {
-			if(!$Entry->Athlete) continue;
-			if($Etichetta==0) $pdf->AddPage();
+		foreach($PdfData->Data['Items'] as $Entries) {
+            foreach($Entries as $Entry) {
+                if (empty($Entry->Athlete)) continue;
+                if ($Etichetta == 0) $pdf->AddPage();
+                //Cerchia Etichetta
+//                $pdf->Rect($pageMarginL + (($Etichetta % $Label4Column) * ($lblW + $lblSpaceH)), $pageMarginT + (intval($Etichetta / $Label4Column) * ($lblH + $lblSpaceV)), $lblW, $lblH, "D");
 
-			//Cerchia Etichetta
-// 			$pdf->Rect($pageMarginL+(($Etichetta % $Label4Column) * ($lblW+$lblSpaceH)),$pageMarginT+(intval($Etichetta / $Label4Column) * ($lblH+$lblSpaceV)),$lblW,$lblH,"D");
+                $pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + $lblMarginV);
 
-			$pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + $lblMarginV);
-
-			//Piazzola, Turno & Classe.Divisione
-			$pdf->SetFont($pdf->FontStd,'B',20);
-			$pdf->Cell(17, 8, ltrim($Entry->TargetNo, '0'), 0, 0, 'C', 0);
-			$pdf->SetFont($pdf->FontStd,'B',12);
-			$pdf->SetX($pdf->GetX()+1);
-			$pdf->Cell(22, 8, $Entry->SesName,0,0,'C',0, '', '1', false, 'T', 'B');
-			$pdf->SetX($pdf->GetX()+1);
-			$pdf->SetFont($pdf->FontStd,'',10);
-			$pdf->Cell($lblW-41-2*$lblMarginH, 4, $Entry->DivDescription ,0,1,'R',0, '', '1', false, 'T', 'T');
-			$pdf->SetXY($Pos[$Etichetta][0]+41+$lblMarginH, $Pos[$Etichetta][1]+4 + $lblMarginV);
-			$pdf->Cell($lblW-41-2*$lblMarginH, 4, $Entry->ClDescription . ' ' . intval($Entry->SubClass),0,1,'R',0, '', '1', false, 'T', 'B');
+                //Piazzola, Turno & Classe.Divisione
+                $pdf->SetFont($pdf->FontStd, 'B', 20);
+                $pdf->Cell(17, 8, ltrim($Entry->TargetNo, '0'), 0, 0, 'C', 0);
+                $pdf->SetFont($pdf->FontStd, 'B', 12);
+                $pdf->SetX($pdf->GetX() + 1);
+                $pdf->Cell(22, 8, $Entry->SesName, 0, 0, 'C', 0, '', '1', false, 'T', 'B');
+                $pdf->SetX($pdf->GetX() + 1);
+                $pdf->SetFont($pdf->FontStd, '', 10);
+                $pdf->Cell($lblW - 41 - 2 * $lblMarginH, 4, $Entry->DivDescription, 0, 1, 'R', 0, '', '1', false, 'T', 'T');
+                $pdf->SetXY($Pos[$Etichetta][0] + 41 + $lblMarginH, $Pos[$Etichetta][1] + 4 + $lblMarginV);
+                $pdf->Cell($lblW - 41 - 2 * $lblMarginH, 4, $Entry->ClDescription . ' ' . intval($Entry->SubClass), 0, 1, 'R', 0, '', '1', false, 'T', 'B');
 
 
-			//Arciere & Società
-			$pdf->SetFont($pdf->FontStd, 'B', 12);
-			$pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1]+8 + $lblMarginV);
-			$pdf->Cell($lblW-10-2*$lblMarginH, 6, $Entry->Athlete, 0, 0, 'L', 0);
-			$pdf->SetFont($pdf->FontStd,'',10);
-			$pdf->SetX($pdf->GetX()+1);
-			$pdf->Cell(9, 6, $Entry->NationCode, 0, 0, 'R', 0, '', '1', false, 'T', 'B');
+                //Arciere & Società
+                $pdf->SetFont($pdf->FontStd, 'B', 12);
+                $pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + 8 + $lblMarginV);
+                $pdf->Cell($lblW - 10 - 2 * $lblMarginH, 6, $Entry->Athlete, 0, 0, 'L', 0);
+                $pdf->SetFont($pdf->FontStd, '', 10);
+                $pdf->SetX($pdf->GetX() + 1);
+                $pdf->Cell(9, 6, $Entry->NationCode, 0, 0, 'R', 0, '', '1', false, 'T', 'B');
 
- 			//Barcode
-			$pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + 15 + $lblMarginV);
-			$pdf->SetFont('barcode','',23);
-			if($Entry->Bib[0]=='_') $Entry->Bib='UU'.substr($Entry->Bib, 1);
-			$pdf->Cell($lblW-2*$lblMarginH,10, mb_convert_encoding('*' . $Entry->Bib.'-'.$Entry->DivCode.'-'.$Entry->ClassCode, "UTF-8","cp1252") . "*", 0,0,'C',0, '', 1, false, 'T', 'T');
+                //Barcode
+                $pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + 15 + $lblMarginV);
+                $pdf->SetFont('barcode', '', 23);
+                if ($Entry->Bib[0] == '_') $Entry->Bib = 'UU' . substr($Entry->Bib, 1);
+                $pdf->Cell($lblW - 2 * $lblMarginH, 10, mb_convert_encoding('*' . $Entry->Bib . '-' . $Entry->DivCode . '-' . $Entry->ClassCode, "UTF-8", "cp1252") . "*", 0, 0, 'C', 0, '', 1, false, 'T', 'T');
 
-			$pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + $lblH + $lblMarginV -10);
-			$pdf->SetFont($pdf->FontStd,'',8);
-			$pdf->Cell($lblW-2*$lblMarginH, 10, $Entry->Bib.'-'.$Entry->DivCode.'-'.$Entry->ClassCode, 0, 0, 'C', 0, '', 1, false, 'T', 'B');
+                $pdf->SetXY($Pos[$Etichetta][0] + $lblMarginH, $Pos[$Etichetta][1] + $lblH + $lblMarginV - 10);
+                $pdf->SetFont($pdf->FontStd, '', 8);
+                $pdf->Cell($lblW - 2 * $lblMarginH, 10, $Entry->Bib . '-' . $Entry->DivCode . '-' . $Entry->ClassCode, 0, 0, 'C', 0, '', 1, false, 'T', 'B');
 
-			$Etichetta = ++$Etichetta % $Label4Page;
-
+                $Etichetta = ++$Etichetta % $Label4Page;
+            }
 		}
 	}
 

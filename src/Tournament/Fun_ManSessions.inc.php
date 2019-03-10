@@ -27,7 +27,7 @@
 				. StrSafe_DB(($SesType=='Q' || $SesType=='E' ? $SesFirstTarget : 0)) . ", "
 				. StrSafe_DB(($SesType=='F' ? $SesFollow : 0)) . ", "
 				. StrSafe_DB(($SesType=='F' ? $SesDtStart : 0)) . ", "
-				. StrSafe_DB(($SesType=='F' ? $SesDtEnd : 0)) 
+				. StrSafe_DB(($SesType=='F' ? $SesDtEnd : 0))
 			. ") ";
 			//	print $q;exit;
 		$rs=safe_w_sql($q);
@@ -320,11 +320,9 @@
  * @param int session: numero sessione
  * @return bool: true se ok false altrimenti
  */
-	function destroyQualTargetsForSession($tour,$session)
-	{
-		$q
-			= "DELETE FROM AvailableTarget WHERE AtTournament=" . StrSafe_DB($tour) . " AND AtTargetNo LIKE '" . $session . "%' ";
-		$rs=safe_w_sql($q);
+	function destroyQualTargetsForSession($tour,$session=0) {
+		$session=intval($session);
+		safe_w_sql("DELETE FROM AvailableTarget WHERE AtTournament=" . StrSafe_DB($tour) . " AND AtSession=$session");
 
 		return true;
 	}
@@ -349,7 +347,7 @@
 
 		if ($row->SesTar4Session>0 && $row->SesAth4Target>0)
 		{
-			$q= "INSERT INTO AvailableTarget (AtTournament,AtTargetNo) VALUES";
+			$q= "INSERT INTO AvailableTarget (AtTournament, AtTargetNo, AtSession, AtTarget, AtLetter) VALUES";
 
 			$tuple=array();
 
@@ -360,7 +358,7 @@
 				{
 					//$TargetNo = $ss . str_pad($tt,3,'0',STR_PAD_LEFT) . chr($aa+64);
 					$TargetNo = $session . str_pad($tt,TargetNoPadding,'0',STR_PAD_LEFT) . chr($aa+64);
-					$tuple[]="(" . StrSafe_DB($tour) . "," . StrSafe_DB($TargetNo) . ") ";
+					$tuple[]="(" . StrSafe_DB($tour) . "," . StrSafe_DB($TargetNo) . ", $session, $tt, ".StrSafe_DB(chr($aa+64)).") ";
 				}
 			}
 

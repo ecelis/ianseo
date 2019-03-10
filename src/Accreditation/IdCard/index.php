@@ -4,11 +4,11 @@ require_once('Common/pdf/LabelPDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Lib/Fun_DateTime.inc.php');
 
-if (!CheckTourSession())
-{
+if (!CheckTourSession()) {
 	print get_text('CrackError');
 	exit;
 }
+checkACL(AclAccreditation, AclReadWrite);
 
 $TmpWhere="";
 if(isset($_REQUEST["ArcherName"]) && strlen($_REQUEST["ArcherName"])>0 && preg_match("/^[-,0-9A-Z]*$/i",str_replace(" ","",$_REQUEST["ArcherName"])))

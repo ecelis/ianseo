@@ -2,7 +2,8 @@
 	define('debug',false);	// settare a true per l'output di debug
 
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
-	CheckTourSession(true);
+    CheckTourSession(true);
+    checkACL(AclCompetition, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
 
@@ -50,15 +51,15 @@ function insert_schedule_from_select(event, phase, schedule) {
 		. "ORDER BY EvProgr ASC ";
 	$Rs=safe_r_sql($Select);
 
-	print '<select name="d_Event" id="d_Event">' . "\n";
+	print '<select name="d_Event" id="d_Event">';
 	if (safe_num_rows($Rs)>0)
 	{
 		while ($Row=safe_fetch($Rs))
 		{
-			print '<option value="' . $Row->EvCode . '"' . (isset($_REQUEST['d_Event']) && $_REQUEST['d_Event']==$Row->EvCode ? ' selected' : '') . '>' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>' . "\n";
+			print '<option value="' . $Row->EvCode . '"' . (isset($_REQUEST['d_Event']) && $_REQUEST['d_Event']==$Row->EvCode ? ' selected' : '') . '>' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>';
 		}
 	}
-	print '</select>' . "\n";
+	print '</select>';
 ?>
 &nbsp;<input type="submit" value="<?php print get_text('CmdOk');?>">
 &nbsp;&nbsp;&nbsp;
@@ -71,24 +72,21 @@ function insert_schedule_from_select(event, phase, schedule) {
 </table>
 </form>
 <?php
-	if (isset($_REQUEST['Command']) && $_REQUEST['Command']=='OK')
-	{
+	if (!empty($_REQUEST['Command'])) {
 		$Status=0;	// 1 -> errore
 		// Estraggo la fase da cui inizia l'EventCode scelto, e la sua descrizione
-		$Select
-			= "SELECT EvCode,EvEventName,EvFinalFirstPhase AS StartPhase "
-			. "FROM Events "
-			. "WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvCode=" . StrSafe_DB($_REQUEST['d_Event']) . " AND EvTeamEvent='0' ";
+		$Select = "SELECT EvCode,EvEventName, if(EvElimType=3, 64, EvFinalFirstPhase) AS StartPhase 
+		  FROM Events 
+		  WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvCode=" . StrSafe_DB($_REQUEST['d_Event']) . " AND EvTeamEvent='0' ";
 		$RsParam=safe_r_sql($Select);
 		$RowPar = NULL;
 
-		if (safe_num_rows($RsParam)==1)
-		{
+		if (safe_num_rows($RsParam)==1) {
 			$RowPar=safe_fetch($RsParam);
 			$StartPhase=$RowPar->StartPhase;
 
-			$GridRows = 2* ($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase)) + 2 + 2* ($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase));	// righe della griglia
-			$alpha=ceil(log10(($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase)))/log10(2));
+			$GridRows = 2*(valueFirstPhase($StartPhase)) + 2 + 2*(valueFirstPhase($StartPhase));	// righe della griglia
+			$alpha=ceil(log10(valueFirstPhase($StartPhase))/log10(2));
 
 			$GridCols=2*$alpha+1;	// Colonne della griglia
 
@@ -141,28 +139,22 @@ function insert_schedule_from_select(event, phase, schedule) {
 				$Row=0;
 
 			// Estraggo la griglia della fase $CurPhase
-				$Select
-					= "SELECT GrPhase,IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition,GrMatchNo,	/* Grids*/ "
-					. "FinEvent, /* Finals*/"
-					. "DATE_FORMAT(FSScheduledDate,'".get_text('DateFmtDB')."') AS Dt,DATE_FORMAT(FSScheduledTime,'".get_text('TimeFmt')."') AS Hr, FSScheduledLen AS MatchLen /* FinSchedule*/"
-					. "FROM Finals JOIN Grids ON FinMatchNo=GrMatchNo AND GrPhase=" . StrSafe_DB($CurPhase) . " "
-					. "INNER JOIN Events ON FinEvent=EvCode AND EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
-					. "LEFT JOIN FinSchedule ON FinEvent=FSEvent AND FinMatchNo=FSMatchNo AND (FSTeamEvent='0' OR FSTeamEvent IS NULL) AND FinTournament=FSTournament "
-					. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($_REQUEST['d_Event']) . " "
-					. "ORDER BY  GrPhase DESC , GrMatchNo ASC ";
+				$Select = "SELECT GrPhase, GrPosition, GrPosition2, GrMatchNo, FinEvent, 
+					DATE_FORMAT(FSScheduledDate,'".get_text('DateFmtDB')."') AS Dt,DATE_FORMAT(FSScheduledTime,'".get_text('TimeFmt')."') AS Hr, FSScheduledLen AS MatchLen 
+					FROM Finals JOIN Grids ON FinMatchNo=GrMatchNo AND GrPhase=" . StrSafe_DB($CurPhase) . " 
+					INNER JOIN Events ON FinEvent=EvCode AND EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " 
+					LEFT JOIN FinSchedule ON FinEvent=FSEvent AND FinMatchNo=FSMatchNo AND (FSTeamEvent='0' OR FSTeamEvent IS NULL) AND FinTournament=FSTournament 
+					WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($_REQUEST['d_Event']) . " 
+					ORDER BY  GrPhase DESC , GrMatchNo ASC ";
 				$Rs=safe_r_sql($Select);
 
-
 				//print $Select . '<br><br>';
-				if (safe_num_rows($Rs)>0)
-				{
+				if (safe_num_rows($Rs)>0) {
 				// righe di testa della fase
-					for ($i=0;$i<=$HeadRows+2;++$i)
-					{
+					for ($i=0;$i<=$HeadRows+2;++$i) {
 						$Txt = '';
 
-						$Colspan = ($CurPhase==$StartPhase || ($StartPhase==24 && $CurPhase==32) || ($StartPhase==48 && $CurPhase==64) ? '3' : '4');
-						$ColspanDtHr = ($CurPhase==$StartPhase || ($StartPhase==24 && $CurPhase==32) || ($StartPhase==48 && $CurPhase==64) ? '1' : '1');
+						$Colspan = ($CurPhase==valueFirstPhase($StartPhase) ? '3' : '4');
 						$Input
 							= '<input type="text" maxlength="10" size="10" id="d_FSScheduledDateAll_' . $_REQUEST['d_Event'] . '_' . $CurPhase . '" value="">@'
 							. '<input type="text" maxlength="5" size="4" id="d_FSScheduledTimeAll_' . $_REQUEST['d_Event'] . '_' . $CurPhase . '" value="">'
@@ -174,7 +166,7 @@ function insert_schedule_from_select(event, phase, schedule) {
 						if ($i==1) {
 							$Txt = '<th nowrap class="Center" colspan="' . $Colspan. '">' . get_text(namePhase($StartPhase,$CurPhase) . '_Phase') . '</th>';
 						} elseif ($i==2) {
-							$Txt = '<td colspan="' . $ColspanDtHr . '">&nbsp;</td><td nowrap colspan="' . ($Colspan-$ColspanDtHr) . '">';
+							$Txt = '<td>&nbsp;</td><td nowrap colspan="' . ($Colspan-1) . '">';
 							$Txt.= $Input;
 							$Txt.= get_already_scheduled_events($CurPhase, $_REQUEST['d_Event']);
 							$Txt.= '</td>';
@@ -185,18 +177,15 @@ function insert_schedule_from_select(event, phase, schedule) {
 						$MyGrid[$Row++][$Col].= $Txt;
 					}
 
-					while ($MyRow=safe_fetch($Rs))
-					{
-						if (!isFirstPhase($StartPhase,$MyRow->GrPhase))
-						{
+					while ($MyRow=safe_fetch($Rs)) {
+						if (!isFirstPhase($StartPhase,$MyRow->GrPhase)) {
 							$TipoBordo=($Ultima%2==0 ? 'Bottom' : '');
 							$MyGrid[$Row][$Col].= '<td  nowrap class="Center ' . $TipoBordo . '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>';
 						}
 					// posizione
-						$MyGrid[$Row][$Col].= '<td  nowrap class="' . ($AthPrinted==1 ? 'Bottom ' : '') . 'Top Right Left">' . $MyRow->GrPosition . '</td>';
+						$MyGrid[$Row][$Col].= '<td  nowrap class="' . ($AthPrinted==1 ? 'Bottom ' : '') . 'Top wRight Left Center">' . (useGrPostion2($StartPhase, $CurPhase) ? ($MyRow->GrPosition2 ? $MyRow->GrPosition2 : '&nbsp;') : $MyRow->GrPosition) . '</td>';
 					// data/ora
-						if ($AthPrinted==0)
-						{
+						if ($AthPrinted==0) {
 							$Dt = (!is_null($MyRow->Dt) && $MyRow->Dt!='00-00-0000' ? $MyRow->Dt : '');
 							$Hr = (!is_null($MyRow->Hr) ? $MyRow->Hr : '');
 							$mLn = (!is_null($MyRow->MatchLen) ? $MyRow->MatchLen : '');
@@ -217,10 +206,8 @@ function insert_schedule_from_select(event, phase, schedule) {
 						++$TotAthPrinted;
 
 					// ogni due arcieri stampo le righe mediane
-						if ($AthPrinted==2 && $TotAthPrinted!=($StartPhase==48 ? 128 : ($StartPhase==24 ? 64 : $CurPhase*2)))
-						{
-							for ($i=1;$i<=$MiddleRows;++$i)
-							{
+						if ($AthPrinted==2 && $TotAthPrinted!=(valueFirstPhase($CurPhase)*2)) {
+							for ($i=1;$i<=$MiddleRows;++$i) {
 								if(!array_key_exists($Col,$MyGrid[++$Row]))
 									$MyGrid[$Row][$Col]=null;
 								$MyGrid[$Row][$Col].= '<td nowrap class="Center" colspan="' . $Colspan. '">&nbsp;</td>';
@@ -236,12 +223,13 @@ function insert_schedule_from_select(event, phase, schedule) {
 					Ho lo stesso numero di celle che ho in testa
 				*/
 					// righe di coda
-					for ($i=1;$i<=$HeadRows+4;++$i)
-					{
-						if(!array_key_exists($Row,$MyGrid))
-							$MyGrid[$Row]=array();
-						if(!array_key_exists($Col,$MyGrid[$Row]))
-							$MyGrid[$Row][$Col]=NULL;
+					for ($i=1;$i<=$HeadRows+4;++$i) {
+						if(!array_key_exists($Row,$MyGrid)) {
+                            $MyGrid[$Row] = array();
+                        }
+						if(!array_key_exists($Col,$MyGrid[$Row])) {
+                            $MyGrid[$Row][$Col] = NULL;
+                        }
 						$MyGrid[$Row++][$Col].= '<td nowrap class="Center" colspan="' . $Colspan . '">&nbsp;</td>';
 					}
 
@@ -251,33 +239,24 @@ function insert_schedule_from_select(event, phase, schedule) {
 				// righe senza bordo in testa
 					$Row=0;
 					++$Col;
-					for ($i=0;$i<=$HeadLineRows+2;++$i)
-					{
+					for ($i=0;$i<=$HeadLineRows+2;++$i) {
 						$MyGrid[$Row++][$Col].= '<td nowrap class="Center">&nbsp;</td>';
 					}
 
 				// righe con il disegno
 					$kk=0;
-					for(;;)
-					{
-						foreach ($MiddleLineRows as $Key => $Value)
-						{
-							for ($i=0;$i<$Value;++$i)
-							{
-
+					for(;;) {
+						foreach ($MiddleLineRows as $Key => $Value) {
+							for ($i=0;$i<$Value;++$i) {
 								$MyGrid[$Row++][$Col].= '<td class="Center ' . $Key . '">&nbsp;</td>';
-
-								++$kk;
-								if ($kk>(-2+($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase))*4-$MiddleRows))
-								{
+								if (++$kk>(-2+(valueFirstPhase($StartPhase))*4-$MiddleRows)) {
 									break 3;
 								}
 							}
 						}
 					}
 
-					for ($i=1;$i<=$HeadLineRows+4;++$i)
-					{
+					for ($i=1;$i<=$HeadLineRows+4;++$i) {
 						if(!array_key_exists($Row,$MyGrid))
 							$MyGrid[$Row]=array();
 						if(!array_key_exists($Col,$MyGrid[$Row]))
@@ -286,23 +265,21 @@ function insert_schedule_from_select(event, phase, schedule) {
 					}
 
 					++$Col;
-					$CurPhase/=2;	// dimezzo la fase
-					if($CurPhase==24)
-						$CurPhase=32;
+					$CurPhase = valueFirstPhase($CurPhase)/2;	// dimezzo la fase
 
 					$HeadRows=2*$HeadRows+1;
 					$MiddleRows=2*$MiddleRows+2;
 					$MiddleLineRows['Right']=2*$MiddleLineRows['Right']+1;
 					$MiddleLineRows['']=2*$MiddleLineRows['']+1;
 					$HeadLineRows=2*$HeadLineRows;
-				}
-				else
-					$Status=1;
+				} else {
+                    $Status = 1;
+                }
 			}  // end semifinali
 
 		// oro/bronzo
 			$Select
-				= "SELECT GrPhase,IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition,GrMatchNo,	/* Grids*/ "
+				= "SELECT GrPhase, GrPosition, GrPosition2, GrMatchNo,	/* Grids*/ "
 				. "FinEvent,/* Finals*/"
 				. "DATE_FORMAT(FSScheduledDate,'".get_text('DateFmtDB')."') AS Dt,DATE_FORMAT(FSScheduledTime,'".get_text('TimeFmt')."') AS Hr, FSScheduledLen AS MatchLen  /* FinSchedule*/"
 				. "FROM Finals INNER JOIN Grids ON FinMatchNo=GrMatchNo "
@@ -313,14 +290,12 @@ function insert_schedule_from_select(event, phase, schedule) {
 			$Rs=safe_r_sql($Select);
 			$Row=0;
 
-			if (safe_num_rows($Rs)==4)
-			{
+			if (safe_num_rows($Rs)==4) {
 				$AthPrinted=0;
 				$Ultima=0;
 				$MiddleRows=2;
 			// righe di testa della fase
-				for ($i=0;$i<=$HeadRows+2;++$i)
-				{
+				for ($i=0;$i<=$HeadRows+2;++$i) {
 				// se sto stampando l'ultima riga di testa scrivo la fase
 					//$MyGrid[$Row++][$Col].= '<td  nowrap class="Center" colspan="5">' . ($i==$HeadRows ? get_text('0_Phase') : '&nbsp;') . '</td>';
 					//$MyGrid[$Row++][$Col].= '<td  nowrap class="Center" colspan="5">' . ($i==$HeadRows ? get_text('0_Phase') : ($i==0 ? $Bottone : '&nbsp;')) . '</td>';
@@ -335,26 +310,23 @@ function insert_schedule_from_select(event, phase, schedule) {
 						. get_text('DateTimeViewFmt') . (!defined('hideSchedulerAndAdvancedSession') ? ' / ' . get_text('MatchMins','Tournament'):''). '<br>'
 						. '<a class="Link" href="javascript:WriteScheduleAll(\'' . $_REQUEST['d_Event'] . '\',\'1\');">' . get_text('CmdSet2All') . '</a>';
 
-					if ($i==1)
-						$Txt = '<th nowrap class="Center" colspan="3">' . get_text('0_Phase') . '/' . get_text('1_Phase') . '</th>';
-					elseif ($i==2)
-						$Txt = '<td colspan="2">&nbsp;</td><td nowrap class="" colspan="' . ($Colspan-2) . '">'
-							. $Input
-							. get_already_scheduled_events(1, $_REQUEST['d_Event'])
-							. '</td>';
-					else
-						$Txt = '<td  nowrap class="Center" colspan="3">&nbsp;</td>';
-
+					if ($i==1) {
+                        $Txt = '<th nowrap class="Center" colspan="3">' . get_text('0_Phase') . '/' . get_text('1_Phase') . '</th>';
+                    } elseif ($i==2) {
+                        $Txt = '<td colspan="2">&nbsp;</td><td nowrap class="" colspan="' . ($Colspan - 2) . '">'
+                            . $Input
+                            . get_already_scheduled_events(1, $_REQUEST['d_Event'])
+                            . '</td>';
+                    } else {
+                        $Txt = '<td  nowrap class="Center" colspan="3">&nbsp;</td>';
+                    }
 					$MyGrid[$Row++][$Col].= $Txt;
 				}
 
-				while ($MyRow=safe_fetch($Rs))
-				{
+				while ($MyRow=safe_fetch($Rs)) {
 				// righe mediane ogni due arcieri
-					if ($AthPrinted==2)
-					{
-						for ($i=1;$i<=$MiddleRows;++$i)
-						{
+					if ($AthPrinted==2) {
+						for ($i=1;$i<=$MiddleRows;++$i) {
 							$MyGrid[$Row++][$Col].= '<td  nowrap class="Center" colspan="3">&nbsp;</td>';
 						}
 						$AthPrinted=0;
@@ -365,9 +337,8 @@ function insert_schedule_from_select(event, phase, schedule) {
 					$MyGrid[$Row][$Col].= '<td nowrap class="Center ' . $TipoBordo . '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>';
 
 				// posizione
-					$MyGrid[$Row][$Col].= '<td  nowrap class="' . ($AthPrinted==1 ? 'Bottom ' : '') . 'Top Right Left">' . $MyRow->GrPosition . '</td>';
-					if ($AthPrinted==0)
-					{
+					$MyGrid[$Row][$Col].= '<td  nowrap class="' . ($AthPrinted==1 ? 'Bottom ' : '') . 'Top wRight Left Center">' . (useGrPostion2($StartPhase, $CurPhase) ? ($MyRow->GrPosition2 ? $MyRow->GrPosition2 : '&nbsp;') : $MyRow->GrPosition) . '</td>';
+					if ($AthPrinted==0) {
 				// data/ora
 						$Dt = (!is_null($MyRow->Dt) && $MyRow->Dt!='00-00-0000' ? $MyRow->Dt : '');
 						$Hr = (!is_null($MyRow->Hr) ? $MyRow->Hr : '');
@@ -385,8 +356,7 @@ function insert_schedule_from_select(event, phase, schedule) {
 					++$Row;
 				}
 
-				for ($i=1;$i<=$HeadRows+4;++$i)
-				{
+				for ($i=1;$i<=$HeadRows+4;++$i) {
 					//$MyGrid[$Row++][$Col].= '<td  class="Center" colspan="3">' . ($i==1 ? get_text('1_Phase') : '&nbsp;') . '</td>';
 					if(!array_key_exists($Row,$MyGrid))
 						$MyGrid[$Row]=array();
@@ -394,27 +364,25 @@ function insert_schedule_from_select(event, phase, schedule) {
 						$MyGrid[$Row][$Col]=NULL;
 					$MyGrid[$Row++][$Col].= '<td  class="Center" colspan="3">&nbsp;</td>';
 				}
-			}
-			else
-				$Status=1;
+			} else {
+                $Status = 1;
+            }
 		}
 
-		if ($Status==0)
-		{
-			/*print '<table>' . "\n";
-			print '<tr><th class="Title">' . get_text($RowPar->EvEventName,'','',true) . '</th></tr>' . "\n";
-			print '</table>' . "\n";
-			print '<br><br>';*/
-
-			print '<table class="Griglia">' . "\n";
-			for ($i=0;$i<$GridRows+($StartPhase==2 ? 3 : 0);++$i)
-			{
+		if ($Status==0) {
+			print '<table class="Griglia">';
+			for ($i=0;$i<$GridRows+($StartPhase==2 ? 3 : 0);++$i) {
 				print '<tr>';
-				for ($j=0;$j<$GridCols;++$j)
-					print $MyGrid[$i][$j];
-				print '</tr>' . "\n";
+				for ($j=0;$j<$GridCols;++$j) {
+					if($MyGrid[$i][$j]) {
+						print $MyGrid[$i][$j];
+                    } else {
+					    echo '<td colspan="'.(3+($j>0)).'"></td>';
+                    }
+                }
+				print '</tr>';
 			}
-			print '</table>' . "\n";
+			print '</table>';
 		}
 	}
 

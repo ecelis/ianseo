@@ -48,6 +48,7 @@
 	$TourCode=stripslashes($_REQUEST['Tour']);
 	$TourId=getIdFromCode($TourCode);
 	$RuleOrder=(empty($_REQUEST['Order']) ? 0 : intval($_REQUEST['Order']));
+    checkACL(AclOutput,AclReadOnly,true,$TourId);
 
 	$pagine=array();
 

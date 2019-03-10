@@ -47,6 +47,7 @@
 	$RuleId=intval($_REQUEST['Rule']);
 	$TourCode=stripslashes($_REQUEST['Tour']);
 	$TourId=getIdFromCode($TourCode);
+    checkACL(AclOutput,AclReadOnly,true, $TourId);
 
 //	if(empty($_SESSION['TourId'])) {
 //		include_once('Common/UpdatePreOpen.inc.php');
@@ -148,67 +149,3 @@
 
 	include('Common/Templates/tail-html-rot.php');
 
-
-
-/*
-
-Vecchia gestione video ianseo:
-	Regole TV
-	con parametri tempo e grafica e
-		sequenza pagine in rotazione definiti in EditRule.php
-	uscita video con ridimensionamenti per finestra output gestiti secondo html
-
-Nuova proposta di Visualizzazione:
-
-uscite video definite canali da settare on/off da regia
-ogni canale preimpostato per risoluzione video, header, sottopancia, 4 corner per loghi, colore background per uscita come grafica in sovrapposizione, colore backgroud2 per uscita come ianseo attuale righe dispari, 2 colori testo per testo e ombreggiatura…
-
-
-
-RISOLUZIONI VIDEO
-
-	es: TV SD pal 768 x 576 (4:3), ntsc 720 x 480 (3:2)
-	comp. e videoproiettori 4:3 svga 800 x 600, xga 1024x768, sxga 1280 x 1024
-	comp. e videoproiettori 16:10 wxga 1280 x 800 - 1440 x 900 - 1280 x 768
-	tv HD 16:9 HD720 1280 x 720 HD1080 1920 x 1080 e il vecchio HD Ready Wxga 1366 x 768
-
-in ogni caso le risoluzioni più utilizzate sono sostanzialmente
-pal e HD1080 per grafica broadcast
-800 x 600 e 1024 x 768 per videoproiettori
-HD Ready e HD1080 per televisori LCD
-
-a seconda della attivazione o meno di header e sottopancia avremo risoluzioni variate del frame di uscita centrale. comunque possiamo definire altezza di header e sottopancia in termini percentuali rispetto alla risoluzione del canale.
-ATTENZIONE!!! potrebbe essere interessante l'utilizzo degli schermi ruotati di 90 gradi per permettere un numero maggiore di righe visualizzate, quindi prevedere in partenza l'inversione tra altezza e larghezza.
-
-i corner per loghi li attiverei solamente in presenza di header e sottopancia per evitare flickering video.
-dimensioni uguali a altezza header o sottopancia
-
-COSA FAR USCIRE SUI CANALI ATTIVATI
-
-i contenuti di base sono:
- - generate dal db -
-Classifiche (le vecchie Pagine in Rotazione di Ianseo)
-Lista Piazzole (anche specifiche dei match di finale)
-Premiazioni
-Scheduling
-
-- altre -
-Messaggi di Testo (salvataggio del testo e relativi parametri o generazione immagine)
-Immagine (singola o slideshow)
-Video
-
-da valutare se centralizzare l'archiviazione e la lettura di immagini e video. Personalmente opterei per un dump sul pc che pilota l'uscita video e controllo ciclico di eventuali aggiornamenti da effettuare
-
-Nella categoria immagini distinguerei un sottogruppo per la parte advertising. Loghi e img a risoluzioni differenti per l'inclusione secondo parametri configurabili - futura gestione stile campagna ad-server e possibile integrazione con stampe classifiche, pettorali, cartelli e quant'altro.
-
-
-la sequenza di una selezione di contenuti (es: immagine titolo - classifica OLSM - immagine - classifica OLSF - advertising - schedule sessione - video - ….) la identifichiamo come PROGRAMMAZIONE
-il mantenere gli advertising separati permette di personalizzare le uscite (es:  classifiche con loghi FITA e LOC per canale principale   -  classifica con logo Sponsor per canale dedicato in uno stand …)
-
-HEADER e SOTTOPANCIA:
-riservati a contenuti specifici:
-Header solo per Titoli (Testi tipo 1) o Advertising + Eventuali uno o due loghi nei due angoli superiori
-Sottopancia solo per Testi Statici (Testi tipo 2), Testi a scorrimento orizzontale (Testi tipo 3), scheduling statico o a scorrimento, advertising + eventuali uno o due loghi nei due angoli inferiori. Eventuale scorrimento classifiche quando utilizzati come sovrapposizione su TV
-
-*/
-?>

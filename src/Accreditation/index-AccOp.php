@@ -45,5 +45,4 @@ switch($_REQUEST['type']) {
 		break;
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

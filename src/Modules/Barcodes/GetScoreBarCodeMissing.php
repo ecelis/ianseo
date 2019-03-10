@@ -8,12 +8,13 @@ require_once('Common/pdf/ResultPDF.inc.php');
 
 $Sess=intval($_GET['T']);
 $Dist=intval($_GET['D']);
+$Type=$_GET['S'];
 
 $a=new StdClass();
 $a->distance=$Dist;
 $a->session=get_text('Session').' '.$Sess;
 
-$q=safe_r_sql("select SesName from Session where SesType='Q' and SesTournament={$_SESSION['TourId']} and SesOrder=$Sess");
+$q=safe_r_sql("select SesName from Session where SesType='$Type' and SesTournament={$_SESSION['TourId']} and SesOrder=$Sess");
 if($r=safe_fetch($q) and $r->SesName) $a->session=$r->SesName;
 
 $PDF_TITLE=get_text('MissingScorecards', 'Tournament', $a);
@@ -26,26 +27,51 @@ $pdf->SetY($pdf->gety()+5);
 
 $Order="FirstName, Name, TargetNo";
 
-$MyQuery = "SELECT EnCode as Bib
-		, EnName AS Name
-		, upper(EnFirstName) AS FirstName
-		, QuSession AS Session
-		, SUBSTRING(QuTargetNo,2) AS TargetNo
-		, CoCode AS NationCode, CoName AS Nation
-		, EnClass AS ClassCode, ClDescription
-		, EnDivision AS DivCode, DivDescription
-		, EnSubClass as SubClass
-		, SesName
-	FROM Entries
-	inner JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament
-	inner JOIN Qualifications ON EnId=QuId and QuSession=$Sess
-	inner JOIN Divisions ON EnTournament=DivTournament AND EnDivision=DivId
-	inner JOIN Classes ON EnTournament=ClTournament AND EnClass=ClId
-	inner join Session on SesOrder=$Sess and SesTournament=EnTournament and SesType='Q'
-	WHERE EnAthlete=1
-		AND EnTournament = {$_SESSION['TourId']} AND EnStatus<=1
-		AND EnId not in (select AEId from AccEntries where AETournament={$_SESSION['TourId']} and AEOperation=".(100+$Dist).")
-	ORDER BY TargetNo, FirstName, Name  ";
+switch($Type) {
+	case 'Q':
+		$MyQuery = "SELECT EnCode as Bib
+				, EnName AS Name
+				, upper(EnFirstName) AS FirstName
+				, QuSession AS Session
+				, SUBSTRING(QuTargetNo,2) AS TargetNo
+				, CoCode AS NationCode, CoName AS Nation
+				, EnClass AS ClassCode, ClDescription
+				, EnDivision AS DivCode, DivDescription
+				, EnSubClass as SubClass
+				, SesName
+			FROM Entries
+			inner JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament
+			inner JOIN Qualifications ON EnId=QuId and QuSession=$Sess
+			inner JOIN Divisions ON EnTournament=DivTournament AND EnDivision=DivId
+			inner JOIN Classes ON EnTournament=ClTournament AND EnClass=ClId
+			inner join Session on SesOrder=$Sess and SesTournament=EnTournament and SesType='Q'
+			WHERE EnAthlete=1
+				AND EnTournament = {$_SESSION['TourId']} AND EnStatus<=1
+				AND QuConfirm & ".pow(2, $Dist)."=0
+			ORDER BY TargetNo, FirstName, Name  ";
+		break;
+	case 'E':
+		$MyQuery = "SELECT EnCode as Bib
+				, EnName AS Name
+				, upper(EnFirstName) AS FirstName
+				, ElElimPhase AS Session
+				, ElTargetNo AS TargetNo
+				, CoCode AS NationCode, CoName AS Nation
+				, '' as ClDescription
+				, EvEventName as DivDescription
+				, EnSubClass as SubClass
+				, SesName
+			FROM Entries
+			inner JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament
+			inner JOIN Eliminations ON EnId=ElId and ElElimPhase=".($Dist-1)." and ElTournament=EnTournament and ElSession={$_GET['T']}
+			inner JOIN Events ON EvTournament=ElTournament AND EvTeamEvent=0 and EvCode=ElEventCode
+			left join Session on SesOrder=ElSession and SesTournament=EnTournament and SesType='E'
+			WHERE EnAthlete=1
+				AND EnTournament = {$_SESSION['TourId']} AND EnStatus<=1
+				AND ElConfirm=0
+			ORDER BY ElTargetNo, FirstName, Name ";
+		break;
+}
 
 $Unit=($pdf->getPageWidth()-20)/150;
 

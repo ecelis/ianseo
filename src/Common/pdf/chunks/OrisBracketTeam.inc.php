@@ -4,7 +4,7 @@ $ShowTargetNo = (isset($PdfData->ShowTargetNo) ? $PdfData->ShowTargetNo : true);
 $ShowSchedule = (isset($PdfData->ShowSchedule) ? $PdfData->ShowSchedule : true);
 $ShowSetArrows= (isset($PdfData->ShowSetArrows) ? $PdfData->ShowSetArrows : true);
 
-$arrayTitles = array("1/8\nElimin. Round§", "1/4\nElimin. Round§", "Semifinals§", "Finals§");
+$arrayTitles = array("1/12\nElimin. Round§","1/8\nElimin. Round§", "1/4\nElimin. Round§", "Semifinals§", "Finals§");
 
 // Variabile per gestire il cambio di Evento
 $PhaseCounter=-1;
@@ -19,9 +19,10 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 	$PdfData->Events[$Event]->FirstPhase = $section['meta']['firstPhase'];
 	$PdfData->Events[$Event]->PrintHead = $section['meta']['printHead'];
 	$PdfData->Events[$Event]->Medals = array("Gold"=>'-', "Silver"=>'-',"Bronze"=>'-');
-	$PdfData->Events[$Event]->Header = array_merge(array("RR Rank /\nScore#","Bk\nNo#","NOC - Name"),array_slice($arrayTitles,(3-log($section['meta']['firstPhase'],2))));
-	$PdfData->Events[$Event]->HeaderWidth = array_merge(array(array(7,11),10,37),array_fill(0,(log($section['meta']['firstPhase'],2)+2),125/(log($section['meta']['firstPhase'],2)+2)));
-	$PdfData->Events[$Event]->NumComponenti = $section['meta']['maxTeamPerson'];
+    $arrayTitles[0]="1/".$section['meta']['firstPhase']."\nElimin. Round§";
+	$PdfData->Events[$Event]->Header = array_merge(array("RR Rank /\nScore#","Bk\nNo#","NOC - Name"),array_slice($arrayTitles,(4-ceil(log($section['meta']['firstPhase'],2)))));
+	$PdfData->Events[$Event]->HeaderWidth = array_merge(array(array(7,11),10,37),array_fill(0,(ceil(log($section['meta']['firstPhase'],2))+2),125/ceil((log($section['meta']['firstPhase'],2))+2)));
+	$PdfData->Events[$Event]->NumComponenti = ($section['meta']['firstPhase'] <= 8 ? $section['meta']['maxTeamPerson'] : 1);
 	$PdfData->Events[$Event]->Records = (empty($section['records']) ? array() : $section['records']);
 
 	$FirstPhase=true;
@@ -51,6 +52,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 			$Obj1->FSTarget = ($ShowTargetNo ? $Match['target'] : '');
 			$Obj1->ScheduledDate = ($ShowSchedule ? $Match['scheduledDate'] : '');
 			$Obj1->ScheduledTime = ($ShowSchedule ? $Match['scheduledTime'] : '');
+            $Obj1->Saved = ($Match['oppPosition'] and $Match['oppPosition']<=$section['meta']['numSaved']) ? $PdfData->rankData['meta']['saved'] : '';
 			$Obj1->Componenti = $Comp1;
 
 			$Obj2=new StdClass();
@@ -73,6 +75,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 			$Obj2->FSTarget = ($ShowTargetNo ? $Match['oppTarget'] : '');
 			$Obj2->ScheduledDate = ($ShowSchedule ? $Match['scheduledDate'] : '');
 			$Obj2->ScheduledTime = ($ShowSchedule ? $Match['scheduledTime'] : '');
+            $Obj2->Saved = ($Match['position'] and $Match['position']<=$section['meta']['numSaved']) ? $PdfData->rankData['meta']['saved'] : '';
 			$Obj2->Componenti = $Comp2;
 
 			// what exactly has to print as "score" for side A...
@@ -98,7 +101,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 			} elseif(!$Match['notes'] and $Match['oppCountryCode'] and $Match['countryCode'] and $Match['oppTie']==2) {
 				// A DNS issue
 				$Obj1->Score='DNS';
-				if(!$item['oppNotes'] and $item['tie']!=2) $Obj2->Score='';
+				if(!$Match['oppNotes'] and $Match['tie']!=2) $Obj2->Score='';
 			} elseif($RealScore1==0 and $RealScore2==0) {
 				$Obj2->Score='';
 				if($Match['oppTie']!=2 and $Match['tie']!=2 and $Obj2->FSTarget) {
@@ -155,16 +158,36 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 
 			//Valuto cosa fare se è la prima colonna
 			if($FirstPhase) {
-				for($n=0; $n<$section['meta']['maxTeamPerson']; $n++) {
-					$Comp1[] = empty($section['athletes'][$Match['teamId']][$Match['subTeam']][$n]) ? array('','') : array(
-						$section['athletes'][$Match['teamId']][$Match['subTeam']][$n]['backNo'],
-						$section['athletes'][$Match['teamId']][$Match['subTeam']][$n]['athlete'],
-						);
-					$Comp2[] = empty($section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]) ? array('','') : array(
-						$section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]['backNo'],
-						$section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]['athlete'],
-						);
-				}
+			    if($section['meta']['firstPhase']<=8) {
+                    for ($n = 0; $n < $section['meta']['maxTeamPerson']; $n++) {
+                        $Comp1[] = empty($section['athletes'][$Match['teamId']][$Match['subTeam']][$n]) ? array('', '') : array(
+                            $section['athletes'][$Match['teamId']][$Match['subTeam']][$n]['backNo'],
+                            $section['athletes'][$Match['teamId']][$Match['subTeam']][$n]['athlete'],
+                        );
+                        $Comp2[] = empty($section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]) ? array('', '') : array(
+                            $section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]['backNo'],
+                            $section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]['athlete'],
+                        );
+                    }
+                } else {
+                    $bk1 = array();
+                    $bk2 = array();
+                    $ath1 = array();
+                    $ath2 = array();
+                    for ($n = 0; $n < $section['meta']['maxTeamPerson']; $n++) {
+                    	if(!empty($section['athletes'][$Match['teamId']][$Match['subTeam']][$n])) {
+                            $bk1[]  .= empty($section['athletes'][$Match['teamId']][$Match['subTeam']][$n]) ? '' : $section['athletes'][$Match['teamId']][$Match['subTeam']][$n]['backNo'];
+                            $ath1[] .= $section['athletes'][$Match['teamId']][$Match['subTeam']][$n]['familyName'];
+	                    }
+	                    if(!empty($section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n])) {
+	                        $bk2[] .= empty($section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]) ? '' : $section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]['backNo'];
+	                        $ath2[] .= $section['athletes'][$Match['oppTeamId']][$Match['oppSubTeam']][$n]['familyName'];
+	                    }
+                    }
+                    $Comp1[] = array(implode(', ', $bk1), implode(', ', $ath1));
+                    $Comp2[] = array(implode(', ', $bk2), implode(', ', $ath2));
+
+                }
 
 				$Obj1->Componenti = $Comp1;
 				$Obj2->Componenti = $Comp2;
@@ -208,7 +231,7 @@ foreach($PdfData->Events as $Event => $Pages) {
 	$pdf->setPhase($PdfData->Description);
 	$pdf->Records=$Pages->Records;
 
-	$pdf->CellHSp = 125/(log($Pages->FirstPhase,2)+2);
+	$pdf->CellHSp = 125/(ceil(log($Pages->FirstPhase,2))+2);
 
 	$pdf->SetDataHeader($Pages->Header, $Pages->HeaderWidth);
 	$pdf->setOrisCode($PdfData->Code, $PdfData->Description);
@@ -229,10 +252,12 @@ foreach($PdfData->Events as $Event => $Pages) {
 	$TopY=$pdf->lastY;
 
 	$PhaseCounter=0;
-	if($Pages->NumComponenti)
-		$pdf->CellVSp = (($pdf->GetPageHeight()-$TopY)/(8*(4+2*$Pages->NumComponenti))-0.35);
-	else
-		$pdf->CellVSp = (($pdf->GetPageHeight()-$TopY)/(40)-0.25);
+
+	if($Pages->NumComponenti) {
+        $pdf->CellVSp = (($pdf->GetPageHeight() - $TopY) / (($Pages->FirstPhase > 8 ? 16 : 8) * (4 + 2 * $Pages->NumComponenti)) - ($Pages->FirstPhase > 8 ? 0.20 : 0.35));
+    } else {
+        $pdf->CellVSp = (($pdf->GetPageHeight() - $TopY) / (40) - 0.25);
+    }
 
 	$pdf->lastY = $TopY + ($PhaseCounter==0 ? 1:($PhaseCounter==1 ? (2+$Pages->NumComponenti-1):($PhaseCounter==2 ? (4+2*$Pages->NumComponenti-1):(8+4*$Pages->NumComponenti-1)))) * $pdf->CellVSp;
 
@@ -240,17 +265,18 @@ foreach($PdfData->Events as $Event => $Pages) {
 	$pdf->SetFont('','',8);
 
 	foreach($Pages->FirstColumn as $item) {
-		$pdf->FirstColumnTeam($item->TfMatchNo, $item->Country, $item->Team, $item->TeRank, $item->TeScore, $item->GrPosition, $item->Score, $item->TfTie, $item->TfTieBreakDecoded, $item->SetPoints, $item->OppScore, $item->OppTie, $item->FSTarget, $item->ScheduledDate, $item->ScheduledTime, '', $item->Componenti, $Pages->NumComponenti);
+		$pdf->FirstColumnTeam($item->TfMatchNo, $item->Country, $item->Team, $item->TeRank, $item->TeScore, $item->GrPosition, $item->Score, $item->TfTie, $item->TfTieBreakDecoded, $item->SetPoints, $item->OppScore, $item->OppTie, $item->FSTarget, $item->ScheduledDate, $item->ScheduledTime, '', $item->Componenti, $item->Saved);
 	}
 
 	foreach($Pages->OtherColumn as $Column) {
 		$PhaseCounter++;
-		if($Pages->NumComponenti)
-			$pdf->CellVSp = (($pdf->GetPageHeight()-$TopY)/(8*(4+2*$Pages->NumComponenti))-0.35);
-		else
-			$pdf->CellVSp = (($pdf->GetPageHeight()-$TopY)/(40)-0.25);
+		if($Pages->NumComponenti) {
+            $pdf->CellVSp = (($pdf->GetPageHeight() - $TopY) / (($Pages->FirstPhase > 8 ? 16 : 8) * (4 + 2 * $Pages->NumComponenti)) - ($Pages->FirstPhase > 8 ? 0.20 : 0.35));
+        } else {
+            $pdf->CellVSp = (($pdf->GetPageHeight() - $TopY) / (40) - 0.25);
+        }
 
-		$pdf->lastY = $TopY + ($PhaseCounter==0 ? 1:($PhaseCounter==1 ? (2+$Pages->NumComponenti-1):($PhaseCounter==2 ? (4+2*$Pages->NumComponenti-1):(8+4*$Pages->NumComponenti-1)))) * $pdf->CellVSp;
+		$pdf->lastY = $TopY + ($PhaseCounter==0 ? 1:($PhaseCounter==1 ? (2+$Pages->NumComponenti-1):($PhaseCounter==2 ? (4+2*$Pages->NumComponenti-1):($PhaseCounter==3 ? (8+4*$Pages->NumComponenti-1):(16+8*$Pages->NumComponenti-1))))) * $pdf->CellVSp;
 
 		foreach($Column as $item) {
 			$pdf->OtherColumnsTeam($PhaseCounter,

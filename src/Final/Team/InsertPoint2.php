@@ -1,6 +1,4 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Final/Fun_ChangePhase.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
@@ -9,6 +7,7 @@
 	require_once('HHT/Fun_HHT.local.inc.php');
 
 	if (!CheckTourSession() || !isset($_REQUEST['d_Phase'])) PrintCrackError();
+    checkACL(AclTeams, AclReadOnly);
 
 	$Cols2Remove = (isset($_REQUEST['d_Tie']) && $_REQUEST['d_Tie']==1 ? 0 : 2);
 
@@ -18,16 +17,12 @@
 	$Score_Error = array(); // contiene gl'indici degli score che superano il max
 	$Set_Error = array(); // contiene gl'indici dei set che superano il max
 
- 	if (isset($_REQUEST['Command']) && $_REQUEST['Command']=='SAVE' && !IsBlocked(BIT_BLOCK_TEAM))
- 	{
+ 	if (isset($_REQUEST['Command']) && $_REQUEST['Command']=='SAVE' && !IsBlocked(BIT_BLOCK_TEAM)) {
 	// Update dei punti e dei tie
 		$AllowedEvents=array();
- 		foreach ($_REQUEST as $Key => $Value)
-		{
-			if (strpos($Key,'S_')===0)
-			{
-				if (!(is_numeric($Value) && $Value>=0))
-				{
+ 		foreach ($_REQUEST as $Key => $Value) {
+			if (strpos($Key,'S_')===0) {
+				if (!(is_numeric($Value) && $Value>=0)) {
 					$Value=0;
 				}
 
@@ -43,24 +38,17 @@
 					if($u=safe_fetch($t)) $AllowedEvents[$ee]=$u->GrPhase;
 				}
 
-				if ($Value > ($MaxScores['MaxSetPoints'] ? $MaxScores['MaxSetPoints'] : $MaxScores['MaxMatch']) )
-				{
+				if ($Value > ($MaxScores['MaxSetPoints'] ? $MaxScores['MaxSetPoints'] : $MaxScores['MaxMatch']) ) {
 					$Score_Error[$ee . '_' . $mm]=true;
-				}
-				else
-				{
-
-					if (debug) print $mm . ' - ';
+				} else {
 
 					$Update
 						= "UPDATE TeamFinals SET "
 						. (isset($_REQUEST['X_' . $ee . '_' . $mm]) && $_REQUEST['X_' . $ee . '_' . $mm]==0 ? "TfScore" : "TfSetScore") . "=" . StrSafe_DB($Value) . " ";
 
 					//Cerco i punti dei set, SE gara a set
-					if(isset($_REQUEST['X_' . $ee . '_' . $mm]) && $_REQUEST['X_' . $ee . '_' . $mm]!=0)
-					{
-						if(isset($_REQUEST['P_' . $ee . '_' . $mm]) && is_array($_REQUEST['P_' . $ee . '_' . $mm]))
-						{
+					if(isset($_REQUEST['X_' . $ee . '_' . $mm]) && $_REQUEST['X_' . $ee . '_' . $mm]!=0) {
+						if(isset($_REQUEST['P_' . $ee . '_' . $mm]) && is_array($_REQUEST['P_' . $ee . '_' . $mm])) {
 							//Valido i piunti set POI decido se mi vanno bene o no
 							foreach($_REQUEST['P_' . $ee . '_' . $mm] as $setPoint)
 							{
@@ -73,49 +61,41 @@
 					}
 
 					//Cerco i Tie
-					if (isset($_REQUEST['T_' . $ee . '_' . $mm]))
-					{
+					if (isset($_REQUEST['T_' . $ee . '_' . $mm])) {
 					// devo scrivere i punti di tie
 						$tiebreak = '';
 
-						if (isset($_REQUEST['t_' . $ee . '_' . $mm]) && is_array($_REQUEST['t_' . $ee . '_' . $mm]))
-						{
-							foreach ($_REQUEST['t_' . $ee . '_' . $mm] as $TieKey => $TieValue)
-							{
+						if (isset($_REQUEST['t_' . $ee . '_' . $mm]) && is_array($_REQUEST['t_' . $ee . '_' . $mm])) {
+							foreach ($_REQUEST['t_' . $ee . '_' . $mm] as $TieKey => $TieValue) {
 								$tiebreak.=(GetLetterFromPrint($TieValue)!=' ' ? GetLetterFromPrint($TieValue) : ' ');
 							}
 						}
 						$Update.= ",TfTieBreak=" . StrSafe_DB($tiebreak) . " ";
 
 					// devo settare la tendina del tie
+
 						$t="";
 
-						if (!(is_numeric($_REQUEST['T_' . $ee .'_' . $mm]) && $_REQUEST['T_' . $ee .'_' . $mm]>=0))
-						{
+						if (!(is_numeric($_REQUEST['T_' . $ee .'_' . $mm]) && $_REQUEST['T_' . $ee .'_' . $mm]>=0)) {
 							$t=0;
-						}
-						else
-						{
+						} else {
 							$t=$_REQUEST['T_' . $ee .'_' . $mm];
 						}
+
 					/*
 						Nel caso $t=1 la verifica che sia assegnato a chi ha l'ultima freccia di tiebreak più alta è fatta dai passaggi di classe.
 						Segnalo se entrambe le persone hanno il bye
 					*/
 						$TieOk=true;
-						if ($t==2)
-						{
+						if ($t==2) {
 							$IndexOfOne = $ee .'_' . $mm;
 							$First = '';
 							$Last = '';
 
-							if ($mm%2==0)
-							{
+							if ($mm%2==0) {
 								$First = $ee .'_' . $mm;
 								$Last = $ee .'_' . ($mm+1);
-							}
-							else
-							{
+							} else {
 								$First = $ee .'_' . ($mm-1);
 								$Last = $ee .'_' . $mm;
 							}
@@ -127,18 +107,17 @@
 								$TieOk=true;
 						}
 
-						if ($TieOk)
-							$Update.= ",TfTie=" . StrSafe_DB($t) . " ";
-						else
-							$Tie_Error[$ee .'_' . $mm]=true;
+						if ($TieOk) {
+                            $Update .= ",TfTie=" . StrSafe_DB($t) . " ";
+                        } else {
+                            $Tie_Error[$ee . '_' . $mm] = true;
+                        }
 					}
 
 					$Update
 						.=",TfDateTime=" . StrSafe_DB(date('Y-m-d H:i:s')) . " "
 						. "WHERE TfEvent='" . $ee . "' AND TfMatchNo='" . $mm . "' AND TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
 					$RsUp=safe_w_sql($Update);
-					if (debug)
-						print $Update . '<br><br>';
 				}
 			}
 		}
@@ -170,12 +149,12 @@ $Sch=0;
 
 if(!empty($_REQUEST['d_Event'])) {
 	foreach($_REQUEST['d_Event'] as $key => $val) {
-		echo '<input type="hidden" name="d_Event[]" id="d_Event_'.$key.'" value="'.$val.'">' . "\n";
+		echo '<input type="hidden" name="d_Event[]" id="d_Event_'.$key.'" value="'.$val.'">';
 	}
 }
 
 if(!empty($_REQUEST['x_Session']) and $_REQUEST['x_Session']!=-1) {
-	echo '<input type="hidden" name="x_Session" id="x_Session" value="'.$_REQUEST['x_Session'].'">' . "\n";
+	echo '<input type="hidden" name="x_Session" id="x_Session" value="'.$_REQUEST['x_Session'].'">';
 
 	$useSession=true;
 
@@ -188,21 +167,18 @@ if(!empty($_REQUEST['x_Session']) and $_REQUEST['x_Session']!=-1) {
 /*
  * La precedente deve esser per forza diversa da false ma nel caso non faccio nulla
  */
-	if ($actual!==false)
-	{
+	if ($actual!==false) {
 	// prima imposto l'inizio e la fine uguale all'attuale
 		$PP=$ComboArr[$actual];
 		$NP=$ComboArr[$actual];
 
 	// poi metto a posto
 
-		if ($actual!=0)
-		{
+		if ($actual!=0) {
 			$PP=$ComboArr[$actual-1];
 		}
 
-		if ($actual!=(count($ComboArr)-1))
-		{
+		if ($actual!=(count($ComboArr)-1)) {
 			$NP=$ComboArr[$actual+1];
 		}
 	}
@@ -240,66 +216,56 @@ if(!empty($_REQUEST['x_Session']) and $_REQUEST['x_Session']!=-1) {
 		. "INNER JOIN Events ON TfEvent=EvCode AND EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
 		. "INNER JOIN Grids ON TfMatchNo=GrMatchNo "
 		. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvShootOff='0' " . $QueryFilter
-		. "ORDER BY EvProgr ASC,GrMatchNo ASC ";
+		. "ORDER BY EvProgr ASC, EvCode, GrMatchNo ASC ";
 	$Rs=safe_r_sql($Select);
 
 	$Elenco = '';
-	while ($Row=safe_fetch($Rs))
-	{
+	while ($Row=safe_fetch($Rs)) {
 		$Elenco.= get_text($Row->EvEventName,'','',true) . ' (' . $Row->EvCode . ')<br>';
 	}
 
-	if ($Elenco!='')
-	{
-		print '<tr><td class="Bold" colspan="' . (8-$Cols2Remove) . '">' . get_text('IndFinEventWithoutShootOff') . '</td></tr>' . "\n";
+	if ($Elenco!='') {
+		print '<tr><td class="Bold" colspan="' . (8-$Cols2Remove) . '">' . get_text('IndFinEventWithoutShootOff') . '</td></tr>';
 		print '<tr><td colspan="' . (8-$Cols2Remove) . '">';
 		print $Elenco;
 		print '</td>';
-		print '</tr>' . "\n";
-		print '<tr class="Divider"><td colspan="' . (8-$Cols2Remove) . '"></td></tr>' . "\n";
+		print '</tr>';
+		print '<tr class="Divider"><td colspan="' . (8-$Cols2Remove) . '"></td></tr>';
 	}
 
 // tiro fuori solo gli eventi spareggiati
-	$Select
-		= "SELECT TfEvent, TfMatchNo, TfTournament, TfTeam, IF(EvMatchMode=0,TfScore,TfSetScore) AS Score, TfTie, TfTiebreak, TfSetPoints, /* TeamFinals*/ "
-		. "EvProgr,EvFinalFirstPhase,EvEventName, EvMatchMode, EvMatchArrowsNo, FsTarget,	/* Events*/ "
-		. "GrMatchNo,GrPhase,GrPosition,	/* Grids */ "
-		. "CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS TeamName,	/* Countries*/ "
-		. "CoCode,CoName	/* Countries */ "
-		. "FROM TeamFinals "
-		. "left JOIN FinSchedule ON TfEvent=FSEvent AND FsMatchNo=TfMatchNo AND FsTeamEvent='1' AND FsTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
-		. "INNER JOIN Events ON TfEvent=EvCode AND EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
-		. "INNER JOIN Grids ON TfMatchNo=GrMatchNo "
-		. "LEFT JOIN Countries ON TfTeam=CoId "
-		. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvShootOff='1' " . $QueryFilter
-		. "ORDER BY EvProgr ASC,GrMatchNo ASC ";
+	$Select = "SELECT TfEvent, TfMatchNo, TfTournament, TfTeam, IF(EvMatchMode=0,TfScore,TfSetScore) AS Score, TfTie, TfTiebreak, TfSetPoints,
+		EvProgr, EvFinalFirstPhase, EvEventName, EvMatchMode, EvMatchArrowsNo, FsTarget, GrMatchNo, GrPhase, GrPosition, GrPosition2,
+		CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS TeamName, CoCode, CoName
+		FROM TeamFinals
+		left JOIN FinSchedule ON TfEvent=FSEvent AND FsMatchNo=TfMatchNo AND FsTeamEvent='1' AND FsTournament=TfTournament 
+		INNER JOIN Events ON TfEvent=EvCode AND EvTeamEvent='1' AND EvTournament=TfTournament 
+		INNER JOIN Grids ON TfMatchNo=GrMatchNo 
+		LEFT JOIN Countries ON TfTeam=CoId 
+		WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvShootOff='1' " . $QueryFilter
+		. " ORDER BY EvProgr ASC, EvCode, GrMatchNo ASC ";
 	$Rs=safe_r_sql($Select);
 	//print $Select;
 
-	if (safe_num_rows($Rs)>0)
-	{
+	if (safe_num_rows($Rs)>0) {
 		$MyEvent = '-----';
-		while ($MyRow=safe_fetch($Rs))
-		{
+		while ($MyRow=safe_fetch($Rs)) {
 			$obj=getEventArrowsParams($MyRow->TfEvent,$MyRow->GrPhase,1);
-			if ($MyEvent!=$MyRow->TfEvent)
-			{
+			if ($MyEvent!=$MyRow->TfEvent) {
 				$ii=0;
 				$StileRiga="";
-				if ($MyEvent!='-----')
-				{
-					print '<tr><td colspan="' . (8-$Cols2Remove) . '" class="Center"><input type="submit" value="' . get_text('CmdSave') . '" onclick="document.Frm.Command.value=\'SAVE\'"></td></tr>' . "\n";
-					print '<tr class="Divider"><td></td></tr>' . "\n";
+				if ($MyEvent!='-----') {
+					print '<tr><td colspan="' . (8-$Cols2Remove) . '" class="Center"><input type="submit" value="' . get_text('CmdSave') . '" onclick="document.Frm.Command.value=\'SAVE\'"></td></tr>';
+					print '<tr class="Divider"><td></td></tr>';
 				}
-				print '<tr><th colspan="' . (8-$Cols2Remove) . '" class="Title">' . get_text($MyRow->EvEventName,'','',true) . ' (' . $MyRow->TfEvent . ') - ' . get_text('Phase') . ' ' . get_text(namePhase($MyRow->EvFinalFirstPhase,$MyRow->GrPhase) . '_Phase') . '</th></tr>' . "\n";
+				print '<tr><th colspan="' . (8-$Cols2Remove) . '" class="Title">' . get_text($MyRow->EvEventName,'','',true) . ' (' . $MyRow->TfEvent . ') - ' . get_text('Phase') . ' ' . get_text(namePhase($MyRow->EvFinalFirstPhase,$MyRow->GrPhase) . '_Phase') . '</th></tr>';
 				print '<tr>';
 				print '<td colspan="' . (8-$Cols2Remove) . '">';
 				//$PrecPhase = ($_REQUEST['d_Phase']==0 ? 1 : $_REQUEST['d_Phase']*2);
 				//$NextPhase = ($_REQUEST['d_Phase']>1 ? $_REQUEST['d_Phase']/2 : 0);
 				//print '<a class="Link" href="javascript:ChangePhase(' . $PrecPhase . ');">' . get_text('PrecPhase') . '</a>'
 
-				if (!$useSession)
-				{
+				if (!$useSession) {
 					list($PP,$NP)=PrecNextPhaseForButton();
 				// queste due solo per i nomi e gli score del turno successivo (e volendo precedente)
 					$PrecPhase=$PP;
@@ -317,89 +283,92 @@ if(!empty($_REQUEST['x_Session']) and $_REQUEST['x_Session']!=-1) {
 						;
 				}
 				print '</td>';
-				print '</tr>' . "\n";
+				print '</tr>';
 				print '<tr>';
 				print '<th width="5%">' . get_text('Target') . '</th>';
 				print '<th width="5%">' . get_text('Rank') . '</th>';
 				print '<th width="35%" colspan="2">' . get_text('Country') . '</th>';
 
-				if($MyRow->EvMatchMode!=0)
-					print '<th width="10%">' . get_text('SetPoints', 'Tournament') . '</th>';
+				if($MyRow->EvMatchMode!=0) {
+                    print '<th width="10%">' . get_text('SetPoints', 'Tournament') . '</th>';
+                }
 				print '<th width="20%" colspan="' . ($MyRow->EvMatchMode==0 ? '2':'1') . '">' . get_text('Score', 'Tournament') . '</th>';
-				if (isset($_REQUEST['d_Tie']) && $_REQUEST['d_Tie']==1)
-				{
+				if (isset($_REQUEST['d_Tie']) && $_REQUEST['d_Tie']==1) {
 					print '<th width="5%">' . get_text('ShotOff', 'Tournament') . '</th>';
 					print '<th width="10%">' . get_text('TieArrows') . '</th>';
 				}
-				print '</tr>' . "\n";
+				print '</tr>';
 			}
 
 			print '<tr class="' . $StileRiga . '">';
 			print '<td class="Center">' . $MyRow->FsTarget . '</td>';
-			print '<td class="Center">' . $MyRow->GrPosition . '</td>';
+			print '<td class="Center">' . (useGrPostion2($MyRow->EvFinalFirstPhase, $MyRow->GrPhase) ? ($MyRow->GrPosition2 ? $MyRow->GrPosition2 : '&nbsp;') : $MyRow->GrPosition) . '</td>';
 			print '<td>' . (!is_null($MyRow->CoCode) ? $MyRow->CoCode : '&nbsp;') . '</td>';
 			print '<td>' . (strlen($MyRow->TeamName)>0 ? $MyRow->TeamName : '&nbsp;') . /*' ' . $MyRow->FinAthlete .*/ '</td>';
 			$TextStyle = '';
-			if (array_search($MyRow->TfEvent . '_' . $MyRow->GrMatchNo,array_keys($Score_Error))!==false)
-					$TextStyle='error';
+			if (array_search($MyRow->TfEvent . '_' . $MyRow->GrMatchNo,array_keys($Score_Error))!==false) {
+                $TextStyle = 'error';
+            }
 			//Carico i punti
 			print '<td class="Center" colspan="' . ($MyRow->EvMatchMode==0 ? '2':'1') . '">';
 			print '<input type="text" class="' . $TextStyle . '" size="3" maxlength="3" name="S_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '" value="' . ($TextStyle=='' ? $MyRow->Score : $_REQUEST['S_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]) . '">';
 			print '<input type="hidden" name="X_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '" value="' . $MyRow->EvMatchMode . '">';
 			print '</td>';
 			//Carico i set point in math di tipo set
-			if($MyRow->EvMatchMode!=0)
-			{
+			if($MyRow->EvMatchMode!=0) {
 				$TextStyle = '';
-				if (array_search($MyRow->TfEvent . '_' . $MyRow->GrMatchNo,array_keys($Set_Error))!==false)
-					$TextStyle='error';
+				if (array_search($MyRow->TfEvent . '_' . $MyRow->GrMatchNo,array_keys($Set_Error))!==false) {
+                    $TextStyle = 'error';
+                }
 				$setPointsArray=explode("|",$MyRow->TfSetPoints);
 				print '<td width="10%">';
-				for($setNo=0; $setNo<$obj->ends; $setNo++)
-				{
-					if (isset($_REQUEST['d_SetPoint']) && $_REQUEST['d_SetPoint']==1)
-						print '<input type="text" class="' . $TextStyle . '" size="2" maxlength="2" name="P_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '[' . $setNo . ']" value="' . ($TextStyle=='' ? (isset($setPointsArray[$setNo]) ? $setPointsArray[$setNo]:'') : $_REQUEST['P_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo][$setNo]) . '">&nbsp;';
-					else
-						print (isset($setPointsArray[$setNo]) ? $setPointsArray[$setNo]:'') . '&nbsp;&nbsp;&nbsp;';
+				for($setNo=0; $setNo<$obj->ends; $setNo++) {
+					if (isset($_REQUEST['d_SetPoint']) && $_REQUEST['d_SetPoint']==1) {
+                        print '<input type="text" class="' . $TextStyle . '" size="2" maxlength="2" name="P_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '[' . $setNo . ']" value="' . ($TextStyle == '' ? (isset($setPointsArray[$setNo]) ? $setPointsArray[$setNo] : '') : $_REQUEST['P_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo][$setNo]) . '">&nbsp;';
+                    } else {
+                        print (isset($setPointsArray[$setNo]) ? $setPointsArray[$setNo] : '') . '&nbsp;&nbsp;&nbsp;';
+                    }
 				}
 				print '</td>';
 			}
 
 
-			if (isset($_REQUEST['d_Tie']) && $_REQUEST['d_Tie']==1)
-			{
+			if (isset($_REQUEST['d_Tie']) && $_REQUEST['d_Tie']==1) {
 				//print '<td class="Center"><input type="text" size="4" name="T_' . $MyRow->Event . '_' . $MyRow->MatchNo . '" value="' . $MyRow->tie . '"></td>';
 				print '<td class="Center">';
 				$ComboStyle = '';
 				if (array_search($MyRow->TfEvent . '_' . $MyRow->GrMatchNo,array_keys($Tie_Error))!==false)
 					$ComboStyle='error';
 
-				print '<select class="' . $ComboStyle . '" name="T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '" id="T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '">' . "\n";
-				print '<option value="0"' . (($ComboStyle=='' && $MyRow->TfTie==0) || ($ComboStyle!='' && $_REQUEST['T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]==0) ? ' selected' : '') . '>0 - ' .	get_text('NoTie', 'Tournament') . '</option>' . "\n";
-				print '<option value="1"' . (($ComboStyle=='' && $MyRow->TfTie==1) || ($ComboStyle!='' && $_REQUEST['T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]==1) ? ' selected' : '') . '>1 - ' .	get_text('TieWinner', 'Tournament') . '</option>' . "\n";
-				print '<option value="2"' . (($ComboStyle=='' && $MyRow->TfTie==2) || ($ComboStyle!='' && $_REQUEST['T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]==2) ? ' selected' : '') . '>2 - ' .	get_text('Bye') . '</option>' . "\n";
-				print '</select>' . "\n";
+				print '<select class="' . $ComboStyle . '" name="T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '" id="T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '">';
+				print '<option value="0"' . (($ComboStyle=='' && $MyRow->TfTie==0) || ($ComboStyle!='' && $_REQUEST['T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]==0) ? ' selected' : '') . '>0 - ' .	get_text('NoTie', 'Tournament') . '</option>';
+				print '<option value="1"' . (($ComboStyle=='' && $MyRow->TfTie==1) || ($ComboStyle!='' && $_REQUEST['T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]==1) ? ' selected' : '') . '>1 - ' .	get_text('TieWinner', 'Tournament') . '</option>';
+				print '<option value="2"' . (($ComboStyle=='' && $MyRow->TfTie==2) || ($ComboStyle!='' && $_REQUEST['T_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo]==2) ? ' selected' : '') . '>2 - ' .	get_text('Bye') . '</option>';
+				print '</select>';
 				print '</td>';
 
 				print '<td id="Tie_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '">';
 				$TieBreak = str_pad($MyRow->TfTiebreak,$obj->so,' ',STR_PAD_RIGHT);
-				for ($i=0;$i<$obj->so;++$i)
-					print '<input type="text" name="t_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '[]" size="2" maxlength="3" value="' . DecodeFromLetter($TieBreak[$i]) . '">&nbsp;';
+                for($pSo=0; $pSo<3; $pSo++ ) {
+                    for ($i = 0; $i < $obj->so; ++$i) {
+                        $ArrI = $i+($pSo*$obj->so);
+                        print '<input type="text" name="t_' . $MyRow->TfEvent . '_' . $MyRow->GrMatchNo . '[]" size="2" maxlength="3" value="' . (!empty($TieBreak[$ArrI]) ? DecodeFromLetter($TieBreak[$ArrI]):'') . '">&nbsp;';
+                    }
+                    print '<br>';
+                }
+
 				print '</td>';
 			}
-			print '</tr>' . "\n";
-			if (++$ii==2)
-			{
+			print '</tr>';
+			if (++$ii==2) {
 				$StileRiga=($StileRiga=="" ? $StileRiga="warning" : "");
 				$ii=0;
 			}
 
 			$MyEvent=$MyRow->TfEvent;
 		}
-		print '<tr><td colspan="' . (8-$Cols2Remove) . '" class="Center"><input type="submit" value="' . get_text('CmdSave') . '" onclick="document.Frm.Command.value=\'SAVE\'"></td></tr>' . "\n";
-	}
-	else
-	{
+		print '<tr><td colspan="' . (8-$Cols2Remove) . '" class="Center"><input type="submit" value="' . get_text('CmdSave') . '" onclick="document.Frm.Command.value=\'SAVE\'"></td></tr>';
+	} else {
 		print '<tr>';
 		print '<td colspan="' . (8-$Cols2Remove) . '">';
 		//$PrecPhase = ($_REQUEST['d_Phase']==0 ? 1 : $_REQUEST['d_Phase']*2);
@@ -411,7 +380,7 @@ if(!empty($_REQUEST['x_Session']) and $_REQUEST['x_Session']!=-1) {
 
 		print '<a class="Link" href="javascript:ChangePhase(\'' . $PP . '\',' . $Sch. ');">' . get_text('PrecPhase') . '</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="Link" href="javascript:ChangePhase(\'' . $NP . '\',' . $Sch. ');">' . get_text('NextPhase') . '</a>';
 		print '</td>';
-		print '</tr>' . "\n";
+		print '</tr>';
 	}
 
 ?>

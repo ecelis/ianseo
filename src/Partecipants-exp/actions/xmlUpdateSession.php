@@ -9,11 +9,11 @@
 	$row=(isset($_REQUEST['row']) ? $_REQUEST['row'] : null);
 	$col=(isset($_REQUEST['col']) ? $_REQUEST['col'] : null);
 
-	if (!CheckTourSession() || is_null($session) || is_null($id) || is_null($row) || is_null($col))
-	{
+	if (!CheckTourSession() || is_null($session) || is_null($id) || is_null($row) || is_null($col)) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$tourId=StrSafe_DB($_SESSION['TourId']);
 

@@ -2,10 +2,12 @@
 
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once('Common/Fun_Phases.inc.php');
-
+checkACL(AclInternetPublish, AclReadWrite);
 CheckTourSession(true);
 
-if(empty($_SESSION['OnlineAuthA2A'])) cd_redirect($CFG->ROOT_DIR . 'Tournament/SetCredentials.php?sector=A2A&return=Modules/UpdateWeb/UpdateWeb.php');
+if(empty($_SESSION['OnlineAuth']) or empty($_SESSION['OnlineServices']) or !($_SESSION['OnlineServices']&2)) {
+    cd_redirect($CFG->ROOT_DIR . 'Tournament/SetCredentials.php?return=Modules/UpdateWeb/UpdateWeb.php');
+}
 
 // VERSION 0.2010-07-13-08.25
 
@@ -114,7 +116,7 @@ if(IsBlocked(BIT_BLOCK_PUBBLICATION) or !$AllParamGood or (!$UpdateBase and !$Up
 $DATA=array(
 	'OnlineId' => $_SESSION['OnlineId'],
 	'OnlineEventCode' => $_SESSION['OnlineEventCode'],
-	'OnlineAuth' => $_SESSION['OnlineAuthA2A'],
+	'OnlineAuth' => $_SESSION['OnlineAuth'],
 	'QUERIES' => array(),
 	'IMG' => array(),
 );
@@ -178,23 +180,17 @@ if($UpdateBase) {
 	$query.= " `EnName`,";
 	$query.= " `EnFirstName`,";
 	$query.= " `EnSex`,";
-	$query.= " `EcCode` as `EnEvent`,";
+	$query.= " `IndEvent` as `EnEvent`,";
 	$query.= " `IndRank` as `EnQuRank`,";
 	$query.= " `QuScore` as `EnQuScore`,";
 	$query.= " `QuGold` as `EnQuGold`,";
 	$query.= " `QuXnine` as `EnQuXnine` ";
 	$query.= "FROM `Entries` ";
-	$query.= "INNER JOIN `EventClass` ";
-	$query.= "   on `Entries`.`EnTournament` = `EventClass`.`EcTournament` ";
-	$query.= "   and `Entries`.`EnDivision` = `EventClass`.`EcDivision` ";
-	$query.= "   and `Entries`.`EnClass` = `EventClass`.`EcClass` ";
-	$query.= "   and `EventClass`.`EcTeamEvent`='0'";
 	$query.= "INNER JOIN `Qualifications` ";
 	$query.= "   on `Entries`.`EnID` = `Qualifications`.`QuId` ";
 	$query.= "INNER JOIN `Individuals` ";
 	$query.= "   on `Entries`.`EnID` = `Individuals`.`IndId` ";
 	$query.= "   and `Entries`.`EnTournament` = `Individuals`.`IndTournament` ";
-	$query.= "   and `EventClass`.`EcCode` = `Individuals`.`IndEvent` ";
 	$query.= "INNER JOIN `Countries` ";
 	$query.= "   on `Entries`.`EnCountry` = `Countries`.`CoId` ";
 	$query.=" where `EnTournament`='".addslashes($_SESSION['TourId'])."'";

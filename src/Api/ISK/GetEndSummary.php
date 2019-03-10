@@ -21,8 +21,9 @@ if(count($tmp)==3) {
 			ElScore DistScore,
 			ElGold DistGold,
 			ElXnine DistXnine,
-			EvElimArrows as ArrowsNo, 
-			substr(ElArrowstring, 1+(EvElimArrows*($End-1)), EvElimArrows) Arrowstring,
+			if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) as ArrowsNo, 
+			if(ElElimPhase=0, EvE1Ends, EvE2Ends) EvElimEnds, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) EvElimArrows
+			substr(ElArrowstring, 1+(if(ElElimPhase=0, EvE1Arrows, EvE2Arrows)*($End-1)), if(ElElimPhase=0, EvE1Arrows, EvE2Arrows)) Arrowstring,
 			ElScore QuScore, ElGold QuGold, ElXnine QuXnine, concat('{$tmp['0']}|{$tmp['1']}|', ElTargetNo) as QuTargetNo,
 			ToGoldsChars, ToXNineChars
 		 from Eliminations
@@ -71,11 +72,13 @@ if(count($tmp)==3) {
 	}
 } else {
 	// QUALIFICATION
+	$Filter="left(QuTargetNo,4) in ('".$TargetNo."')";
+
 	$SQL="SELECT QuId, QuSession, QuTargetNo, DIDistance, DIEnds, DIArrows, ToGoldsChars, ToXNineChars from Qualifications
 			INNER JOIN Entries ON QuId=EnId
 			INNER JOIN Tournament ON ToId=EnTournament
 			INNER JOIN DistanceInformation ON DITournament=EnTournament AND DISession=QuSession AND DIDistance=".StrSafe_DB($Distance)." AND DIType='Q'
-			WHERE EnTournament=$CompId and left(QuTargetNo, 4) in ('{$TargetNo}') 
+			WHERE EnTournament=$CompId and $Filter 
 			ORDER BY QuTargetNo";
 	$q=safe_r_sql($SQL);
 	while($r=safe_fetch($q)) {
@@ -91,7 +94,6 @@ if(count($tmp)==3) {
 			'xnine' => $tmp['xnine']
 		);
 	}
-	
 }
 
 

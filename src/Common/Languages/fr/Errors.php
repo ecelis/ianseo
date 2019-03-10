@@ -1,6 +1,8 @@
 <?php
+$lang['DirectoryNotWriteable']='Pas d\'écriture possible par le serveur web dans le répetoire $a . Veuillez modifier les permissions afin qu\'il soit inscriptible par tous.';
 $lang['ErrCodeExists']='Le code existe déjà!';
 $lang['ErrCommitteeError']='Code comité ou description invalide';
+$lang['ErrConnection']='Pas de connexion au serveur $a';
 $lang['ErrEmptyFields']='Champs vides';
 $lang['ErrGenericError']='Erreur Générique';
 $lang['ErrInvalidCode']='Code invalide';

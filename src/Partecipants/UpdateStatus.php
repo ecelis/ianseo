@@ -12,11 +12,11 @@
 	require_once('Common/Fun_Various.inc.php');
 
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore = 0;
 
@@ -37,7 +37,7 @@
 
 				// se cambio status ricalcolo gli spareggi
 				$recalc=false;
-				$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+				$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 				$query= "SELECT EnClass FROM Entries WHERE EnId=" . StrSafe_DB($Id) . " AND EnStatus<>" . StrSafe_DB($Value) . " ";
 				//print $query;exit;
 				$rs=safe_r_sql($query);
@@ -47,7 +47,7 @@
 					$x=Params4Recalc($Id);
 					if ($x!==false)
 					{
-						list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+						list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 					}
 				}
 
@@ -64,7 +64,7 @@
 				{
 					// ricalcolo il vecchio e il nuovo
 					if (!is_null($indFEvent))
-					RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+					RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 					// rank di classe x tutte le distanze
 					$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";
@@ -100,9 +100,9 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<id>' . $EnId . '</id>' . "\n";
-	print '<new_status>' . $NewStatus . '</new_status>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<id>' . $EnId . '</id>';
+	print '<new_status>' . $NewStatus . '</new_status>';
+	print '</response>';
 ?>

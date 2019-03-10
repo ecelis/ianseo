@@ -3,6 +3,7 @@ require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/pdf/OrisPDF.inc.php');
 require_once('Common/pdf/OrisBracketPDF.inc.php');
+checkACL(AclIndividuals, AclReadOnly);
 
 $isCompleteResultBook = true;
 

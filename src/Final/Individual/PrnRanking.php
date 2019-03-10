@@ -11,6 +11,7 @@ if (!isset($_SESSION['TourId']) && isset($_REQUEST['TourId']))
 {
 	CreateTourSession($_REQUEST['TourId']);
 }
+checkACL(AclIndividuals, AclReadOnly);
 
 $PdfData=getRankingIndividual();
 

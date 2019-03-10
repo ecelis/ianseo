@@ -1,13 +1,14 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclEliminations, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Modules.php');
 
 	$JS_SCRIPT=array(
 		'<script type="text/javascript" src="../Common/ajax/ObjXMLHttpRequest.js"></script>',
 		'<script type="text/javascript" src="../Common/js/Fun_JS.inc.js"></script>',
-		'<script type="text/javascript" src="Fun_AJAX_index.js"></script>',
+		'<script type="text/javascript" src="../Qualification/Fun_AJAX_index.js"></script>',
 		'<script type="text/javascript" src="Fun_JS.js"></script>',
 		'<script type="text/javascript">',
 		'function DisableChkOther(NoDist, NumDist)',

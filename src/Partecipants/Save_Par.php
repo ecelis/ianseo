@@ -10,11 +10,11 @@
 	require_once dirname(dirname(__FILE__)) . '/Qualification/Fun_Qualification.local.inc.php';
 	require_once dirname(dirname(__FILE__)) . '/Partecipants/Fun_Partecipants.local.inc.php';
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore=0;
 	$CoId = 0;
@@ -117,7 +117,7 @@
 			{
 				while ($MyRow=safe_fetch($Rs))
 				{
-					$xml.='<other_en>' . $MyRow->EnId . '</other_en>' . "\n";
+					$xml.='<other_en>' . $MyRow->EnId . '</other_en>';
 				}
 			}
 		}
@@ -207,7 +207,7 @@
 			{
 				while ($MyRow=safe_fetch($Rs))
 				{
-					$xml.='<other_en>' . $MyRow->EnId . '</other_en>' . "\n";
+					$xml.='<other_en>' . $MyRow->EnId . '</other_en>';
 				}
 			}
 		}
@@ -257,8 +257,8 @@
 		//TODO qui bisognerebbe estrarre la vecchia classe gara x fare l'aggiornamento della rank e delle squadre secondo EventClass (vedi todo(*) più avanti)
 
 		$recalc=false;
-		$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
-		$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+		$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
+		$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 		if ($Id!=0)
 		{
@@ -273,7 +273,7 @@
 				$x=Params4Recalc($Id);
 				if ($x!==false)
 				{
-					list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+					list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld)=$x;
 				}
 			}
 		}
@@ -332,13 +332,13 @@
 			$x=Params4Recalc($Id);
 			if ($x!==false)
 			{
-				list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+				list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 			}
 
 		// ricalcolo il vecchio e il nuovo
 			if (!is_null($indFEvent))
-				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
-			RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
+			RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 		// rank di classe x tutte le distanze
 			$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";

@@ -4,17 +4,15 @@
 	Aggiorna il target in FinSchedule
 */
 
-	define('debug',false);
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	$Errore=0;
 	$Which = '';
@@ -24,42 +22,33 @@
 
 	$Return='';
 
-	if (!IsBlocked(BIT_BLOCK_TOURDATA))
-	{
-		foreach ($_REQUEST as $Key => $Value)
-		{
-			if (substr($Key,0,2)=='d_')
-			{
+	if (!IsBlocked(BIT_BLOCK_TOURDATA)) {
+		foreach ($_REQUEST as $Key => $Value) {
+			if (substr($Key,0,2)=='d_') {
 				$Return .= SetTargetDb($Key, $Value);
 			}
 		}
-	}
-	else
-	{
+	} else {
 		$Errore=1;
 	}
 
 
-	if (!debug)
-		header('Content-Type: text/xml');
-	print '<response>' . "\n";
+	header('Content-Type: text/xml');
+	print '<response>';
 
-	if($Return)
-	{
+	if($Return) {
 		print $Return;
-	}
-	else
-	{
+	} else {
 		print '<field>';
-		print '<error>' . $Errore . '</error>' . "\n";
-		print '<which><![CDATA[' . $Which . ']]></which>' . "\n";
-		print '<target><![CDATA[' . $Target . ']]></target>' . "\n";
-		print '<phase><![CDATA[' . $Phase . ']]></phase>' . "\n";
-		print '<event><![CDATA[' . $Event . ']]></event>' . "\n";
+		print '<error>' . $Errore . '</error>';
+		print '<which><![CDATA[' . $Which . ']]></which>';
+		print '<target><![CDATA[' . $Target . ']]></target>';
+		print '<phase><![CDATA[' . $Phase . ']]></phase>';
+		print '<event><![CDATA[' . $Event . ']]></event>';
 		print '</field>';
 	}
 
-	print '</response>' . "\n";
+	print '</response>';
 
 function SetTargetDb($Key, $Value) {
 	$ret='';
@@ -80,17 +69,16 @@ function SetTargetDb($Key, $Value) {
 	$Event = $ee;
 
 // cerco la fase del matchno
-	$Select
-		= "SELECT GrPhase FROM Grids WHERE GrMatchNo=" . StrSafe_DB($mm) . " ";
+	$Select = "SELECT GrPhase, EvFinalFirstPhase
+		FROM Events
+		inner join Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2, EvTeamEvent))>0
+		inner join Grids on GrPhase<=greatest(PhId, PhLevel) 
+		WHERE GrMatchNo=" . StrSafe_DB($mm) . " and EvCode='$ee' and EvTeamEvent=0 and EvTournament={$_SESSION['TourId']}";
 	$Rs=safe_r_sql($Select);
-	if (safe_num_rows($Rs)==1)
-	{
+	if (safe_num_rows($Rs)==1) {
 		$MyRow=safe_fetch($Rs);
 		$Phase=$MyRow->GrPhase;
-		$realPhase=$Phase;
-		$firstPhase=getFirstPhase($Event,0);
-		if(valueFirstPhase($firstPhase)!=$firstPhase && $Phase>16)
-			$realPhase = ($Phase==32 ? 24 : ($Phase==64 ? 48 : $Phase));
+		$realPhase=namePhase($MyRow->EvFinalFirstPhase, $MyRow->GrPhase);
 	}
 
 
@@ -122,7 +110,7 @@ function SetTargetDb($Key, $Value) {
 		$val=$Value;
 
 		// cerca i byes, quindi va a prendere la differenza tra il numero di atleti della fase e gli atleti presenti in quell'evento
-		$MyQuery = "SELECT COUNT(EnId) as Quanti, EvFinalFirstPhase as FirstPhase
+		$MyQuery = "SELECT COUNT(EnId) as Quanti, EvFinalFirstPhase as FirstPhase, EvNumQualified
 			FROM Events
 			INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent=EcTeamEvent AND EvTournament=EcTournament
 			INNER JOIN Individuals ON EvCode=IndEvent AND EvTournament=IndTournament
@@ -131,26 +119,25 @@ function SetTargetDb($Key, $Value) {
 		$q=safe_r_sql($MyQuery);
 		$r=safe_fetch($q);
 		$tmpQuanti=$r->Quanti;
-		$tmpSaved=($Phase<=16 ? 0 : (valueFirstPhase($r->FirstPhase)==$r->FirstPhase ? 0 : 8));
-		$tmpQuantiIn = maxPhaseRank($realPhase);
+		$tmpSaved=($Phase>=$r->FirstPhase ? SavedInPhase($r->FirstPhase) : SavedInPhase($realPhase));
+		$tmpQuantiIn = min($r->EvNumQualified, maxPhaseRank($realPhase));
 		$tmpQuantiOut = $tmpQuanti-$tmpQuantiIn;
 		$tmpBye = ($tmpQuantiOut<0 ? abs($tmpQuantiOut) : 0) + $tmpSaved;
 
 		// ci sono byes, quindi va a riempire solo i matchno dei match pieni cioè con una rank superiore all'ultimo bye!
 		// esempio: 1/8, 13 presenti, sono 3 byes, quindi si parte dal 4° in ranking...
 		//
-		$MyQuery = 'SELECT distinct '
-			. ' GrMatchNo, '.($firstPhase==48 || $firstPhase==24 ? 'GrPosition2' : 'GrPosition').'  as Position'
-			. ' FROM Grids'
-			. ' WHERE '
-			. " GrPhase = '$Phase' "
-			. " AND GrMatchNo>= $mm "
-			//. ' AND '.($firstPhase==48 || $firstPhase==24 ? 'GrPosition2' : 'GrPosition').' != 0 '
-			. ' ORDER BY GrMatchNo ASC';
+		$PosToTake=($realPhase==24 or $realPhase==48) ? 'GrPosition2' : 'GrPosition';
+		$MyQuery = "SELECT distinct GrMatchNo, if($PosToTake > EvNumQualified, 0, $PosToTake) as Position
+			FROM Events
+			inner join Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2,EvTeamEvent))>0
+			inner join Grids on GrPhase<=greatest(PhId, PhLevel)
+			WHERE GrPhase = '$Phase' AND GrMatchNo>= $mm and EvCode='$ee' and EvTeamEvent=0 and EvTournament={$_SESSION['TourId']} 
+			ORDER BY GrMatchNo ASC";
 		$q=safe_r_sql($MyQuery);
 
 		while($r=safe_fetch($q)) {
-			$butt= ($r->Position <= $tmpBye || $r->Position > $tmpQuanti) ? '' : $val;
+			$butt= ($r->Position < $tmpBye || $r->Position > $tmpQuanti) ? '' : $val;
 
 			if(!$ath or !($r->GrMatchNo%2)) {
 				if($r->Position > $tmpBye) {
@@ -159,12 +146,12 @@ function SetTargetDb($Key, $Value) {
 				} else {
 					$ret .= SetTargetDb('d_'.$Campo.'_'.$ee.'_'.$r->GrMatchNo.'_'.$ath, '');
 					$ret.= '<field>';
-					$ret.=  '<error>0</error>' . "\n";
+					$ret.=  '<error>0</error>';
 					$ret.= '<org>d_'.$Campo.'_'.$ee.'_'.$r->GrMatchNo.'_'.$ath.' - </org>'."\n";
-					$ret.=  '<which><![CDATA[d_'.$Campo.'_'.$ee.'_'.$r->GrMatchNo.'_'.$ath.']]></which>' . "\n";
-					$ret.=  '<target><![CDATA[]]></target>' . "\n";
-					$ret.=  '<phase><![CDATA[' . $Phase . ']]></phase>' . "\n";
-					$ret.=  '<event><![CDATA[' . $Event . ']]></event>' . "\n";
+					$ret.=  '<which><![CDATA[d_'.$Campo.'_'.$ee.'_'.$r->GrMatchNo.'_'.$ath.']]></which>';
+					$ret.=  '<target><![CDATA[]]></target>';
+					$ret.=  '<phase><![CDATA[' . $Phase . ']]></phase>';
+					$ret.=  '<event><![CDATA[' . $Event . ']]></event>';
 					$ret.=  '</field>';
 				}
 			}
@@ -196,15 +183,10 @@ function SetTargetDb($Key, $Value) {
 			. "FSScheduledTime=FSScheduledTime ";
 		$Rs=safe_w_sql($Insert);
 
-		if (debug)
-			print $Insert . '<br>';
-
-		if (!$Rs)
-			$Errore=1;
-		else
-		{
-			if ($ath==1)
-			{
+		if (!$Rs) {
+            $Errore = 1;
+        } else {
+			if ($ath==1) {
 				$Insert
 					= "INSERT INTO FinSchedule (FSEvent,FSTeamEvent,FSMatchNo,FSTournament,FSTarget, FSLetter) "
 					. "VALUES("
@@ -222,7 +204,9 @@ function SetTargetDb($Key, $Value) {
 					. "FSScheduledTime=FSScheduledTime ";
 				$Rs=safe_w_sql($Insert);
 
-				if (!$Rs) $Errore=1;
+				if (!$Rs) {
+				    $Errore=1;
+                }
 
 				$Update
 					= "update FinSchedule "
@@ -235,7 +219,9 @@ function SetTargetDb($Key, $Value) {
 					. " AND FSTournament= " . StrSafe_DB($_SESSION['TourId']);
 				$Rs=safe_w_sql($Update);
 
-				if (!$Rs) $Errore=1;
+				if (!$Rs) {
+				    $Errore=1;
+                }
 			}
 		}
 	} else {
@@ -243,15 +229,13 @@ function SetTargetDb($Key, $Value) {
 	}
 
 	$ret.= '<field>';
-	$ret.=  '<error>' . $Errore . '</error>' . "\n";
+	$ret.=  '<error>' . $Errore . '</error>';
 	$ret.= '<org>'.$Key.' - '.$Value.'</org>'."\n";
-	$ret.=  '<which><![CDATA[' . $Which . ']]></which>' . "\n";
-	$ret.=  '<target><![CDATA[' . $Target . ']]></target>' . "\n";
-	$ret.=  '<phase><![CDATA[' . $Phase . ']]></phase>' . "\n";
-	$ret.=  '<event><![CDATA[' . $Event . ']]></event>' . "\n";
+	$ret.=  '<which><![CDATA[' . $Which . ']]></which>';
+	$ret.=  '<target><![CDATA[' . $Target . ']]></target>';
+	$ret.=  '<phase><![CDATA[' . $Phase . ']]></phase>';
+	$ret.=  '<event><![CDATA[' . $Event . ']]></event>';
 	$ret.=  '</field>';
 
 	return($ret);
 }
-
-?>

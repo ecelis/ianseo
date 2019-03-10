@@ -8,7 +8,8 @@
 	if(!empty($_REQUEST['Teams'])) $Teams='1';
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
-	CheckTourSession(true);
+    CheckTourSession(true);
+    checkACL(AclCompetition, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
 
@@ -36,24 +37,17 @@
 		}
 	}
 
-	if (isset($_REQUEST['Command']))
-	{
-		if ($_REQUEST['Command']=='SAVE')
-		{
+	if (isset($_REQUEST['Command'])) {
+		if ($_REQUEST['Command']=='SAVE') {
 			// If bit is set than it is an elimiatory phase!!!
 			$BitMask=255;
-			for($n=0; $n<8; $n++)
-			{
+			for($n=0; $n<8; $n++) {
 				//print 'n: '.$n.'<br>';
-				if(isset($_REQUEST['d_EvMatchArrowsNo_'.$n]))
-				{
-					if(intval($_REQUEST['d_EvMatchArrowsNo_'.$n]))
-					{
+				if(isset($_REQUEST['d_EvMatchArrowsNo_'.$n])) {
+					if(intval($_REQUEST['d_EvMatchArrowsNo_'.$n])) {
 						// bit is set!
 						$BitMask= ($BitMask | pow(2,$n));
-					}
-					else
-					{
+					} else {
 						$BitMask= ($BitMask & ~pow(2,$n));
 					}
 				}
@@ -83,15 +77,9 @@
 			} else {
 				$ErrMsg['Fin']['Arrows']=get_text('TooManyElimArrows', 'Tournament');
 			}
-			//			print $BitMask . '<br>';exit;
-			$Update
-				= "UPDATE Events SET "
-				. implode(', ', $query)
-				. " WHERE EvCode=" . StrSafe_DB($_REQUEST['d_Event2Set'])
-				. " AND EvTeamEvent='$Teams'"
-				. " AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
+			$Update = "UPDATE Events SET " . implode(', ', $query)
+				. " WHERE EvCode=" . StrSafe_DB($_REQUEST['d_Event2Set']) . " AND EvTeamEvent='$Teams' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']);
 			$Rs=safe_w_sql($Update);
-
 		}
 	}
 
@@ -113,22 +101,19 @@
 <th class="TitleLeft" width="15%"><?php print get_text('Event');?></th>
 <td>
 <?php
-	$Select
-		= "SELECT EvCode,EvEventName "
-		. "FROM Events "
-		. "WHERE EvTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='$Teams' AND EvFinalFirstPhase!=0 /*AND EvMatchMode=1*/ "
-		. "ORDER BY EvProgr ASC ";
+	$Select = "SELECT EvCode,EvEventName 
+		FROM Events 
+		WHERE EvTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='$Teams' AND EvFinalFirstPhase!=0 
+		ORDER BY EvProgr ASC ";
 	$Rs=safe_r_sql($Select);
 
-	print '<select name="d_Event" id="d_Event">' . "\n";
-	if (safe_num_rows($Rs)>0)
-	{
-		while ($Row=safe_fetch($Rs))
-		{
-			print '<option value="' . $Row->EvCode . '"' . (isset($_REQUEST['d_Event']) && $_REQUEST['d_Event']==$Row->EvCode ? ' selected' : '') . '>' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>' . "\n";
+	print '<select name="d_Event" id="d_Event">';
+	if (safe_num_rows($Rs)>0) {
+		while ($Row=safe_fetch($Rs)) {
+			print '<option value="' . $Row->EvCode . '"' . (isset($_REQUEST['d_Event']) && $_REQUEST['d_Event']==$Row->EvCode ? ' selected' : '') . '>' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>';
 		}
 	}
-	print '</select>' . "\n";
+	print '</select>';
 ?>
 &nbsp;<input type="submit" value="<?php print get_text('CmdOk');?>" onclick="document.Frm.Command.value='OK'"><div id="idOutput"></div>
 </td>
@@ -137,30 +122,27 @@
 </table>
 
 <?php
-	if (isset($_REQUEST['Command']) && ($_REQUEST['Command']=='OK' || $_REQUEST['Command']=='SAVE'))
-	{
-		$Select
-			= "SELECT Events.*, EvFinalFirstPhase AS StartPhase, EvMatchArrowsNo AS BitMask "
-			. "FROM Events "
-			. "WHERE EvTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='$Teams' "
-			. "AND EvCode=" . StrSafe_DB($_REQUEST['d_Event']) . " ";
+	if (isset($_REQUEST['Command']) && ($_REQUEST['Command']=='OK' || $_REQUEST['Command']=='SAVE')) {
+		$Select = "SELECT Events.*, EvFinalFirstPhase AS StartPhase, EvMatchArrowsNo AS BitMask 
+			FROM Events 
+			WHERE EvTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='$Teams' 
+			AND EvCode=" . StrSafe_DB($_REQUEST['d_Event']);
 		$Rs = safe_r_sql($Select);
 
-		if (safe_num_rows($Rs)==1)
-		{
+		if (safe_num_rows($Rs)==1) {
 			$MyRow=safe_fetch($Rs);
 			print '<input type="hidden" name="d_Event2Set" value="' . $_REQUEST['d_Event'] .'">';
-			print '<table class="Tabella">' . "\n";
+			print '<table class="Tabella">';
 			print '<tr><th rowspan="3">' . get_text('RoundDefinition') . '</th>'
 				. '<th colspan="3">' . get_text('Elimination') . (!empty($ErrMsg['Elim'])?'<div class="red">'.implode('<br/>', $ErrMsg['Elim']).'</div>':'') . '</th>'
-				. '<th colspan="3">' . get_text('MenuLM_Final Rounds') . (!empty($ErrMsg['Fin'])?'<div class="red">'.implode('<br/>', $ErrMsg['Fin']).'</div>':'') . '</th></tr>' . "\n";
+				. '<th colspan="3">' . get_text('MenuLM_Final Rounds') . (!empty($ErrMsg['Fin'])?'<div class="red">'.implode('<br/>', $ErrMsg['Fin']).'</div>':'') . '</th></tr>';
 			print '<tr>'
 				. '<th>' . get_text('Ends', 'Tournament') . '</th>'
 				. '<th>' . get_text('Arrows', 'Tournament') . '</th>'
 				. '<th>' . get_text('ShotOff', 'Tournament') . '</th>'
 				. '<th>' . get_text('Ends', 'Tournament') . '</th>'
 				. '<th>' . get_text('Arrows', 'Tournament') . '</th>'
-				. '<th>' . get_text('ShotOff', 'Tournament') . '</th></tr>' . "\n";
+				. '<th>' . get_text('ShotOff', 'Tournament') . '</th></tr>';
 			print '<tr>'
 				. '<td align="center" width="10%"><input size="3" name="ElimEnds" value="'.$MyRow->EvElimEnds.'"/></td>'
 				. '<td align="center" width="10%"><input size="3" name="ElimArrows" value="'.$MyRow->EvElimArrows.'"/></td>'
@@ -168,14 +150,13 @@
 				. '<td align="center" width="10%"><input size="3" name="FinEnds" value="'.$MyRow->EvFinEnds.'"/></td>'
 				. '<td align="center" width="10%"><input size="3" name="FinArrows" value="'.$MyRow->EvFinArrows.'"/></td>'
 				. '<td align="center" width="10%"><input size="3" name="FinSO" value="'.$MyRow->EvFinSO.'"/></td>'
-				. '</tr>' . "\n";
-			print '<tr><th>' . get_text('Phase') . '</th><th colspan="3">' . get_text('Arr4Set', 'Tournament') . '</th><th colspan="3">' . get_text('Arr4Set', 'Tournament') . '</th></tr>' . "\n";
+				. '</tr>';
+			print '<tr><th>' . get_text('Phase') . '</th><th colspan="3">' . get_text('Arr4Set', 'Tournament') . '</th><th colspan="3">' . get_text('Arr4Set', 'Tournament') . '</th></tr>';
 
-			for ($CurPhase=$MyRow->StartPhase;$CurPhase>=0;($CurPhase>1 ? $CurPhase/=2 : --$CurPhase))
+			for ($CurPhase=$MyRow->StartPhase;$CurPhase>=0;($CurPhase>1 ? $CurPhase = valueFirstPhase($CurPhase)/2 : --$CurPhase))
 			{
-				$CurPhase=($CurPhase==12 ? 16: $CurPhase);
 				print '<tr>';
-				print '<td class="Center">' . get_text($CurPhase . '_Phase') . '</td>';
+				print '<td class="Center">' . get_text(namePhase($MyRow->StartPhase, $CurPhase) . '_Phase') . '</td>';
 				print '<td class="Center" colspan="3">';
 			// Estraggo il bit corrispondete alla fase
 				$Bit = ($CurPhase>0 ? 2*bitwisePhaseId($CurPhase) : 1);
@@ -186,11 +167,11 @@
 				print '<td class="Center" colspan="3">';
 				print '<input type="radio" name="d_EvMatchArrowsNo_' . $e . '"' . ($Value==0 ? ' checked="checked"' : '') . ' value="0">';
 				print '</td>';
-				print '</tr>' . "\n";
+				print '</tr>';
 			}
 
 			print '<tr><td colspan="7" class="Center"><input type="submit" value="' . get_text('CmdSave') . '" onclick="document.Frm.Command.value=\'SAVE\'">&nbsp;<input type="reset" value="' . get_text('CmdCancel') . '">';
-			print '</table>' . "\n";
+			print '</table>';
 		}
 	}
 ?>

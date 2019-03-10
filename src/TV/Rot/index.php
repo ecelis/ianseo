@@ -1,6 +1,7 @@
 <?php
 
 require_once(dirname(__FILE__).'/config.php');
+checkACL(AclOutput,AclReadOnly,true, $TourId);
 
 $NOSTYLE=true;
 

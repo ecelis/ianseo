@@ -16,7 +16,7 @@ if(empty($_SESSION['TourId']) and $CompCode=GetParameter('AutoCHK-Code') and ($_
 	$_SESSION['ShortMenu']['ACCR'][] = get_text('MenuLM_Accreditation') .'|'.$CFG->ROOT_DIR.'Accreditation/index.php';
 	$_SESSION['ShortMenu']['ACCR'][] = get_text('TakePicture', 'Tournament') .'|'.$CFG->ROOT_DIR.'Accreditation/AccreditationPicture.php';
 	$_SESSION['ShortMenu']['ACCR'][] = '---';
-	$_SESSION['ShortMenu']['ACCR'][] = get_text('MenuLM_PrintBadges') .'-new|'.$CFG->ROOT_DIR.'Accreditation/IdCards-new.php';
+	$_SESSION['ShortMenu']['ACCR'][] = get_text('MenuLM_PrintBadges') .'-new|'.$CFG->ROOT_DIR.'Accreditation/IdCards.php';
 	$_SESSION['ShortMenu']['ACCR'][] = get_text('MenuLM_Printout') .'|'.$CFG->ROOT_DIR.'Accreditation/PrintOut.php';
 
 }

@@ -204,6 +204,9 @@ function CheckCtrlCode_Response()
 		rebuildDivClass('d_e_EnDivision_', Divisions, oldDiv);
 		rebuildDivClass('d_e_EnClass_', Classes, oldCl);
 		rebuildDivClass('d_e_EnAgeClass_', AgeClass, (oldAgeCl ? oldAgeCl : oldCl));
+        if (document.getElementById('fscl_'+ref)) {
+            document.getElementById('d_e_EnSubClass_').value = document.getElementById('fscl_' + ref).value;
+        }
 		CheckTargetFaces();
 	}
 }
@@ -888,14 +891,16 @@ function FindArchers_Response()
 	var html=XMLHttp.responseText;
 
 	var res=document.getElementById('results');
-
 	res.innerHTML=html;
-
 	var ids=getElementsByClassName('btn');
-
-	for (var i=0;i<ids.length;++i)
-	{
-		ids[i].href="javascript: GetOldsFromFinder=true; document.getElementById('CanComplete_').value=1; document.getElementById('d_e_EnCode_').value='"+ids[i].id+"';selectIocCode('"+ids[i].name+"'); CercaMatr(true);";
+	for (var i=0;i<ids.length;++i) {
+		ids[i].href="javascript: GetOldsFromFinder=true; " +
+			"document.getElementById('CanComplete_').value=1;" +
+			"document.getElementById('d_e_EnCode_').value='"+ids[i].id+"';" +
+            "document.getElementById('fdiv_"+ids[i].id+"_"+ids[i].name+"').value='"+ids[i].getAttribute('ianseoDiv')+"';"+
+            "document.getElementById('fscl_"+ids[i].id+"_"+ids[i].name+"').value='"+ids[i].getAttribute('ianseoSCl')+"';"+
+			"selectIocCode('"+ids[i].name+"'); " +
+			"CercaMatr(true);";
 	}
 }
 

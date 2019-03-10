@@ -1,7 +1,6 @@
 <?php
-define('debug',false);	// settare a true per l'output di debug
-
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+require_once('Common/Lib/ArrTargets.inc.php');
 // if (!CheckTourSession() or !isset($_REQUEST['Id'])) printCrackerror('popup');
 
 $JS_SCRIPT[]='<link href="'.$CFG->ROOT_DIR.'Common/Styles/Biographies.css" media="screen" rel="stylesheet" type="text/css">';
@@ -13,6 +12,7 @@ include('Common/Templates/head-min.php');
 
 $rawData = file_get_contents($CFG->WaWrapper."?v=3&content=BIODET&ID=".$_REQUEST["Id"]);
 if(($BioData=json_decode($rawData))!=null) {
+
 	$BioData=$BioData->items[0];
 	echo '<div id="BioContent">';
 	echo '<table>
@@ -73,6 +73,24 @@ if(($BioData=json_decode($rawData))!=null) {
 			<td><b>Personal best:</b> '.$BioData->QCareer.'</td>
 			<td><b>Season\'s best:</b> '.$BioData->QSeason.'</td>
 		</tr>';
+
+	// get this competition's average
+	$avg=0;
+	$q=safe_r_SQL("select QuScore, QuHits, group_concat(trim(FinArrowstring) separator '') as FinArrowstring
+		from Qualifications
+		inner join Finals on FinAthlete=QuId
+		inner join Entries on EnId=QuId
+		where EnCode=".StrSafe_DB($_REQUEST['Id']));
+	if($r=safe_fetch($q)) {
+		$avg=round(($r->QuScore+ValutaArrowString($r->FinArrowstring))/($r->QuHits+strlen($r->FinArrowstring)), 3);
+	}
+
+	if($avg) {
+		echo '<tr class="NoWrap odd">
+				<td><b>overall avg:</b> '.$BioData->AverageArr.'</td>
+				<td><b>comp. avg:</b> '.$avg.'</td>
+			</tr>';
+	}
 	echo '</table>';
 
 	// Medals
@@ -92,25 +110,43 @@ if(($BioData=json_decode($rawData))!=null) {
 		echo '<tr><th colspan="4" class="Title">Medals</th></tr>';
 	$cnt=0;
 	$Level=0;
+	$IndWins=0;
+	$IndPodiums=0;
+	$TeamWins=0;
+	$TeamPodiums=0;
+	$COMPS='';
 	foreach($BioData->Medals as $medal) {
 		if($Level!=$medal->ComLevel) {
+			$COMPS = str_replace(array('^^^','$$$','+++','°°°'), array($IndWins, $IndPodiums, $TeamWins, $TeamPodiums), $COMPS);
 			$Level=$medal->ComLevel;
-			echo '<tr class=" Lev'.$Level.'"><th colspan="4" class="Title">'.$BioData->CompetitionLevels->{$Level}.'</th></tr>';
+			$Wins=0;
+			$Podiums=0;
+			$COMPS.= '<tr class=" Lev'.$Level.'"><th colspan="4" class="Title">'.$BioData->CompetitionLevels->{$Level}.'<span style="font-weight:normal; font-size:80%"> - Ind. Wins ^^^ / Podiums $$$ - Team Wins +++ / Podiums °°°</span></th></tr>';
 		}
 		if($medal->IsTeam) {
 			$Class="IsTeam";
+			$TeamPodiums++;
+			if($medal->Rnk==1) {
+				$TeamWins++;
+			}
 		} else {
 			$Class="IsInd";
+			$IndPodiums++;
+			if($medal->Rnk==1) {
+				$IndWins++;
+			}
 		}
 		if($cnt++ % 2 ==0) $Class.=" odd";
 		$Class.=" Lev".$Level;
-		echo '<tr class="'.$Class.'">
+		$COMPS.= '<tr class="'.$Class.'">
 			<td class="Rank">'.$medal->Rnk.'</td>
 			<td class="NoWrap">'.$medal->Cat.($medal->IsTeam ? ' Team' : '').'</td>
 			<td>'.$medal->ComName.' ('.$medal->ComNOC.')</td>
 			<td class="NoWrap">'.date('j M Y', strtotime($medal->Date)).'</td>
 			</tr>';
 	}
+	$COMPS = str_replace(array('^^^','$$$','+++','°°°'), array($IndWins, $IndPodiums, $TeamWins, $TeamPodiums), $COMPS);
+	echo $COMPS;
 	echo '</table>';
 
 	// Biographic data
@@ -122,8 +158,6 @@ if(($BioData=json_decode($rawData))!=null) {
 	}
 	echo '</table>';
 	echo '</div>';
-} else  {
-	debug_svela($rawData);
 }
 
 

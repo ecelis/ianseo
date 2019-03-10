@@ -1,6 +1,10 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclRoot, AclReadWrite);
 require_once('Language/lib.php');
+checkGPL();
+
+SetParameter('AcceptGPL', date('Y-m-d H:i:s'));
 
 include('Common/Templates/head.php');
 
@@ -8,7 +12,7 @@ include('Common/Templates/head.php');
 // nothing to do here without data
 if(!in_array(ProgramRelease, array('STABLE','FITARCO')) and empty($_POST['Email'])) CD_redirect('/');
 
-$URL='https://www.ianseo.net/Update.php';
+$URL=$CFG->IanseoServer.'Update.php';
 //$URL='http://ianseonet.dellinux/Update.php';
 
 include('FileList.php');
@@ -145,7 +149,11 @@ foreach(glob($CFG->INCLUDE_PATH . '/Common/Languages/*') as $file) {
 			save_lang_files($LangDir . $Lang . '.txt', $files['testuale']);
 
 			// salva i moduli
-			foreach($files['lang'] as $Module => $File) save_lang_files($LangDir . $Module . '.php', "<?" . "php\n" . $File . "?>");
+			if(!empty($files['lang'])) {
+				foreach($files['lang'] as $Module => $File) {
+					save_lang_files($LangDir . $Module . '.php', "<?" . "php\n" . $File . "?>");
+				}
+			}
 
 			foreach(glob($LangDir.'*.old') as $file) {
 				unlink($file);

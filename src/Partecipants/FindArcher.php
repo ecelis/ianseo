@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	if (!CheckTourSession() or !isset($_REQUEST['Id'])) printCrackerror('popup');
+    checkACL(AclParticipants, AclReadOnly);
 
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
@@ -59,14 +60,14 @@
 	$Select
 		= "SELECT * FROM Divisions WHERE DivTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY DivViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
-	print '<select name="d_e_EnDivision" id="d_e_EnDivision" onChange="javascript:SearchArcher();">' . "\n";
-	print '<option value="">--</option>' . "\n";
+	print '<select name="d_e_EnDivision" id="d_e_EnDivision" onChange="javascript:SearchArcher();">';
+	print '<option value="">--</option>';
 	if (safe_num_rows($Rs)>0)
 	{
 		while ($MyRow=safe_fetch($Rs))
-			print '<option value="' . $MyRow->DivId . '">' . $MyRow->DivId . '</option>' . "\n";
+			print '<option value="' . $MyRow->DivId . '">' . $MyRow->DivId . '</option>';
 	}
-	print '</select>' . "\n";
+	print '</select>';
 ?>
 </td>
 <td class="Center">
@@ -74,14 +75,14 @@
 	$Select
 		= "SELECT * FROM Classes WHERE ClTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY ClViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
-	print '<select name="d_e_EnClass" id="d_e_EnClass" onChange="javascript:SearchArcher();">' . "\n";
-	print '<option value="">--</option>' . "\n";
+	print '<select name="d_e_EnClass" id="d_e_EnClass" onChange="javascript:SearchArcher();">';
+	print '<option value="">--</option>';
 	if (safe_num_rows($Rs)>0)
 	{
 		while ($MyRow=safe_fetch($Rs))
-			print '<option value="' . $MyRow->ClId . '">' . $MyRow->ClId . '</option>' . "\n";
+			print '<option value="' . $MyRow->ClId . '">' . $MyRow->ClId . '</option>';
 	}
-	print '</select>' . "\n";
+	print '</select>';
 ?>
 </td>
 <td class="Center">
@@ -89,14 +90,14 @@
 	$Select
 		= "SELECT * FROM SubClass WHERE ScTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY SCViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
-	print '<select name="d_e_EnSubClass" id="d_e_EnSubClass" onChange="javascript:SearchArcher();">' . "\n";
-	print '<option value="">--</option>' . "\n";
+	print '<select name="d_e_EnSubClass" id="d_e_EnSubClass" onChange="javascript:SearchArcher();">';
+	print '<option value="">--</option>';
 	if (safe_num_rows($Rs)>0)
 	{
 		while ($MyRow=safe_fetch($Rs))
-			print '<option value="' . substr($MyRow->ScId,1) . '">' . $MyRow->ScId . '</option>' . "\n";
+			print '<option value="' . substr($MyRow->ScId,1) . '">' . $MyRow->ScId . '</option>';
 	}
-	print '</select>' . "\n";
+	print '</select>';
 ?>
 </td>
 

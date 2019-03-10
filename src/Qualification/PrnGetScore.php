@@ -3,19 +3,27 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/LabelPDF.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
 
-if(CheckTourSession())
-{
+if(CheckTourSession()) {
+    checkACL(AclQualification, AclReadOnly);
 
 	$pdf = new LabelPDF();
 
 	$ath4target=0;
+	$RowsPerPage=4;
 	$ses=GetSessions('Q');
 	foreach ($ses as $s)
 	{
 		$ath4target=max($ath4target, $s->SesAth4Target);
+		if($ath4target>8) {
+			$RowsPerPage=2;
+		} elseif($ath4target>4) {
+			$RowsPerPage=3;
+		}
 	}
 
-	$MyQuery = "SELECT EnName AS Name, EnFirstName AS FirstName, SUBSTRING(AtTargetNo,1,1) AS Session, SUBSTRING(AtTargetNo,2," . TargetNoPadding . ") AS TargetNo,  SUBSTRING(AtTargetNo,-1,1) AS BackNo ";
+
+
+	$MyQuery = "SELECT ToElabTeam, ToNumEnds, EnName AS Name, EnFirstName AS FirstName, SUBSTRING(AtTargetNo,1,1) AS Session, SUBSTRING(AtTargetNo,2," . TargetNoPadding . ") AS TargetNo,  SUBSTRING(AtTargetNo,-1,1) AS BackNo ";
 	$MyQuery.= "FROM AvailableTarget at ";
 	$MyQuery.= "INNER JOIN Tournament AS t ON t.ToId=at.AtTournament ";
 	if((isset($_REQUEST["noEmpty"]) && $_REQUEST["noEmpty"]==1))
@@ -36,9 +44,10 @@ if(CheckTourSession())
 		$MyQuery .= "AND SUBSTRING(AtTargetNo,1,1) = " . StrSafe_DB($_REQUEST["Session"]) . " ";
 	elseif ($_REQUEST['x_Session']>0)
 		$MyQuery.= " AND at.AtTargetNo>='" . $_REQUEST['x_Session'] . (strlen($_REQUEST['x_From'])<2 ? '0' : '') . $_REQUEST['x_From'] . "A' AND at.AtTargetNo<='" . $_REQUEST['x_Session'] . (strlen($_REQUEST['x_To'])<2 ? '0' : '') . $_REQUEST['x_To'] . "Z' ";
-	$MyQuery.= "ORDER BY AtTargetNo, Name, FirstName ";
 
-	//echo $MyQuery;exit;
+
+
+	$MyQuery.= "ORDER BY if(ToElabTeam=2, (substr(AtTargetNo,2 , 3)-1)%ToNumEnds, 1), AtTargetNo, Name, FirstName ";
 
 	$Rs=safe_r_sql($MyQuery);
 	if($Rs)
@@ -48,14 +57,15 @@ if(CheckTourSession())
 		$NewTarget=true;
 		$CurHeight=0;
 
-		$BlockHeight=($pdf->getPageHeight()-30)/4;
+		$BlockHeight=($pdf->getPageHeight()-30)/$RowsPerPage;
 		$CellHeight=$BlockHeight/($ath4target+1);
+		$BlocksPerPage=$RowsPerPage*3;
 
 		while($MyRow=safe_fetch($Rs)) {
 
 			if($CurrentTarget != $MyRow->Session . $MyRow->TargetNo)
 			{
-				$Etichetta = ++$Etichetta % 12;
+				$Etichetta = ++$Etichetta % $BlocksPerPage;
 				$NewTarget=true;
 			}
 			$CurrentTarget = $MyRow->Session . $MyRow->TargetNo;
@@ -71,7 +81,14 @@ if(CheckTourSession())
 
 				$pdf->SetXY((($Etichetta % 3) * 70)+5,(intval($Etichetta / 3) * ($BlockHeight+5) +5));
 				$pdf->SetFont($pdf->FontStd,'B',25);
-				$pdf->Cell(60,$CurHeight,$MyRow->TargetNo,1,0,'C',1);
+				$tgt=(int)$MyRow->TargetNo;
+				if($MyRow->ToElabTeam) {
+					$Indices=array('bis','ter','quat', 'quin', 'sex', 'sept', 'oct');
+					if($MyRow->TargetNo > $MyRow->ToNumEnds) {
+						$tgt = ((($tgt-1)%$MyRow->ToNumEnds)+1) . '-' . $Indices[floor($MyRow->TargetNo/$MyRow->ToNumEnds)-1];
+					}
+				}
+				$pdf->Cell(60,$CurHeight, $tgt,1,0,'C',1);
 
 
 				$pdf->SetFont($pdf->FontStd,'B',20);
@@ -91,4 +108,3 @@ if(CheckTourSession())
 	}
 	$pdf->Output();
 }
-?>

@@ -209,10 +209,7 @@ if($Grids) {
 	$OldEvent='';
 	while($MyRow=safe_fetch($Rs)) {
 		if($OldEvent!=$MyRow->EvEventName or $OldPhase!=$MyRow->GrPhase) {
-			$Phase=$MyRow->GrPhase;
-			if($Phase>16 and ($MyRow->EvFinalFirstPhase==48 or $MyRow->EvFinalFirstPhase==24)) {
-				$Phase=($Phase==64 ? 48 : 24);
-			}
+			$Phase=namePhase($MyRow->EvFinalFirstPhase, $MyRow->GrPhase);
 			$FeedItems['G-'.$MyRow->EvEventName.'-'.$MyRow->GrPhase]['title']=get_text($MyRow->EvEventName, null, null, true) .' - '. get_text($Phase.'_Phase');
 			$FeedItems['G-'.$MyRow->EvEventName.'-'.$MyRow->GrPhase]['text']=array();
 			$OldEvent=$MyRow->EvEventName;

@@ -3,6 +3,7 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/ResultPDF.inc.php');
 require_once('Common/Lib/Obj_RankFactory.php');
 require_once('Common/Fun_FormatText.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 if(!isset($isCompleteResultBook))
 	$pdf = new ResultPDF((get_text('MedalIndClass','Tournament')));

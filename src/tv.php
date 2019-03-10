@@ -3,7 +3,7 @@ require_once(dirname(__FILE__) . '/config.php');
 require_once(dirname(__FILE__) . '/Common/Lib/CommonLib.php');
 
 $Channel=1;
-$Page=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php';
+$Page=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php';
 
 if(!empty($_GET)) {
 	foreach($_GET as $k => $v) {
@@ -23,7 +23,7 @@ if($r=safe_fetch($q)) {
 	switch($r->TVORuleType) {
 		case 1:
 			// HTML text...
-			$Page=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelHtmlContent.php?id='.$r->TVOId;
+			$Page=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelHtmlContent.php?id='.$r->TVOId;
 			break;
 		case 2:
 			// URL...
@@ -31,18 +31,18 @@ if($r=safe_fetch($q)) {
 			break;
 		case 3:
 			// Rot standard rules...
-			$Page=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rotation.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
+			$Page=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rotation.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
 			break;
 		case 4:
 			// Rot light rules...
-			$Page=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/LightRot.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
+			$Page=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/LightRot.php?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
 			break;
 		case 5:
 			// CSS3 rules...
-			$Page=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rot/?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
+			$Page=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/Rot/?Rule='.$r->TVORuleId.'&Tour='.$r->TVOTourCode;
 			break;
 		default:
-			$Page=$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php';
+			$Page=getMyScheme().'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'TV/ChannelNoContent.php';
 	}
 }
 

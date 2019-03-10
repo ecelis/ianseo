@@ -12,11 +12,11 @@ define('debug',false);
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 	require_once('Qualification/Fun_Qualification.local.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore=0;
 	$AllClasses='';
@@ -106,8 +106,8 @@ define('debug',false);
 			}
 
 			$recalc=false;
-			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
-			$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
+			$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 			if (!$dontTouchCl)
 			{
@@ -123,7 +123,7 @@ define('debug',false);
 					$x=Params4Recalc($_REQUEST['EnId']);
 					if ($x!==false)
 					{
-						list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+						list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld)=$x;
 					}
 				}
 			}
@@ -149,12 +149,12 @@ define('debug',false);
 					$x=Params4Recalc($_REQUEST['EnId']);
 					if ($x!==false)
 					{
-						list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+						list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 					}
 
 				// ricalcolo il vecchio e il nuovo
-					RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
-					RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+					RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
+					RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 				// rank di classe x tutte le distanze
 					$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";
@@ -179,7 +179,7 @@ define('debug',false);
 				{
 					while ($Row=safe_fetch($Rs))
 					{
-						$AllClasses.= '<cl_id>' . $Row->ClId . '</cl_id>' . "\n";
+						$AllClasses.= '<cl_id>' . $Row->ClId . '</cl_id>';
 					}
 				}
 			}
@@ -193,11 +193,11 @@ define('debug',false);
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<PARAM>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<PARAM>';
 	print $AllClasses;
-	print '</PARAM>' . "\n";
+	print '</PARAM>';
 	print GetRows($_REQUEST['EnId']);
-	print '</response>' . "\n";
+	print '</response>';
 ?>

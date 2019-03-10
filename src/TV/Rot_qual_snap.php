@@ -25,7 +25,7 @@ $rankData=$rank->getData();
 if(count($rankData['sections'])==0) return '';
 
 $Columns=(isset($TVsettings->TVPColumns) && !empty($TVsettings->TVPColumns) ? explode('|',$TVsettings->TVPColumns) : array());
-$ViewTeams=((in_array('TEAM', $Columns) or in_array('ALL', $Columns)) and $TourType!=14);
+$ViewTeams=((in_array('TEAM', $Columns) or in_array('ALL', $Columns)) and $TourType!=14 and $TourType != 32);
 $ViewDists=((in_array('DIST', $Columns) or in_array('ALL', $Columns)) and $TVsettings->TVPViewPartials);
 $ViewTOT=(in_array('TOT', $Columns) or in_array('ALL', $Columns));
 
@@ -108,7 +108,7 @@ foreach($rankData['sections'] as $IdEvent => $section)
 			for ($i=1;$i<=$rankData['meta']['numDist'];++$i) {
 				list($rank, $score, $gold, $xnine)=explode('|', $item['dist_'.$i]);
 				if($section['meta']['snapDistance']==0)
-					$tmp .= '<td class="NumberAlign">' . str_pad($score,3," ",STR_PAD_LEFT) . '<span class="piccolo">/' . str_pad(($TourType!=14 ? $rank : $xnine),2," ",STR_PAD_LEFT) . '</span></td>';
+					$tmp .= '<td class="NumberAlign">' . str_pad($score,3," ",STR_PAD_LEFT) . '<span class="piccolo">/' . str_pad((($TourType!=14 and $TourType != 32) ? $rank : $xnine),2," ",STR_PAD_LEFT) . '</span></td>';
 				else if($i < $section['meta']['snapDistance'])
 					$tmp .= '<td class="NumberAlign">' . str_pad($score,3," ",STR_PAD_LEFT) . '</td>';
 				else if($i == $section['meta']['snapDistance'])

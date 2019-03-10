@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Various.inc.php');
 	require_once('Common/Fun_Sessions.inc.php');
@@ -17,11 +18,11 @@
 	$comboEndSession = '<select name="endSession" id="endSession">'
 		. '<option value="0">' . get_text('DeleteSession') . '</option>';
 	foreach($sessions as $s) {
-		$comboStartSession .= '<option value="' . $s->SesOrder. '"' . (!is_null($startSession) && $s->SesOrder==$startSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
-		$comboEndSession .= '<option value="' . $s->SesOrder . '"' . (!is_null($endSession) && $s->SesOrder==$endSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
+		$comboStartSession .= '<option value="' . $s->SesOrder. '"' . (!is_null($startSession) && $s->SesOrder==$startSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
+		$comboEndSession .= '<option value="' . $s->SesOrder . '"' . (!is_null($endSession) && $s->SesOrder==$endSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
 	}
-	$comboStartSession.='</select>' . "\n";
-	$comboEndSession.='</select>' . "\n";
+	$comboStartSession.='</select>';
+	$comboEndSession.='</select>';
 
 	$msg='';
 	$msg=get_text('Error');

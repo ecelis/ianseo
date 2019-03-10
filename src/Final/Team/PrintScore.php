@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclTeams, AclReadOnly);
 	require_once('Common/Globals.inc.php');
 	require_once('Common/Fun_DB.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
@@ -53,7 +54,7 @@
 	echo '</a></td>';
 //Scores Per Match
 	echo '<td width="50%" class="Center" rowspan="3"><div align="Center">';
-	$MyQuery = "SELECT MAX(GrPhase) as MaxPhase FROM Grids WHERE GrPhase <= " . TeamStartPhase;
+	$MyQuery = "SELECT MAX(GrPhase) as MaxPhase FROM Grids left join TeamFinals on GrMatchNo=TfMatchNo where TfTournament={$_SESSION['TourId']}";
 	$Rs = safe_r_sql($MyQuery);
 	$TmpCnt=32;
 	if(safe_num_rows($Rs)>0) {
@@ -64,18 +65,18 @@
 	echo '<tr>';
 	for($i=$TmpCnt; $i>0; $i=floor($i/2))
 	{
-		echo '<th class="SubTitle">' . get_text($i . '_Phase') . '</th>';
+		echo '<th class="SubTitle">' . get_text($i . '_Phase') . ($i==16 ?  " - " . get_text('12_Phase'):'') . '</th>';
 	}
 	echo '<th class="SubTitle">' . get_text('0_Phase') . '</th>';
 	echo '</tr>';
-	$MyQuery = 'SELECT '
-        . ' EvCode, GrPhase, MAX(IF(TfTeam=0,0,1)) as Printable'
-        . ' FROM Events '
-        . ' INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament '
-        . ' INNER JOIN Grids ON TfMatchNo=GrMAtchNo AND GrPhase<=EvFinalFirstPhase '
-        . ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 AND EvFinalFirstPhase!=0 '
-        . ' GROUP BY EvCode, EvEventName, EvFinalFirstPhase, GrPhase'
-        . ' ORDER BY EvCode, GrPhase DESC';
+	$MyQuery = 'SELECT EvCode, GrPhase, MAX(IF(TfTeam=0,0,1)) as Printable
+        FROM Events 
+        INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament
+        INNER JOIN Phases ON EvFinalFirstPhase=PhId  and (PhIndTeam & pow(2, EvTeamEvent))>0
+        INNER JOIN Grids ON TfMatchNo=GrMAtchNo AND GrPhase<=greatest(PhId,PhLevel)  
+        WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 AND EvFinalFirstPhase!=0 
+        GROUP BY EvCode, EvEventName, EvFinalFirstPhase, GrPhase
+        ORDER BY EvCode, GrPhase DESC';
 	$Rs = safe_r_sql($MyQuery);
 
 	if(safe_num_rows($Rs)>0)
@@ -190,7 +191,9 @@
 	if(module_exists("Barcodes"))
 		echo '<input name="Barcode" type="checkbox" checked value="1">&nbsp;' . get_text('ScoreBarcode','Tournament') . '<br>';
 	foreach(AvailableApis() as $Api) {
-		if(!getModuleParameter($Api, 'Mode')) continue;
+        if(!($tmp=getModuleParameter($Api, 'Mode')) || $tmp=='live' ) {
+            continue;
+        }
 		echo '<input name="QRCode[]" type="checkbox" checked value="'.$Api.'" >&nbsp;' . get_text($Api.'-QRCode','Api') . '<br>';
 	}
 	echo '</td>';
@@ -208,17 +211,14 @@
 
 	//$q=safe_r_sql("select EvCode, EvMatchMode, EvFinalFirstPhase, EvMatchArrowsNo, EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO from Events where EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent!=0 AND EvFinalFirstPhase!=0 group by EvMatchMode, EvFinalFirstPhase, EvMatchArrowsNo, EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO");
 // per il bittaggio vedi elimFinFromMatchArrowsNo
-	$query="
-		SELECT
-			EvCode, EvMatchMode, EvFinalFirstPhase, EvMatchArrowsNo, EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
-		FROM
-			Events
-		WHERE
-			EvTournament = '{$_SESSION['TourId']}'
+	$query="SELECT EvCode, EvMatchMode, EvFinalFirstPhase, EvMatchArrowsNo, EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
+		FROM Events
+		INNER JOIN Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2,EvTeamEvent))>0
+		WHERE EvTournament = '{$_SESSION['TourId']}'
 			AND EvTeamEvent !=0
 			AND EvFinalFirstPhase !=0
 		GROUP BY
-			EvMatchMode, EvFinalFirstPhase, (EvMatchArrowsNo & (POW(2,1+LOG(2,IF(EvFinalFirstPhase>0,2*IF(EvFinalFirstPhase=48,64,IF(EvFinalFirstPhase=24,32,EvFinalFirstPhase)),1)))-1)), EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
+			EvMatchMode, EvFinalFirstPhase, (EvMatchArrowsNo & (POW(2,1+LOG(2,IF(EvFinalFirstPhase>0,2*greatest(PhId, PhLevel),1)))-1)), EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
 	";
 	//print $query;
 	$q=safe_r_sql($query);
@@ -361,6 +361,7 @@
 	echo '<input name="BigNames" type="checkbox" checked="checked" />' . get_text('BigNames','Tournament') ;
 	echo '<br/><input name="IncludeLogo" type="checkbox" checked="checked" />' . get_text('IncludeLogo','BackNumbers') ;
 	echo '<br/><input name="TargetAssign" type="checkbox" checked="checked" />' . get_text('TargetAssignment','Tournament') ;
+	echo '<br/><input name="ColouredPhases" type="checkbox" />' . get_text('ColouredPhases','Tournament') ;
 	echo '</td>';
 	echo '<td class="Center" width="25%" >';
 	echo '<input name="Submit" type="submit" value="' . get_text('Print','Tournament') . '">';

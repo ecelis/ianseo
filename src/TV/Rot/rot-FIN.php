@@ -20,17 +20,42 @@ function rotFin($TVsettings, $RULE) {
 	$ViewTeams=(in_array('TEAM', $Columns) or in_array('ALL', $Columns));
 	$ViewFlag=(in_array('FLAG', $Columns) or in_array('ALL', $Columns));
 	$ViewCode=(in_array('CODE', $Columns) or in_array('ALL', $Columns));
+	$ViewEnds=(in_array('ENDS', $Columns) or in_array('ALL', $Columns));
 // 	$View10s=((in_array('10', $Columns) or in_array('ALL', $Columns)) and $TourType != 14);
 // 	$ViewX9s=(in_array('X9', $Columns) or in_array('ALL', $Columns));
 	$Title2Rows=(in_array('TIT2ROWS', $Columns) ? '<br/>' : ': ');
 
-	$options=array('tournament' => $RULE->TVRTournament);
+	$options=array();
 	$Arr_Ev = array();
 	$Arr_Ph = array();
-	if($TVsettings->TVPEventInd) $Arr_Ev = explode('|', $TVsettings->TVPEventInd);
+	if($TVsettings->TVPEventInd) {
+		$Arr_Ev = explode('|', $TVsettings->TVPEventInd);
+		$Group='';
+		if(preg_match('/^##([0-9]+)##$/', $Arr_Ev[0], $Group)) {
+			if ($IskGroup = getModuleParameter('ISK', 'Sequence', '', $RULE->TVRTournament)) {
+				$Group = $IskGroup[$Group[1]];
+				if($Group['type']=='I') {
+					// get the events and phases of that session!!!
+					$q=safe_r_sql("select distinct FSEvent, GrPhase from FinSchedule inner join Grids on GrMatchNo=FSMatchNo where FSTeamEvent=0 and FSScheduledDate='".substr($Group['session'], 0, 10)."' and FSScheduledTime='".substr($Group['session'], -8)."' and FSTournament=$RULE->TVRTournament");
+					while($r=safe_fetch($q)) {
+						$options['events'][] = $r->FSEvent . '@' . $r->GrPhase;
+					}
+					$Arr_Ev = array();
+					$Arr_Ph = array();
+					$TVsettings->TVPPhasesInd='';
+				}
+			}
+			if(empty($options)) {
+				// nothing to follow, so returns an empty string
+				return 'NOTHING TO FOLLOW';
+			}
+		}
+	}
 	if(strlen($TVsettings->TVPPhasesInd)) {
 		$Arr_Ph = explode('|', $TVsettings->TVPPhasesInd);
 	}
+
+	$options['tournament'] = $RULE->TVRTournament;
 
 	if($Arr_Ev and count($Arr_Ph)) {
 		$options['events']=array();
@@ -65,9 +90,11 @@ function rotFin($TVsettings, $RULE) {
 
 	if($SubBlock>count($rankData['sections'])) $SubBlock=1;
 
-	while($SubBlock) {
-		list($IdEvent, $section)=each($rankData['sections']);
+	foreach($rankData['sections'] as $IdEvent => $section) {
 		$SubBlock--;
+		if(!$SubBlock) {
+			break;
+		}
 	}
 
 	$Columns=(isset($TVsettings->TVPColumns) && !empty($TVsettings->TVPColumns) ? explode('|',$TVsettings->TVPColumns) : array());
@@ -87,7 +114,10 @@ function rotFin($TVsettings, $RULE) {
 
 		foreach($section['phases'] as $IdPhase => $phase) {
 			// Titolo della tabella
-			$ret[] = '<div class="Title" >' . $section['meta']['eventName'] . $Title2Rows . $phase['meta']['phaseName'] . '</div>' ;
+			$ret[] = '<div class="Title" >
+				<div class="TitleImg" style="float:left;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
+				<div class="TitleImg" style="float:right;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
+				' . $section['meta']['eventName'] . $Title2Rows . $phase['meta']['phaseName'] . '</div>' ;
 
 			foreach($phase['items'] as $key => $item) {
 				if(($IsBye=($item['tie']==2 or $item['oppTie']==2) or (!$item['athlete'] or !$item['oppAthlete'])) and !$ViewByes) continue;
@@ -167,8 +197,10 @@ function rotFin($TVsettings, $RULE) {
 
 		$Return['Block']= 'GridId';
 		$Return['BlockCss']='display:flex; flex-direction:row; justify-content:center; align-items:center; box-sizing:border-box; overflow:hidden; white-space: nowrap; font-size:2em; margin:auto; box-sizing:border-box;';
-	} else {
+	} elseif(!empty($section['meta'])) {
 		// Grid view
+		$Return['Block']='Grid';
+		$Return['BlockCss']='height:2em; width:100%; padding-right:0.5rem; overflow:hidden; font-size:2em; display:flex; flex-direction:row; justify-content:left; align-items:center; box-sizing:border-box;';
 
 		$ret[] = '<div class="Title">' . $section['meta']['eventName'] . '</div>';
 		$ret[]='<div id="content" data-direction="up">';
@@ -198,12 +230,37 @@ function rotFin($TVsettings, $RULE) {
 				$tmp1.='<div class="Athlete">'.$item['athlete'].'</div>';
 				$tmp2.='<div class="Athlete">'.$item['oppAthlete'].'</div>';
 
+				if($ViewEnds) {
+					$ends1=explode('|', $item['setPoints']);
+					$ends2=explode('|', $item['oppSetPoints']);
+					if(count($ends1)==count($ends2)) {
+						while($ends1 and end($ends1)==0 and end($ends2)==0) {
+							array_pop($ends1);
+							array_pop($ends2);
+						}
+					}
+
+					if($item['tiebreakDecoded']) {
+						$ends1[]='- '.$item['tiebreakDecoded'];
+					}
+					if($item['oppTiebreakDecoded']) {
+						$ends2[]='- '.$item['oppTiebreakDecoded'];
+					}
+
+					$tmp1.='<div class="EndPoints">'.implode(' ', $ends1).'</div>';
+					$tmp2.='<div class="EndPoints">'.implode(' ', $ends2).'</div>';
+				}
+
 				if($item['tie']==2) {
 					// it is a bye
 					$Score=$rankData['meta']['fields']['bye'];
 				} elseif($item['athlete']) {
 					// archer is there
-					$Score=  $item[$section['meta']['matchMode'] ? 'setScore' : 'score'] . ($item['tie']==1 ? '*' : ($item['oppTie']==1 ? '<tt>&nbsp;</tt>' : ''));
+					if($section['meta']['matchMode']) {
+						$Score=  $item['setScore'];
+					} else {
+						$Score=  $item['score'] . ($item['tie']==1 ? '*' : '<tt>&nbsp;</tt>');
+					}
 				} else {
 					// it is the bye's opponent?
 					$Score='';
@@ -215,7 +272,11 @@ function rotFin($TVsettings, $RULE) {
 					$Score=$rankData['meta']['fields']['bye'];
 				} elseif($item['oppAthlete']) {
 					// archer is there
-					$Score= $item[$section['meta']['matchMode'] ? 'oppSetScore' : 'oppScore'] . ($item['oppTie']==1 ? '*' : ($item['tie']==1 ? '<tt>&nbsp;</tt>' : ''));
+					if($section['meta']['matchMode']) {
+						$Score= $item['oppSetScore'];
+					} else {
+						$Score= $item['oppScore'] . ($item['oppTie']==1 ? '*' : '<tt>&nbsp;</tt>');
+					}
 				} else {
 					// it is the bye's opponent?
 					$Score='';
@@ -231,8 +292,11 @@ function rotFin($TVsettings, $RULE) {
 			}
 		}
 		$ret[]='</div>';
-		$Return['Block']='Grid';
-		$Return['BlockCss']='height:2em; width:100%; padding-right:0.5rem; overflow:hidden; font-size:2em; display:flex; flex-direction:row; justify-content:left; align-items:center; box-sizing:border-box;';
+	//} else {
+	//	// Grid view
+	//	$Return['Block']='Grid';
+	//	$Return['BlockCss']='height:2em; width:100%; padding-right:0.5rem; overflow:hidden; font-size:2em; display:flex; flex-direction:row; justify-content:left; align-items:center; box-sizing:border-box;';
+
 	}
 	$Return['html']=implode('', $ret);
 	return $Return;
@@ -269,34 +333,31 @@ function rotFinSettings($Settings) {
 function getPageDefaults(&$RMain) {
 	global $CFG;
 	$ret=array(
-			'MainContent' => 'left:15%;width:50%',
-			'Title' => '',
-			'TopRow' => 'margin-top:1em',
-			'Divider' => 'display:block;height:0.5rem; background-color:gray;',
-			'BottomRow' => '',
-			'Loser' => 'opacity:0.3;',
-// 			'RankUp' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Up.png\');',
-// 			'RankDown' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Down.png\');',
-// 			'RankMinus' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Minus.png\');',
-// 			'Rank' => 'flex: 0 0 1.75em; text-align:right;',
-			'CountryCode' => 'flex: 0 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-			'FlagDiv' => 'flex: 0 0 3.95rem; ',
-			'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-			'Target' => 'flex: 0 0 4ch; font-size:75%; text-align:right;',
-			'Athlete' => 'flex: 1 1 15em;',
-			'CountryDescr' => 'flex: 1 1 10em;',
-			'DistScore' => 'flex: 0 0 3ch; text-align:right; font-size:0.8em;',
-			'DistPos' => 'flex: 0 0 3ch; text-align:left; font-size:0.7em;',
-			'Score' => 'flex: 0 0 4ch; text-align:right; font-size:1.25em;',
-			'Gold' => 'flex: 0 0 3ch; text-align:right; font-size:1em;',
-			'XNine' => 'flex: 0 0 3ch; text-align:right; font-size:1em;',
-			'IdTarget' => 'border-top-left-radius:1em; border-top-right-radius:1em; width:100%; margin-top:1em; padding:0.5em; box-sizing:border-box; font-size:1em;',
-			'IdAthletes' => 'flex:2 0 20%; font-size:1.5em; text-align: center; padding:0 0.5em; ',
-			'IdPanel' => 'flex:2 0 20%; display:flex;flex-flow:row nowrap; justify-content:center;align-items:center',
-			'IdPicture' => 'flex:2 0 33%; text-align:center; ',
-			'IdPictureImg' => 'height:5em; padding:1rem; ',
-			'IdScore' => 'flex:0 0 auto; text-align:center; font-size:4rem; ',
-		);
+		'MainContent' => 'left:2vw;width:96vw;',
+		'Title' => '',
+		'TopRow' => 'margin-top:1em',
+		'Divider' => 'display:block;height:0.5vw; background-color:gray;',
+		'BottomRow' => '',
+		'Loser' => 'opacity:0.3;',
+		'CountryCode' => 'flex: 0 0 3.5vw; font-size:0.8vw; margin-left:-3.75ch',
+		'FlagDiv' => 'flex: 0 0 4.35vw;',
+		'Flag' => 'height:2.8vw; border:0.05vw solid #888;box-sizing:border-box;',
+		'Target' => 'flex: 0 0 6vw; text-align:right;margin-right:0.5em;',
+		'Athlete' => 'flex: 1 1 20vw;white-space:nowrap;overflow:hidden;',
+		'CountryDescr' => 'flex: 0 1 20vw;white-space:nowrap;overflow:hidden;',
+		'DistScore' => 'flex: 0 0 5vw; text-align:right; font-size:0.8em;',
+		'DistPos' => 'flex: 0 0 3vw; text-align:left; font-size:0.7em;',
+		'Score' => 'flex: 0 0 6vw; text-align:right; font-size:1.25em;margin-right:0.5rem;',
+		'Gold' => 'flex: 0 0 3vw; text-align:right; font-size:1em;',
+		'XNine' => 'flex: 0 0 3vw; text-align:right; font-size:1em;',
+		'EndPoints' => 'flex: 0 0 17ch; text-align:left; font-size:0.8em;',
+		'IdTarget' => 'border-top-left-radius:1em; border-top-right-radius:1em; width:100%; margin-top:1em; padding:0.5em; box-sizing:border-box; font-size:1em;',
+		'IdAthletes' => 'flex:2 0 20%; font-size:1.5em; text-align: center; padding:0 0.5em; ',
+		'IdPanel' => 'flex:2 0 20%; display:flex;flex-flow:row nowrap; justify-content:center;align-items:center',
+		'IdPicture' => 'flex:2 0 33%; text-align:center; ',
+		'IdPictureImg' => 'height:5em; padding:1rem; ',
+		'IdScore' => 'flex:0 0 auto; text-align:center; font-size:4rem; ',
+	);
 	foreach($ret as $k=>$v) {
 		if(!isset($RMain[$k])) $RMain[$k]=$v;
 	}

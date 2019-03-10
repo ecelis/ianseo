@@ -16,7 +16,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 
 	foreach($section['meta']['fields']['finals'] as $k=>$v) {
 		if(is_numeric($k) && $k!=1) {
-			$arrTitles[] = "1/".$k;
+			$arrTitles[] = $v;
 			$arrSizes[] = array(8,7);
 		}
 	}
@@ -42,7 +42,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 
 	foreach($section['items'] as $item) {
 		$NumComponenti = max(1, count($item['athletes']));
-		$pdf->SamePage($NumComponenti);
+		$pdf->SamePage($NumComponenti, 3.5, $pdf->lastY);
 
 		$dataRow = array(
 			($item['rank'] ? $item['rank'] : ''),

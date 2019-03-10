@@ -4,8 +4,7 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 $JSON=array('error' => 1);
 
 if(empty($_REQUEST['act'])) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
+	JsonOut($JSON);
 }
 
 switch($_REQUEST['act']) {
@@ -27,26 +26,30 @@ switch($_REQUEST['act']) {
 		$SQL='';
 		switch(true) {
 			case !empty($_REQUEST['Name']):
-				$tmp=each($_REQUEST['Name']);
-				$SQL="update TVOut set TVOName=".StrSafe_DB($tmp[1])." where TVOId=".intval($tmp[0]);
+				$k=key($_REQUEST['Name']);
+				$v=current($_REQUEST['Name']);
+				$SQL="update TVOut set TVOName=".StrSafe_DB($v)." where TVOId=".intval($k);
 				safe_w_sql($SQL);
 				$JSON['error']=0;
 				break;
 			case !empty($_REQUEST['Message']):
-				$tmp=each($_REQUEST['Message']);
-				$SQL="update TVOut set TVOMessage=".StrSafe_DB($tmp[1])." where TVOId=".intval($tmp[0]);
+				$k=key($_REQUEST['Message']);
+				$v=current($_REQUEST['Message']);
+				$SQL="update TVOut set TVOMessage=".StrSafe_DB($v)." where TVOId=".intval($k);
 				safe_w_sql($SQL);
 				$JSON['error']=0;
 				break;
 			case !empty($_REQUEST['Url']):
-				$tmp=each($_REQUEST['Url']);
-				$SQL="update TVOut set TVOUrl=".StrSafe_DB($tmp[1])." where TVOId=".intval($tmp[0]);
+				$k=key($_REQUEST['Url']);
+				$v=current($_REQUEST['Url']);
+				$SQL="update TVOut set TVOUrl=".StrSafe_DB($v)." where TVOId=".intval($k);
 				safe_w_sql($SQL);
 				$JSON['error']=0;
 				break;
 			case !empty($_REQUEST['Tournament']):
-				$tmp=each($_REQUEST['Tournament']);
-				$SQL="update TVOut set TVOTourCode=".StrSafe_DB($tmp[1])." where TVOId=".intval($tmp[0]);
+				$k=key($_REQUEST['Tournament']);
+				$v=current($_REQUEST['Tournament']);
+				$SQL="update TVOut set TVOTourCode=".StrSafe_DB($v)." where TVOId=".intval($k);
 				safe_w_sql($SQL);
 				$JSON['error']=0;
 				$JSON['TVRules']=array();
@@ -56,14 +59,16 @@ switch($_REQUEST['act']) {
 				}
 				break;
 			case !empty($_REQUEST['Rule']):
-				$tmp=each($_REQUEST['Rule']);
-				$SQL="update TVOut set TVORuleId=".intval($tmp[1])." where TVOId=".intval($tmp[0]);
+				$k=key($_REQUEST['Rule']);
+				$v=current($_REQUEST['Rule']);
+				$SQL="update TVOut set TVORuleId=".intval($v)." where TVOId=".intval($k);
 				safe_w_sql($SQL);
 				$JSON['error']=0;
 				break;
 			case !empty($_REQUEST['Status']):
-				$tmp=each($_REQUEST['Status']);
-				$SQL="update TVOut set TVORuleType=".intval($tmp[1])." where TVOId=".intval($tmp[0]);
+				$k=key($_REQUEST['Status']);
+				$v=current($_REQUEST['Status']);
+				$SQL="update TVOut set TVORuleType=".intval($v)." where TVOId=".intval($k);
 				safe_w_sql($SQL);
 				$JSON['error']=0;
 				break;
@@ -77,28 +82,4 @@ switch($_REQUEST['act']) {
 		break;
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
-
-/*
- *
-
- => name
-[msg] => free text
-[url] => url
-[tour] => 16WAIC
-[rule] => 1
-[status] => 0
-
-
-TVOId (Primaria)	tinyint(4)	No
-TVOName	varchar(50)	No
-TVOUrl	text	No
-TVOMessage	text	No
-TVORuleId	int(11)	No
-TVOTourCode	varchar(8)	No
-TVORuleType	tinyint(4)	No
-TVOLastUpdate	datetime
-
-
-*/
+JsonOut($JSON);

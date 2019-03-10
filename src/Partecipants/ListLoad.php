@@ -9,6 +9,7 @@ require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Various.inc.php');
 
 CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite);
 
 // 	define('debug',false);
 
@@ -20,6 +21,7 @@ $ImportResult=array(
 		'Inserted'=>array(),
 		'Unchanged'=>0,
 		'Imported'=>0,
+		'Anomalies'=>array(),
 		);
 $TeamUpdate=(empty($_REQUEST['NoTeamUpdate']));
 
@@ -38,27 +40,15 @@ if($DataSource) {
 
 	$OldTrace=$CFG->TRACE_QUERRIES;
 	$CFG->TRACE_QUERRIES=false;
-	if(!empty($_REQUEST['DeletePreviousArchers'])) {
-		// remove all the entries and associated info
-		if($Where=GetAccBoothEnWhere($Id, true, true)) {
-			LogAccBoothQuerry("DELETE FROM Entries WHERE EnTournament=§TOCODETOID§");
-			LogAccBoothQuerry("DELETE FROM Qualifications WHERE QuId not in (select EnId from Entries)");
-			LogAccBoothQuerry("delete from AccEntries where AEId not in (select EnId from Entries)");
-			LogAccBoothQuerry("delete from Photos where PhEnId not in (select EnId from Entries)");
-			LogAccBoothQuerry("DELETE FROM Qualifications WHERE QuId not in (select EnId from Entries)");
-			LogAccBoothQuerry("DELETE FROM ElabQualifications WHERE EqId not in (select EnId from Entries)");
-			LogAccBoothQuerry("DELETE FROM ExtraData WHERE EdId not in (select EnId from Entries)");
-		}
-		safe_w_sql("delete from Entries where EnTournament={$_SESSION['TourId']}");
-		safe_w_sql("delete from AccEntries where AEId not in (select EnId from Entries)");
-		safe_w_sql("delete from Photos where PhEnId not in (select EnId from Entries)");
-		safe_w_sql("DELETE FROM Qualifications WHERE QuId NOT IN (SELECT EnId From Entries)");
-		safe_w_sql("DELETE FROM ElabQualifications WHERE EqId NOT IN (SELECT EnId From Entries)");
-		safe_w_sql("DELETE FROM ExtraData WHERE EdId NOT IN (SELECT EnId From Entries)");
-	}
-	if(!empty($_REQUEST['DeletePreviousTeams'])) {
 
-	}
+	// start fetching in an array the entry codes, will be used later
+    $OldEntries=array();
+    $HasEntries=false;
+    $q=safe_r_sql("select Entries.*, 'ToDelete' as EnFinalStatus, QuSession, QuTargetNo, QuTarget, QuLetter from Entries left join Qualifications on EnId=QuId where EnTournament=" . StrSafe_DB($_SESSION['TourId']) );
+	while($r=safe_fetch($q)) {
+	    $OldEntries[$r->EnCode][$r->EnId]=$r;
+    }
+
 	$ImportResult['Head']= '<tr><th>Result</th>
 		<th>'. get_text('Code','Tournament') . '</th>
 		<th>'. get_text('Session') . '</th>
@@ -83,11 +73,21 @@ if($DataSource) {
 		<th>' . get_text('Nation') . ' 3</th>
 		</tr>';
 
-	$t=safe_r_sql("select IFnull(ToIocCode,'') as nocCode from Tournament WHERE ToId={$_SESSION['TourId']}");
+	$ImportResult['AnomaliesHead']= '<tr><th>Result</th>
+		<th>'. get_text('Code','Tournament') . '</th>
+		<th>' . get_text('FamilyName','Tournament') . '<br/>Import / DB</th>
+		<th>' . get_text('Name','Tournament') . '<br/>Import / DB</th>
+		<th>' . get_text('DOB','Tournament') . '<br/>Import / DB</th>
+		<th>' . get_text('Sex','Tournament') . '<br/>Import / DB</th>
+		<th>'. get_text('Class') . '<br/>Import / DB</th>
+		<th>' . get_text('Country') . '<br/>Import / DB</th>
+		</tr>';
+
+    $t=safe_r_sql("select IFnull(ToIocCode,'') as nocCode from Tournament WHERE ToId={$_SESSION['TourId']}");
 	$u=safe_fetch($t);
 	$nocCode=$u->nocCode;
 
-	foreach($tmpRequest as $Line => $Value) {
+    foreach($tmpRequest as $Line => $Value) {
 		$Value=trim($Value);
 		if(!$Value) continue;
 
@@ -156,7 +156,7 @@ if($DataSource) {
 					continue;
 				}
 				// gets the EnIds of the archer with that EnCode
-				$q=safe_r_SQL("select EnId, EdExtra from Entries left join ExtraData on EdId=EnId where EnCode=".StrSafe_DB($tmpString[1])." and EnTournament={$_SESSION['TourId']}");
+				$q=safe_r_SQL("select EnId, EdExtra from Entries left join ExtraData on EdId=EnId and EdType='E' where EnCode=".StrSafe_DB($tmpString[1])." and EnTournament={$_SESSION['TourId']}");
 				if(safe_num_rows($q)) {
 					while($r=safe_fetch($q)) {
 						$Data=new stdClass();
@@ -222,6 +222,38 @@ if($DataSource) {
 					$ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Invalid Entry Code<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 					continue;
 				}
+            } elseif($tmpString[0]== "##TARGETNO##") {
+                if(count($tmpString)!=4) {
+                    $ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, wrong number of fields<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+                    continue;
+                }
+                if(!preg_match('/^[0-9]{1}$/sim', $tmpString[2])) {
+                    $ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Invalid Session reference<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+                    continue;
+                }
+                if(!preg_match('/^[0-9]+[A-F]{1}$/sim', $tmpString[3])) {
+                    $ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Invalid target No. reference<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+                    continue;
+                }
+                // gets the EnIds, class and division of the archer with that EnCode
+                $Sql="
+					SELECT EnId
+					FROM Entries
+					WHERE EnCode=".StrSafe_DB($tmpString[1])." AND EnTournament={$_SESSION['TourId']}";
+                $q=safe_r_SQL($Sql);
+                $tgt=intval(substr($tmpString[3],0,-1));
+                $letter=strtoupper(substr($tmpString[3],-1,1));
+                $tgtNo=$tmpString[2].str_pad($tgt,3,"0",STR_PAD_LEFT).$letter;
+                if(safe_num_rows($q)) {
+                    while($r=safe_fetch($q)) {
+                        safe_w_sql("Update Qualifications SET QuSession={$tmpString[2]}, QuTarget={$tgt}, QuLetter='{$letter}', QuTargetNo='{$tgtNo}' WHERE QuId=$r->EnId");
+                        $ImportResult['Inserted'][]='<tr><td>Inserted/updated</td><td>'.$tmpString[1].'</td><td>'.$tmpString[2].'</td><td>'.$tmpString[3].'</td></tr>';
+                        $ImportResult['Imported']++;
+                    }
+                } else {
+                    $ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Invalid Entry Code<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+                    continue;
+                }
 			} elseif($tmpString[0]== "##TARGET##") {
 				if(count($tmpString)!=5) {
 					$ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, wrong number of fields<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
@@ -347,6 +379,64 @@ if($DataSource) {
 					$ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Invalid Entry Code<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 					continue;
 				}
+			} elseif($tmpString[0]== "##TEAM-CONTACT##") {
+				//  format is ##TEAM-CONTACT##[tab]NOC[tab]Preferred[tab]EnCode[tab]FamName[tab]GivName[tab]Email[tab]Phone
+				if(count($tmpString)<7) {
+					$ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, wrong number of fields<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+					continue;
+				}
+
+                // check the team code is there
+                $q=safe_r_sql("select CoId from Countries where CoTournament={$_SESSION['TourId']} and CoCode=".StrSafe_DB($tmpString[1]));
+				if(!safe_num_rows($q)) {
+					$ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Team Code not in competition<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+					continue;
+                }
+                $r=safe_fetch($q);
+                $CoId=$r->CoId;
+
+				// if preferred check if the EnCode is in the competition
+                if($tmpString[2]) {
+                    $q=safe_r_sql("select EnId, concat_ws(' ', EnFirstName, EnName) Entry from Entries where EnTournament={$_SESSION['TourId']} and EnCode=".StrSafe_DB($tmpString[3]));
+                    if(!safe_num_rows($q)) {
+	                    $tmpString[2]='';
+                    }
+                }
+                $Preferred=($tmpString[2] ? 'P' : '');
+
+                // check the email is formally correct
+				if(!preg_match('/^[a-z0-9._#-]+@[a-z0-9._-]+$/sim', $tmpString[6])) {
+					$ImportResult['Refused'][]='<tr class="error"><td>Row ' . $Line  . ' incorrect, Invalid email<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+					continue;
+				}
+
+				// no checks on phone so fill in the Extra Data.
+                $tmp=array(
+                    'EnCode' => $tmpString[3],
+                    'FamilyName' => $tmpString[4],
+                    'GivenName' => $tmpString[5],
+                    'Email' => $tmpString[6],
+                    'Phone' => empty($tmpString[7]) ? '' : trim($tmpString[7]),
+                );
+
+                // Insert/updates the ExtraDataCountries, type is 'E', "event" field is P for preferred, O for other
+                // first get the record if existing... only adding is allowed!
+				$Extra=array();
+                $q=safe_r_SQL("select EdcExtra from ExtraDataCountries where EdcType='E' and EdcId=$CoId and EdcEvent='$Preferred'");
+                if($r=safe_fetch($q)) {
+                    if($r->EdcExtra) {
+                        $Extra=unserialize($r->EdcExtra);
+                    }
+                }
+                if(!in_array($tmp, $Extra)) {
+                    $Extra[]=$tmp;
+                }
+                // then inserts the new one
+                safe_w_sql("insert into ExtraDataCountries set EdcId=$CoId, EdcType='E', EdcEvent='$Preferred', EdcExtra=".StrSafe_DB(serialize($Extra))."
+                    on duplicate key update EdcExtra=".StrSafe_DB(serialize($Extra)));
+
+                $ImportResult['Inserted'][]='<tr><td>Inserted/updated</td><td>'.$tmpString[1].'</td><td>'.($Preferred ? 'Preferred' : '').'</td></tr>';
+                $ImportResult['Imported']++;
 			}
 		} else {
 			if(empty($tmpString[0])) {
@@ -359,28 +449,37 @@ if($DataSource) {
 				continue;
 			}
 
-			if(count($tmpString)>=14 && strlen($tmpString[13])>5) {
+			if(count($tmpString)>=14 && strlen($tmpString[13])>10) {
 				$ImportResult['Refused'][]= '<tr class="error"><td>Country Code ['.$tmpString[13].'] too long (max 5 characters)<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 				continue;
 			}
 
-			if(count($tmpString)>=19 && strlen($tmpString[17])>5) {
+			if(count($tmpString)>=19 && strlen($tmpString[17])>10) {
 				$ImportResult['Refused'][]= '<tr class="error"><td>Country Code ['.$tmpString[17].'] too long (max 5 characters)<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 				continue;
 			}
 
-			if(count($tmpString)>=21 && strlen($tmpString[19])>5) {
+			if(count($tmpString)>=21 && strlen($tmpString[19])>10) {
 				$ImportResult['Refused'][]= '<tr class="error"><td>Country Code ['.$tmpString[19].'] too long (max 5 characters)<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 				continue;
 			}
 
 			$Tournament2Save = StrSafe_DB($_SESSION['TourId']);
 			$NameOrder=0; // Given Name + Family Name
+            if(count($tmpString)>=5) {
+                if(preg_match('/^[0-9]+[a-z]{0,1}$/i', trim($tmpString[4]))) {
+	                $tmpString[4]=strtoupper(trim($tmpString[4]));
+                } else {
+	                $tmpString[4]='';
+                }
+            }
 			/* BibNumber         */ $Code2Save = UpperText($tmpString[0]);
 			/* Session           */ $Session2Save = intval($tmpString[1]);
 			/* Division          */ $Division2Save = $tmpString[2];
 			/* Class             */ $Class2Save = $tmpString[3];
-			/* Target            */ $Target2Save = ((count($tmpString)>=5 && preg_match('/^[0-9]+[a-z]{0,1}$/i', trim($tmpString[4]))) ? intval($tmpString[1]) . strtoupper(str_pad($tmpString[4],(TargetNoPadding+1),"0",STR_PAD_LEFT)) : "0");
+			/* Target            */ $TargetNo2Save = (!empty($tmpString[4]) ? intval($tmpString[1]) . str_pad($tmpString[4], TargetNoPadding+1,"0",STR_PAD_LEFT) : "");
+			/* Target            */ $Target2Save = (!empty($tmpString[4]) ? intval($tmpString[4]) : "0");
+			/* Target            */ $Letter2Save = (!empty($tmpString[4]) ? substr($tmpString[4],-1) : "");
 			/* IndQual           */ $ShootInd2Save = (count($tmpString)<=5 || !empty($tmpString[5]) ? '1' : '0');
 			/* TeamQual          */ $ShootTeam2Save = (count($tmpString)<=6 || !empty($tmpString[6]) ? '1' : '0');
 			/* IndFinEvent       */ $ShootFinInd2Save = (count($tmpString)<=7 || !empty($tmpString[7]) ? '1' : '0');
@@ -388,7 +487,7 @@ if($DataSource) {
 			/* MixedTeamFinEvent */ $ShootFinMixTeam2Save = (count($tmpString)<=9 || !empty($tmpString[9]) ? '1' : '0');
 			/* FamilyName        */ $FirstName2Save = (count($tmpString)>=11 && $tmpString[10] ? AdjustCaseTitle($tmpString[10]) : '');
 			/* Name              */ $Name2Save = (count($tmpString)>=12 && $tmpString[11] ? AdjustCaseTitle($tmpString[11]) : '');
-			/* Sex               */ $Sex2Save = (count($tmpString)>=13 && (intval($tmpString[12]) || $tmpString[12] !='M') ? "1" : "0");
+			/* Sex               */ $Sex2Save = (count($tmpString)>=13 && (intval($tmpString[12]) || ($tmpString[12]!=='0' and $tmpString[12] !='M')) ? "1" : "0");
 			/* Country           */	$Country2Save = (count($tmpString)>=14 && $tmpString[13] ? UpperText($tmpString[13]) : '');
 			/* Nation            */	$Nation2Save = (count($tmpString)>=15 && $tmpString[14] ? AdjustCaseTitle($tmpString[14]) : '');
 			/* DOB               */ $DoB2Save = (count($tmpString)>=16 ? ConvertDateLoc($tmpString[15]) : "0000-00-00");
@@ -417,9 +516,16 @@ if($DataSource) {
 
 				$Rs=safe_r_sql($Select);
 
-				if (safe_num_rows($Rs)!=0) {
+				if ($MyRow=safe_fetch($Rs)) {
 					// found in LookupEntries!
-					$MyRow=safe_fetch($Rs);
+                    $OldClass2Save=$Class2Save;
+                    $OldFirstName2Save = $FirstName2Save;
+			        $OldName2Save = $Name2Save;
+			        $OldSex2Save = $Sex2Save;
+			        $OldCountry2Save = $Country2Save;
+			        $OldNation2Save = $Nation2Save;
+			        $OldDoB2Save = $DoB2Save;
+
 					// campi che non riguardano la nazione
 					$Name2Save = AdjustCaseTitle($MyRow->LueName);
 					$FirstName2Save = AdjustCaseTitle($MyRow->LueFamilyName);
@@ -433,14 +539,25 @@ if($DataSource) {
 					//Classe
 					$Class2Save = (!empty($tmpString[3]) ? $tmpString[3] : $MyRow->LueClass);
 
+
 					$AgeClass2Save = $MyRow->LueClass;
 					if($DoB2Save and $DoB2Save!='0000-00-00') {
 						$tmpAgeClass = calculateAgeClass($DoB2Save, $Sex2Save, $Division2Save);
+						$tmpShootClass = calculateShootClass($DoB2Save, $Sex2Save, $Division2Save);
 						if(count($tmpAgeClass)==1) {
 							$AgeClass2Save = $tmpAgeClass[0];
 	// 						$Class2Save = $tmpAgeClass[0];
-						} else if (in_array($Class2Save,$tmpAgeClass)) {
+
+                            if(!Class_In_Division($Class2Save, $AgeClass2Save, $Division2Save)) {
+	                            $Class2Save=$AgeClass2Save;
+                            }
+						} elseif (in_array($Class2Save,$tmpAgeClass)) {
 							$AgeClass2Save = $Class2Save;
+                            if(!Class_In_Division($Class2Save, $Class2Save, $Division2Save)) {
+	                            $Class2Save=$AgeClass2Save;
+                            }
+						} elseif (!empty($tmpShootClass[$Class2Save])) {
+							$AgeClass2Save = $tmpShootClass[$Class2Save];
 						} else {
 							$ImportResult['Refused'][]= '<tr class="error"><td>Row ' . $Line  . ' Class '.$Class2Save.' is not defined<br/>Row not imported</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 							continue;
@@ -469,6 +586,52 @@ if($DataSource) {
 						$ThirdNationComplete2Save = AdjustCaseTitle($MyRow->LueCoDescr3);
 					}
 					$NameOrder=$MyRow->LueNameOrder;
+
+					if($OldClass2Save!=$Class2Save or
+                        (count($tmpString)>=11 and ($OldFirstName2Save != $FirstName2Save or
+                            $OldName2Save != $Name2Save or
+                            $OldSex2Save != $Sex2Save or
+                            $OldCountry2Save != $MyRow->LueCountry or
+                            strcasecmp($OldNation2Save, $MyRow->LueCoShort)!=0 or
+                            $OldDoB2Save != $DoB2Save))) {
+					    // there is a discrepancy in the import!
+                        $l1='<tr class="warning">
+                               <td>Please check these entry anomalies:</td>
+                               <td><b>'.$tmpString[0].'</b></td>';
+
+                        if($OldFirstName2Save != $FirstName2Save) {
+                            $l1.='<td>'.$OldFirstName2Save.' / <b>'.$FirstName2Save.'</b></td>';
+                        } else {
+                            $l1.='<td>'.$OldFirstName2Save.'</td>';
+                        }
+                        if($OldName2Save != $Name2Save) {
+                            $l1.='<td>'.$OldName2Save.' / <b>'.$Name2Save.'</b></td>';
+                        } else {
+                            $l1.='<td>'.$OldName2Save.'</td>';
+                        }
+                        if($OldDoB2Save != $DoB2Save) {
+                            $l1.='<td>'.$OldDoB2Save.' / <b>'.$DoB2Save.'</b></td>';
+                        } else {
+                            $l1.='<td>'.$OldDoB2Save.'</td>';
+                        }
+                        if($OldSex2Save != $Sex2Save) {
+                            $l1.='<td>'.$OldSex2Save.' / <b>'.$Sex2Save.'</b></td>';
+                        } else {
+                            $l1.='<td>'.$OldSex2Save.'</td>';
+                        }
+                        if($OldClass2Save!=$Class2Save) {
+                            $l1.='<td>'.$OldClass2Save.' / <b>'.$Class2Save.'</b></td>';
+                        } else {
+                            $l1.='<td>'.$OldClass2Save.'</td>';
+                        }
+                        if(strcasecmp($OldNation2Save, $MyRow->LueCoShort)!=0 or $OldCountry2Save != $MyRow->LueCountry) {
+                            $l1.='<td><b>'.$OldCountry2Save.'-'.$OldNation2Save.'</b> / '.$MyRow->LueCountry.'-'.$MyRow->LueCoShort.'</td>';
+                        } else {
+                            $l1.='<td>'.$OldCountry2Save.'-'.$OldNation2Save.'</td>';
+                        }
+                        $l1.='</tr>';
+                        $ImportResult['Anomalies'][]=$l1;
+                    }
 				}
 			}
 
@@ -543,11 +706,43 @@ if($DataSource) {
 				$EntrySQL.=", EnCountry=-Country-, EnCountry2=-Country2-, EnCountry3=-Country3- ";
 			}
 
-			if(!empty($_REQUEST['OverwritePreviousArchers'])) {
+			$HasEntries=true; // this is needed in case we need to delete old entries not in the file...
+
+            if(!empty($_REQUEST['OverwritePreviousArchers'])) {
+			    $OldEnId=0;
+			    $EnIdToUpdate=0;
+			    $Updated=false;
+			    if(!empty($OldEntries[$Code2Save])) {
+			        foreach($OldEntries[$Code2Save] as $EnId => &$row) {
+			            // check match on division
+                        if($row->EnFinalStatus!='ToDelete') {
+                            // entry already matched
+                            continue;
+                        }
+                        // saves the actual EnId for future reference...
+                        $OldEnId=$EnId;
+                        if($row->EnDivision==$Division2Save) {
+                            // matched on division...
+                            $EnIdToUpdate=$EnId;
+                            // jumps out of the foreach loop!
+                            break;
+                        }
+                    }
+                }
+
+                // if no exact match, overwrite the first match found
+                if(!$EnIdToUpdate and $OldEnId) {
+	                $EnIdToUpdate=$OldEnId;
+                }
+
 				// checks the changes
-				$q=safe_r_sql("select Entries.*, QuSession, QuTargetNo from Entries left join Qualifications on EnId=QuId where EnCode=".StrSafe_DB($Code2Save)." and EnTournament=" . StrSafe_DB($_SESSION['TourId']) . "");
-				if($r=safe_fetch($q)) {
-					if($Where=GetAccBoothEnWhere($r->EnId, true, true)) {
+//				$q=safe_r_sql("select Entries.*, QuSession, QuTargetNo from Entries left join Qualifications on EnId=QuId where EnCode=".StrSafe_DB($Code2Save)." and EnTournament=" . StrSafe_DB($_SESSION['TourId']) . "");
+				if($EnIdToUpdate) { //$r=safe_fetch($q)) {
+                    // updates the status of the matched element
+					$OldEntries[$Code2Save][$EnIdToUpdate]->EnFinalStatus='Updated';
+					$r=$OldEntries[$Code2Save][$EnIdToUpdate];
+
+					if($Where=GetAccBoothEnWhere($EnIdToUpdate, true, true)) {
 						LogAccBoothQuerry(str_replace(
 							array('-Country-','-Country2-','-Country3-'),
 							array(  $TeamsFromDb['1']['id'] ? "(select CoId from Countries where CoCode='{$TeamsFromDb['1']['code']}' and CoTournament=§TOCODETOID§)" : 0,
@@ -560,19 +755,19 @@ if($DataSource) {
 					safe_w_sql(str_replace(
 							array('§TOCODETOID§', '-Country-','-Country2-','-Country3-'),
 							array(StrSafe_DB($_SESSION['TourId']), $TeamsFromDb['1']['id'], $TeamsFromDb['2']['id'], $TeamsFromDb['3']['id']),
-							"update Entries set $EntrySQL, EnTimestamp=EnTimestamp where EnId=$r->EnId"));
+							"update Entries set $EntrySQL, EnTimestamp=EnTimestamp where EnId=$EnIdToUpdate"));
 					$tmp=safe_w_affected_rows();
 					// update the qualification too
-					safe_w_sql("update Qualifications set QuSession='$Session2Save', QuTargetNo='$Target2Save', QuTarget='".intval(substr($Target2Save, 1))."', QuLetter='".substr($Target2Save, -1)."', QuTimestamp=QuTimestamp where QuId=$r->EnId");
+					safe_w_sql("update Qualifications set QuSession='$Session2Save', QuTargetNo='$TargetNo2Save', QuTarget='$Target2Save', QuLetter='$Letter2Save', QuTimestamp=QuTimestamp where QuId=$EnIdToUpdate");
 					if($tmp or safe_w_affected_rows()) {
 						if(safe_w_affected_rows()) {
-							safe_w_sql("update Qualifications set QuBacknoPrinted=0 where QuId=$r->EnId");
+							safe_w_sql("update Qualifications set QuBacknoPrinted=0 where QuId=$EnIdToUpdate");
 							LogAccBoothQuerry("update Qualifications set QuBacknoPrinted=0 where QuId=(select EnId from Entries where $Where)");
 						}
-						LogAccBoothQuerry("update Qualifications set QuSession='$Session2Save', QuTargetNo='$Target2Save', QuTarget='".intval(substr($Target2Save, 1))."', QuLetter='".substr($Target2Save, -1)."', QuTimestamp=QuTimestamp where QuId=(select EnId from Entries where $Where)");
-						checkAgainstLUE($r->EnId);
+						LogAccBoothQuerry("update Qualifications set QuSession='$Session2Save', QuTargetNo='$TargetNo2Save', QuTarget='$Target2Save', QuLetter='$Letter2Save', QuTimestamp=QuTimestamp where QuId=(select EnId from Entries where $Where)");
+						checkAgainstLUE($EnIdToUpdate);
 
-						safe_w_sql("Update Entries set EnBadgePrinted=0, EnTimestamp='".date('Y-m-d H:i:s')."' where EnId=$r->EnId");
+						safe_w_sql("Update Entries set EnBadgePrinted=0, EnTimestamp='".date('Y-m-d H:i:s')."' where EnId=$EnIdToUpdate");
 						LogAccBoothQuerry("update Entries set EnBadgePrinted=0, EnTimestamp='".date('Y-m-d H:i:s')."' where $Where");
 						if($Session2Save!=$r->QuSession) $tmpString[1]="<del>$r->QuSession</del><br/>$Session2Save";
 						if($Division2Save!=$r->EnDivision) $tmpString[2]="<del>$r->EnDivision</del><br/>$Division2Save";
@@ -595,9 +790,10 @@ if($DataSource) {
 							case ($switch>=16): if($DoB2Save!=$r->EnDob) $tmpString[15]="<del>$r->EnDob</del><br/>$DoB2Save";
 							case ($switch>=14 and $TeamUpdate): if($TeamsFromDb['1']['id']!=$r->EnCountry) {
 													$t=safe_r_sql("select * from Countries where CoId=$r->EnCountry");
-													$u=safe_fetch($t);
-													$tmpString[13]="<del>$u->CoCode</del><br/>{$TeamsFromDb['1']['code']}";
-													$tmpString[14]="<del>$u->CoName</del><br/>{$TeamsFromDb['1']['dbshort']}";
+													if($u=safe_fetch($t)) {
+                                                        $tmpString[13] = "<del>$u->CoCode</del><br/>{$TeamsFromDb['1']['code']}";
+                                                        $tmpString[14] = "<del>$u->CoName</del><br/>{$TeamsFromDb['1']['dbshort']}";
+                                                    }
 												}
 							case ($switch>=13): if($Sex2Save!=$r->EnSex) $tmpString[12]="<del>$r->EnSex</del><br/>$Sex2Save";
 							case ($switch>=12): if($Name2Save!=$r->EnName) $tmpString[11]="<del>$r->EnName</del><br/>$Name2Save";
@@ -607,7 +803,7 @@ if($DataSource) {
 							case ($switch>=8): if($ShootFinInd2Save!=$r->EnIndFEvent) $tmpString[7]="<del>$r->EnIndFEvent</del><br/>$ShootFinInd2Save";
 							case ($switch>=7): if($ShootTeam2Save!=$r->EnTeamClEvent) $tmpString[6]="<del>$r->EnTeamClEvent</del><br/>$ShootTeam2Save";
 							case ($switch>=6): if($ShootInd2Save!=$r->EnIndClEvent) $tmpString[5]="<del>$r->EnIndClEvent</del><br/>$ShootInd2Save";
-							case ($switch>=5): if(substr($Target2Save,1)!=substr($r->QuTargetNo,1)) $tmpString[4]="<del>".substr($r->QuTargetNo,1)."</del><br/>".substr($Target2Save,1)."";
+							case ($switch>=5): if($Target2Save.$Letter2Save!=$r->QuTarget.$r->QuLetter) $tmpString[4]="<del>".$r->QuTarget.$r->QuLetter."</del><br/>".$Target2Save.$Letter2Save."";
 						}
 						$ImportResult['Updated'][] = '<tr><td>&nbsp;</td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 					} elseif(!$TeamUpdate and ($TeamsFromDb['1']['id']!=$r->EnCountry or $TeamsFromDb['2']['id']!=$r->EnCountry2 or $TeamsFromDb['3']['id']!=$r->EnCountry3)) {
@@ -629,7 +825,7 @@ if($DataSource) {
 							$tmpString[13]="<del>{$TeamsFromDb['3']['code']}</del><br/>$u->CoCode";
 							$tmpString[14]="<del>{$TeamsFromDb['3']['dbshort']}</del><br/>$u->CoName";
 						}
-						$ImportResult['Blocked'][] = '<tr><td><a href="#" onclick="window.open(\'./ForceUpdate.php?EnId='.$r->EnId.'&EnCo1='.$TeamsFromDb['1']['id'].'&EnCo2='.$TeamsFromDb['2']['id'].'&EnCo3='.$TeamsFromDb['3']['id'].'\')"" target="ForceUpdate">Force Update</a></td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
+						$ImportResult['Blocked'][] = '<tr><td><a href="#" onclick="window.open(\'./ForceUpdate.php?EnId='.$EnIdToUpdate.'&EnCo1='.$TeamsFromDb['1']['id'].'&EnCo2='.$TeamsFromDb['2']['id'].'&EnCo3='.$TeamsFromDb['3']['id'].'\')"" target="ForceUpdate">Force Update</a></td><td>'.implode('</td><td>', $tmpString)."</td></tr>";
 					} else {
 						$ImportResult['Unchanged']++;
 					}
@@ -664,17 +860,17 @@ if($DataSource) {
 				. "VALUES("
 				. StrSafe_DB($idNewRow) . ","
 				. StrSafe_DB($Session2Save) . ","
-				. StrSafe_DB($Target2Save) . ","
-				. intval(substr($Target2Save, 1)) . ","
-				. StrSafe_DB(substr($Target2Save, -1)) . ") ";
+				. StrSafe_DB($TargetNo2Save) . ","
+				. $Target2Save . ","
+				. StrSafe_DB($Letter2Save) . ") ";
 			$Rs=safe_w_sql($Insert);
 
 			if($Where=GetAccBoothEnWhere($idNewRow, true, true)) {
 				LogAccBoothQuerry("INSERT INTO Qualifications
 						set QuSession=".StrSafe_DB($Session2Save).",
-						QuTargetNo=".StrSafe_DB($Target2Save).",
-						QuTarget=".intval(substr($Target2Save, 1)).",
-						QuLetter=".StrSafe_DB(substr($Target2Save, -1)).",
+						QuTargetNo=".StrSafe_DB($TargetNo2Save).",
+						QuTarget=".$Target2Save.",
+						QuLetter=".StrSafe_DB($Letter2Save).",
 						QuId=(select EnId from Entries Where $Where)");
 			}
 			checkAgainstLUE($idNewRow);
@@ -684,7 +880,7 @@ if($DataSource) {
 				<td>$Session2Save</td>
 				<td>$Division2Save</td>
 				<td>$Class2Save</td>
-				<td>$Target2Save</td>
+				<td>$TargetNo2Save</td>
 				<td>$ShootInd2Save</td>
 				<td>$ShootTeam2Save</td>
 				<td>$ShootFinInd2Save</td>
@@ -702,8 +898,22 @@ if($DataSource) {
 				<td>{$TeamsFromDb['3']['code']}</td>
 				<td>{$TeamsFromDb['3']['short']}</td></tr>";
 		}
-
 	}
+
+	if($HasEntries) {
+        // if the uploaded file was containing entries
+        if(!empty($_REQUEST['DeletePreviousArchers'])) {
+            // remove the entries from the competition
+            foreach($OldEntries as $EnCode => $entries) {
+                foreach($entries as $EnId => $row) {
+                    if($row->EnFinalStatus=='ToDelete') {
+                        deleteArcher($EnId, true, true);
+                    }
+                }
+            }
+        }
+    }
+
 	// updates the Athlete status in Entries
 	$Now=date('Y-m-d H:i:s');
 	safe_w_sql("update Entries left join Divisions on EnDivision=DivId and EnTournament=DivTournament left join Classes on EnClass=ClId and EnTournament=ClTournament
@@ -771,7 +981,7 @@ echo "21)&nbsp;" . get_text('Nation') . " 3<br>";
 echo "</td><td>";
 
 echo '<div>'.get_text('SpecialImports', 'Tournament').'</div>';
-foreach(array('Wheelchair', 'Address' , 'Email', 'Target', 'DOB', 'NOC', 'Session', 'Caption', 'ID-OC') as $Special) {
+foreach(array('Wheelchair', 'Address' , 'Email', 'Target', 'TargetNo', 'DOB', 'NOC', 'Session', 'Caption', 'ID-OC') as $Special) {
 	echo '<div><br/><b>##'.strtoupper($Special).'##</b><br/>'.get_text('Desc'.$Special, 'Tournament').'</div>';
 }
 ?>
@@ -779,8 +989,8 @@ foreach(array('Wheelchair', 'Address' , 'Email', 'Target', 'DOB', 'NOC', 'Sessio
 </tr>
 <tr>
 	<td colspan="2">
-	<input type="checkbox" name="DeletePreviousArchers" disabled="disabled"><?php echo get_text('DeletePreviousArchers','Tournament'); ?>
-	<br/><input type="checkbox" name="DeletePreviousTeams" disabled="disabled"><?php echo get_text('DeletePreviousTeams','Tournament'); ?>
+	<input type="checkbox" name="DeletePreviousArchers" onclick="if(this.checked) {this.checked=confirm('<?php echo get_text('MsgAreYouSure'); ?>')}"><?php echo get_text('DeletePreviousArchers','Tournament'); ?>
+	<!-- br/><input type="checkbox" name="DeletePreviousTeams" disabled="disabled"><?php echo get_text('DeletePreviousTeams','Tournament'); ?> -->
 	<br/><input type="checkbox" name="OverwritePreviousArchers" checked="checked"><?php echo get_text('OverwritePreviousArchers','Tournament'); ?>
 	<br/><input type="checkbox" name="NoTeamUpdate" ><?php echo get_text('NoTeamUpdate','Tournament'); ?>
 	</td>
@@ -804,6 +1014,17 @@ else
 		echo $ImportResult['Head'];
 		echo implode('', $ImportResult['Refused']);
 	}
+
+	// Anomalies
+	if($ImportResult['Anomalies']) {
+		echo '<tr><th class="Head" colspan="'.($Cols-1).'">'.get_text('Anomalies', 'Errors').'</th>
+			<th class="Head">'.count($ImportResult['Anomalies']).'</th></tr>';
+		echo '<tr><td colspan="'.($Cols).'"><table>';
+		echo $ImportResult['AnomaliesHead'];
+		echo implode('', $ImportResult['Anomalies']);
+		echo '</table></td></tr>';
+	}
+
 	// Blocked rows
 	if(!empty($ImportResult['Blocked'])) {
 		echo '<tr><th class="Head" colspan="'.($Cols-1).'">'.get_text('ListLoadBlocked', 'Tournament').'</th>

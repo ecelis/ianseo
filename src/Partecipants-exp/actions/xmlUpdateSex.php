@@ -9,11 +9,11 @@
 	$col=(isset($_REQUEST['col']) ? $_REQUEST['col'] : null);
 
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	if (is_null($id) || is_null($sex) || is_null($row) || is_null($col))
 	{

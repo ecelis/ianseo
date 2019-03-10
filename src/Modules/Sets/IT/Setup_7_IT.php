@@ -27,5 +27,3 @@ $tourDetDouble			= '0';
 $DistanceInfoArray=array(array(10, 3), array(10, 3));
 
 require_once('Setup_Target.php');
-
-?>

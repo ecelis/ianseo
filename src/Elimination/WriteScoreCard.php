@@ -4,6 +4,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/ScoreEditor/Score.class.php');
 CheckTourSession(true);
+checkACL(AclEliminations, AclReadWrite);
 if (BlockExperimental) printcrackerror(false,'Blocked');
 
 require_once('Common/Lib/CommonLib.php');
@@ -108,7 +109,7 @@ if($Events and !empty($_REQUEST['x_Target'])) {
 	$Select = "SELECT EnId,EnCode,EnName,EnFirstName,EnTournament,EnDivision,EnClass,EnCountry,CoCode, CoName, (EnStatus <=1) AS EnValid,EnStatus,
 			ElTargetNo,(ElTargetNo-1) as TgtOffset, EvCode,
 			ElScore, ElHits, ElGold, ElXnine, ElArrowString, ElElimPhase,
-			if(ElElimPhase=0, EvElimEnds, EvElim2) Ends, EvElimArrows Arrows, ToGolds, ToXNine, ToCategory
+			if(ElElimPhase=0, EvE1Ends, EvE2Ends) Ends, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) Arrows, ToGolds, ToXNine, ToCategory
 		FROM Eliminations
 		inner join Entries on ElId=EnId and EnAthlete=1
 		INNER JOIN Countries ON EnCountry=CoId

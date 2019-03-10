@@ -12,6 +12,7 @@ $comparedTo=(isset($_REQUEST['comparedTo']) ? $_REQUEST['comparedTo'] : 0);
 $viewT=(isset($_REQUEST['viewTeam']) ? $_REQUEST['viewTeam'] : 0);
 if (empty($_SESSION['TourId']) && (!CheckTourSession() || is_null($isEvent)))
 	exit;
+checkACL(AclSpeaker, AclReadOnly, false);
 
 $optionsI=array('dist'=>0);
 $optionsT=array();

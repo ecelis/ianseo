@@ -110,33 +110,45 @@ function CreateStandardFieldClasses($TourId, $SubRule) {
 }
 
 function CreateStandardFieldEvents($TourId, $SubRule) {
+	$Elim1=array(
+		'Archers' => 16,
+		'Ends' => 12,
+		'Arrows' => 3,
+		'SO' => 1
+	);
+	$Elim2=array(
+		'Archers' => 8,
+		'Ends' => 8,
+		'Arrows' => 3,
+		'SO' => 1
+	);
 	switch($SubRule) {
 		case '1':
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  'Recurve Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  'Recurve Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', 'Recurve Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', 'Recurve Junior Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCM', 'Recurve Cadet Men',     0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCW', 'Recurve Cadet Women',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMM', 'Recurve Master Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMW', 'Recurve Master Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  'Compound Men',          0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  'Compound Women',        0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', 'Compound Junior Men',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', 'Compound Junior Women', 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCM', 'Compound Cadet Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCW', 'Compound Cadet Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMM', 'Compound Master Men',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMW', 'Compound Master Women', 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  'Barebow Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  'Barebow Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', 'Barebow Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', 'Barebow Junior Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCM', 'Barebow Cadet Men',     0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCW', 'Barebow Cadet Women',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMM', 'Barebow Master Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMW', 'Barebow Master Women',  0, 0, 0, 16, 8);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  'Recurve Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  'Recurve Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', 'Recurve Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', 'Recurve Junior Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCM', 'Recurve Cadet Men',     0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCW', 'Recurve Cadet Women',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMM', 'Recurve Master Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMW', 'Recurve Master Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  'Compound Men',          0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  'Compound Women',        0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', 'Compound Junior Men',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', 'Compound Junior Women', 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCM', 'Compound Cadet Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCW', 'Compound Cadet Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMM', 'Compound Master Men',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMW', 'Compound Master Women', 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  'Barebow Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  'Barebow Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', 'Barebow Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', 'Barebow Junior Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCM', 'Barebow Cadet Men',     0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCW', 'Barebow Cadet Women',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMM', 'Barebow Master Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMW', 'Barebow Master Women',  0, 0, 0, $Elim1, $Elim2);
 			$i=1;
 			CreateEvent($TourId, $i++, 1, 0, 4, 6, 8, 3, 3, 4, 3, 3, 'MT',  'Men Team',0,248,15);
 			CreateEvent($TourId, $i++, 1, 0, 4, 6, 8, 3, 3, 4, 3, 3, 'WT',  'Women Team',0,248,15);
@@ -149,18 +161,18 @@ function CreateStandardFieldEvents($TourId, $SubRule) {
 			break;
 		case '2':
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  'Recurve Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  'Recurve Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', 'Recurve Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', 'Recurve Junior Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  'Compound Men',          0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  'Compound Women',        0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', 'Compound Junior Men',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', 'Compound Junior Women', 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  'Barebow Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  'Barebow Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', 'Barebow Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', 'Barebow Junior Women',  0, 0, 0, 16, 8);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  'Recurve Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  'Recurve Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', 'Recurve Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', 'Recurve Junior Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  'Compound Men',          0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  'Compound Women',        0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', 'Compound Junior Men',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', 'Compound Junior Women', 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  'Barebow Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  'Barebow Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', 'Barebow Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', 'Barebow Junior Women',  0, 0, 0, $Elim1, $Elim2);
 			$i=1;
 			CreateEvent($TourId, $i++, 1, 0, 4, 6, 8, 3, 3, 4, 3, 3, 'MT',  'Men Team',0,248,15);
 			CreateEvent($TourId, $i++, 1, 0, 4, 6, 8, 3, 3, 4, 3, 3, 'WT',  'Women Team',0,248,15);
@@ -282,41 +294,53 @@ function InsertStandardFieldEliminations($TourId, $SubRule){
 */
 
 function CreateStandard3DEvents($TourId, $SubRule) {
+	$Elim1=array(
+		'Archers' => 16,
+		'Ends' => 12,
+		'Arrows' => 1,
+		'SO' => 1
+	);
+	$Elim2=array(
+		'Archers' => 8,
+		'Ends' => 8,
+		'Arrows' => 1,
+		'SO' => 1
+	);
 	switch($SubRule) {
 		case '1':
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CM',  'Compound Men',          0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CW',  'Compound Women',        0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CJM', 'Compound Junior Men',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CJW', 'Compound Junior Women', 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CCM', 'Compound Cadet Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CCW', 'Compound Cadet Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CMM', 'Compound Master Men',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CMW', 'Compound Master Women', 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BM',  'Barebow Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BW',  'Barebow Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BJM', 'Barebow Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BJW', 'Barebow Junior Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BCM', 'Barebow Cadet Men',     0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BCW', 'Barebow Cadet Women',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BMM', 'Barebow Master Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BMW', 'Barebow Master Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LM',  'Longbow Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LW',  'Longbow Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LJM', 'Longbow Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LJW', 'Longbow Junior Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LCM', 'Longbow Cadet Men',     0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LCW', 'Longbow Cadet Women',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LMM', 'Longbow Master Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LMW', 'Longbow Master Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IM',  'Instinctive Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IW',  'Instinctive Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IJM', 'Instinctive Junior Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IJW', 'Instinctive Junior Women',  0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICM', 'Instinctive Cadet Men',     0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICW', 'Instinctive Cadet Women',   0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICM', 'Instinctive Master Men',    0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICW', 'Instinctive Master Women',  0, 0, 0, 16, 8);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CM',  'Compound Men',          0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CW',  'Compound Women',        0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CJM', 'Compound Junior Men',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CJW', 'Compound Junior Women', 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CCM', 'Compound Cadet Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CCW', 'Compound Cadet Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CMM', 'Compound Master Men',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CMW', 'Compound Master Women', 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BM',  'Barebow Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BW',  'Barebow Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BJM', 'Barebow Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BJW', 'Barebow Junior Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BCM', 'Barebow Cadet Men',     0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BCW', 'Barebow Cadet Women',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BMM', 'Barebow Master Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BMW', 'Barebow Master Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LM',  'Longbow Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LW',  'Longbow Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LJM', 'Longbow Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LJW', 'Longbow Junior Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LCM', 'Longbow Cadet Men',     0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LCW', 'Longbow Cadet Women',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LMM', 'Longbow Master Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LMW', 'Longbow Master Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IM',  'Instinctive Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IW',  'Instinctive Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IJM', 'Instinctive Junior Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IJW', 'Instinctive Junior Women',  0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICM', 'Instinctive Cadet Men',     0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICW', 'Instinctive Cadet Women',   0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICM', 'Instinctive Master Men',    0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'ICW', 'Instinctive Master Women',  0, 0, 0, $Elim1, $Elim2);
 			$i=1;
 			CreateEvent($TourId, $i++, 1, 0, 2, 8, 8, 3, 3, 4, 3, 3, 'MT',  'Men Team');
 			CreateEvent($TourId, $i++, 1, 0, 2, 8, 8, 3, 3, 4, 3, 3, 'WT',  'Women Team');
@@ -329,14 +353,14 @@ function CreateStandard3DEvents($TourId, $SubRule) {
 			break;
 		case '2':
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CM',  'Compound Men',          0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CW',  'Compound Women',        0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BM',  'Barebow Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BW',  'Barebow Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LM',  'Longbow Men',           0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LW',  'Longbow Women',         0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IM',  'Instinctive Men',       0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IW',  'Instinctive Women',     0, 0, 0, 16, 8);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CM',  'Compound Men',          0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'CW',  'Compound Women',        0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BM',  'Barebow Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'BW',  'Barebow Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LM',  'Longbow Men',           0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'LW',  'Longbow Women',         0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IM',  'Instinctive Men',       0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 8, 12, 1, 1, 4, 1, 1, 'IW',  'Instinctive Women',     0, 0, 0, $Elim1, $Elim2);
 			$i=1;
 			CreateEvent($TourId, $i++, 1, 0, 2, 8, 8, 3, 3, 4, 3, 3, 'MT',  'Men Team');
 			CreateEvent($TourId, $i++, 1, 0, 2, 8, 8, 3, 3, 4, 3, 3, 'WT',  'Women Team');

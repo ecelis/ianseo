@@ -7,19 +7,29 @@ if(!CheckTourSession()) {
 	header('Content-Type: text/xml');
 	die('<response error="1"/>');
 }
+checkACL(AclISKServer, AclReadWrite,false);
+
 $Error=false;
 $Calls=array();
 if(isset($_REQUEST['data'])) {
 	foreach($_REQUEST['data'] as $data) {
-		$tmp=each($data);
-		$MatchNo=$tmp['key'];	$tmp=each($tmp['value']);
-		$Event=$tmp['key']; 	$tmp=each($tmp['value']);
-		$Team=$tmp['key'];		$tmp=each($tmp['value']);
-		$Type=$tmp['key'];		$tmp=each($tmp['value']);
-		$Target=$tmp['key'];	$tmp=each($tmp['value']);
-		$Distance=$tmp['key'];	$tmp=each($tmp['value']);
-		$End=$tmp['key'];
-		$Arrowstring=$tmp['value'];
+		$MatchNo=key($data);    $tmp=current($data);
+		$Event=key($tmp); 	    $tmp=current($tmp);
+		$Team=key($tmp);		$tmp=current($tmp);
+		$Type=key($tmp);		$tmp=current($tmp);
+		$Target=key($tmp);  	$tmp=current($tmp);
+		$Distance=key($tmp);	$tmp=current($tmp);
+		$End=key($tmp);
+		$Arrowstring=current($tmp);
+		//$tmp=each($data);
+		//$MatchNo=$tmp['key'];	$tmp=each($tmp['value']);
+		//$Event=$tmp['key']; 	$tmp=each($tmp['value']);
+		//$Team=$tmp['key'];		$tmp=each($tmp['value']);
+		//$Type=$tmp['key'];		$tmp=each($tmp['value']);
+		//$Target=$tmp['key'];	$tmp=each($tmp['value']);
+		//$Distance=$tmp['key'];	$tmp=each($tmp['value']);
+		//$End=$tmp['key'];
+		//$Arrowstring=$tmp['value'];
 
 		if($Event==':::') $Event='';
 		if($Target==':::') $Target='';

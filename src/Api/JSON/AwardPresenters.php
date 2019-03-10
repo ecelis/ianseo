@@ -36,7 +36,6 @@ if (safe_num_rows($q)>0) {
 		}
 		$json_array["Languages"][$json_array["MainLanguage"]] = array();
 		$json_array["Languages"][$json_array["SecondLanguage"]] = array();
-// 		debug_svela($r);
 		foreach($Awards as $k=>$v) {
 			@list($name, $charge)=preg_split("/[,\n]/", getModuleParameter('Awards', 'Aw-Awarder-1-'.$v, '', $TourId), 2);
 			if(empty($charge)) {

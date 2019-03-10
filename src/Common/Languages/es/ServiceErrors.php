@@ -1,4 +1,7 @@
 <?php
+$lang['ArcClassified']='Valor de la Clasificación equivocado';
+$lang['ArcNative']='Condición del primer País equivocada';
+$lang['ArcPara']='Condición de arquero adaptado equivocada';
 $lang['ErrArcherCodeExists']='El número de Identificación del arquero ya existe';
 $lang['ErrArcherCodeFree']='El número de Identificación del arquero es Libre';
 $lang['ErrArcherCodeTooLong']='El número de Identificación del arquero es demasiado largo';
@@ -35,11 +38,14 @@ $lang['ErrGender']='Género no válido';
 $lang['ErrGivenName']='No hay nombre, o es demasiado largo o contiene caracteres no válidos';
 $lang['ErrInvalidChar']='Caractéres inválidos';
 $lang['ErrInvalidWAid']='Identificación WA no válida';
+$lang['ErrIsActive']='Actividad de bandera inválida';
 $lang['ErrLineImportFailed']='La importación de la línea ha fallado';
 $lang['ErrPassDoNotMatch']='Las contraseñas no coinciden';
 $lang['ErrPassToSet']='Introduzca una nueva contraseña';
 $lang['ErrSubClass']='Subclase no válida';
 $lang['ErrSubClassNotFound']='Subclase no encontrada';
 $lang['ErrWronglevel']='Nivel del Club/Arquero equivocado';
+$lang['InvalidData']='Datos inválidos';
 $lang['LoginTooManyArchers']='Existe más de un arquero con esta dirección de e-mail. Por favor, utilice su ID de afiliación';
+$lang['WrongType']='Tipo equivocado';
 ?>

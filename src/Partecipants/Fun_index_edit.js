@@ -3,257 +3,277 @@ var RowNodes = {
 		enSession:1,
 		enTargetno:2,
 		enCode:3,
-		enFirstname:4,
-		enName:5,
-		enDob:6,
-		enSex:7,
-		enCountry_code:8,
-		enCountry_name:9,
-		enDivision:10,
-		enAgeclass:11,
-		enClass:12,
-		enSubclass:13,
-		enTargetface_name:14
+		enLocalCode:4,
+		enFirstname:5,
+		enName:6,
+		enEmail:7,
+		enCaption:8,
+		enDob:9,
+		enSex:10,
+		enCountry_code:11,
+		enCountry_name:12,
+		enWheelchair:13,
+		enDivision:14,
+		enAgeclass:15,
+		enClass:16,
+		enSubclass:17,
+		enTargetface_name:18
 	};
 
-var rowId=null;
-var enId=0;
-var activeCell=null;
-var activeValue='';
-var activeField='';
-var activeWhat='';
+// var rowId=null;
+// var enId=0;
+// var activeCell=null;
+// var activeValue='';
+// var activeField='';
+// var activeWhat='';
 
 
 function insertInput(cell, what){
 	var url='';
 
-	if(rowId) resetCell();
+	// if(rowId) resetCell();
 
-	if(!XMLHttp) return;
-
-	rowId=cell.parentNode.id;
+	var rowId=cell.parentNode.id;
 	var tmp=rowId.split('_');
-	enId=tmp[2];
-
-	activeCell=cell;
-	activeValue=cell.innerHTML;
-
-	activeCell.onclick=null;
-
-	activeWhat=what;
+	var enId=tmp[2];
 
 	switch(what) {
-	case 'subclass':
-		url='Get-Subclasses.php';
-		break;
-	case 'firstname':
-		break;
-	case 'name':
-		break;
+        case 'subclass':
+            url='Get-Subclasses.php';
+            break;
+        case 'division':
+            url='Get-Divisions.php';
+            break;
+        case 'ageclass':
+            url='Get-AgeClasses.php?enid='+enId;
+            break;
+        case 'class':
+            url='Get-Classes.php?enid='+enId;
+            break;
+        case 'name':
+            break;
 	}
 
 	if(url>'') { // only combos have to get the correct data!
-		createComboField(url);
+		createComboField(cell, what, url);
 	} else {
-		createTextField();
+		createTextField(cell, what);
 	}
 }
 
-function createTextField() {
-	activeField=document.createElement('input');
-	if (activeField.addEventListener)
-		activeField.addEventListener("blur", updateField, false);
-	else if (activeField.attachEvent)
-		activeField.attachEvent("onblur", updateField);
+function createTextField(cell, what) {
+    $(cell).attr('oldvalue', $(cell).html());
+    $(cell).attr('what', what);
+    $(cell).off('click');
+    $(cell).attr('onclick', null);
 
-	activeField.value=activeValue;
-
-	while(activeCell.childNodes.length > 0) activeCell.removeChild(activeCell.childNodes.item(0));
-	activeCell.appendChild(activeField);
-	activeField.focus();
+    $(cell).html('<input type="text" onblur="updateField(this)" value="'+$(cell).attr('oldvalue')+'">');
+    $(cell).find('input')[0].focus();
 }
 
-function createComboField(url) {
-	try {
-		if ((XMLHttp.readyState==XHS_COMPLETE || XMLHttp.readyState==XHS_UNINIT) ) {
-			XMLHttp.open("GET", url, true);
-			XMLHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-			XMLHttp.onreadystatechange=createComboField_StateChange;
-			XMLHttp.send(null);
-		}
-	} catch (e) {
-	}
+function createComboField(cell, what, url) {
+    var oldValue=$(cell).html();
+    $(cell).attr('oldvalue', oldValue);
+    $(cell).attr('what', what);
+    $(cell).off('click');
+    $(cell).attr('onclick', null);
+
+	$.get(url, function(XMLResp) {
+    // intercetto gli errori di IE e Opera
+        if (!XMLResp || !XMLResp.documentElement)
+            throw(XMLResp.responseText);
+
+    // Intercetto gli errori di Firefox
+        var XMLRoot;
+        if ((XMLRoot = XMLResp.documentElement.nodeName)=="parsererror")
+            throw("");
+
+        XMLRoot = XMLResp.documentElement;
+
+        var Error = XMLRoot.getElementsByTagName('error').item(0).firstChild.data;
+
+        //alert(Error);
+        if (Error==1) {
+            $(cell).style='error';
+        } else {
+            $(cell).style='';
+
+            var activeField=document.createElement('select');
+
+            var opt = document.createElement('option');
+            opt.text='--';
+            opt.value='';
+            try {
+                activeField.add(opt,null); // standard
+            } catch(ex) {
+                activeField.add(opt); // IE ....
+            }
+
+            var Specs = XMLRoot.getElementsByTagName('items').item(0).firstChild.data;
+
+            if (Specs!='')  {
+                var Fields = Specs.split('---');
+
+                for (var i=0;i<Fields.length;++i) {
+                    var opt = document.createElement('option');
+                    var KeyVal=Fields[i].split(':::');
+                    opt.value=KeyVal[0];
+                    opt.text=KeyVal[1];
+                    if(oldValue==KeyVal[0] || Fields.length == 1) opt.selected=true
+                    try {
+                        activeField.add(opt,null); // standard
+                    } catch(ex) {
+                        activeField.add(opt); // IE ....
+                    }
+                }
+            }
+
+            $(activeField).on('blur', function() { updateField(this); });
+
+            $(cell).empty();
+            $(cell).append(activeField);
+            activeField.focus();
+        }
+    });
 }
 
-function createComboField_StateChange() {
-	// if status not ready or error returns
-	if (XMLHttp.readyState!=XHS_COMPLETE) return;
-	if(XMLHttp.status!=200) {
-		setError();
+function updateField(obj) {
+    var Cell=$(obj).closest('td');
+    var oldValue=Cell.attr('oldvalue');
+    var what=Cell.attr('what');
+
+	if($(obj).val() == oldValue) {
+		resetCell(Cell, what, oldValue);
 		return;
 	}
 
-	// leggo l'xml
-	var XMLResp=XMLHttp.responseXML;
-// intercetto gli errori di IE e Opera
-	if (!XMLResp || !XMLResp.documentElement)
-		throw(XMLResp.responseText);
+    var rowId=$(obj).closest('tr').attr('id');
+    var tmp=rowId.split('_');
+    var enId=tmp[2];
 
-// Intercetto gli errori di Firefox
-	var XMLRoot;
-	if ((XMLRoot = XMLResp.documentElement.nodeName)=="parsererror")
-		throw("");
+    var session=(what=='session' ? oldValue : $(obj).closest('tr').find('td').eq(RowNodes.enSession).html());
+    var targetno=(what=='targetno' ? oldValue : $(obj).closest('tr').find('td').eq(RowNodes.enTargetno).html());
 
-	XMLRoot = XMLResp.documentElement;
+	$.get('Set-UpdateField.php?id=' + enId
+        + '&session=' + session
+        + '&targetno=' + targetno
+        + '&field=' + what
+        + '&value=' + encodeURIComponent(obj.value), function(XMLResp) {
 
-	var Error = XMLRoot.getElementsByTagName('error').item(0).firstChild.data;
+        // intercetto gli errori di IE e Opera
+        if (!XMLResp || !XMLResp.documentElement)
+            throw(XMLResp.responseText);
 
-	//alert(Error);
-	if (Error==1) {
-		activeCell.style='error';
-	} else {
-		activeCell.style='';
+        // Intercetto gli errori di Firefox
+        var XMLRoot;
+        if ((XMLRoot = XMLResp.documentElement.nodeName)=="parsererror")
+            throw("");
 
-		activeField=document.createElement('select');
-		if (activeField.addEventListener)
-			activeField.addEventListener("blur", updateField, false);
-		else if (activeField.attachEvent)
-			activeField.attachEvent("onblur", updateField);
+        XMLRoot = XMLResp.documentElement;
 
-		var opt = document.createElement('option');
-		opt.text='--';
-		opt.value='';
-		try {
-			activeField.add(opt,null); // standard
-		} catch(ex) {
-			activeField.add(opt); // IE ....
-		}
+        var Error = XMLRoot.getElementsByTagName('error').item(0).firstChild.data;
+        var Value = XMLRoot.getElementsByTagName('value').item(0).firstChild.data;
+        var Update = XMLRoot.getElementsByTagName('update').item(0).firstChild.data;
 
-		var Specs = XMLRoot.getElementsByTagName('items').item(0).firstChild.data;
+        if(Update==0 && Error==0) {
+            var tmp=rowId.split('_');
+            tmp[2]=XMLRoot.getElementsByTagName('id').item(0).firstChild.data
+            obj.parentNode.id = tmp.join('_') ;
+            enId=tmp[2];
+        }
 
-		if (Specs!='')  {
-			var Fields = Specs.split('---');
+        obj.value=Value;
 
-			for (var i=0;i<Fields.length;++i) {
-				var opt = document.createElement('option');
-				var KeyVal=Fields[i].split(':::');
-				opt.value=KeyVal[0];
-				opt.text=KeyVal[1];
-				if(activeValue==KeyVal[0] || Fields.length == 1) opt.selected=true
-				try {
-					activeField.add(opt,null); // standard
-				} catch(ex) {
-					activeField.add(opt); // IE ....
-				}
-			}
-		}
-		while(activeCell.childNodes.length > 0) activeCell.removeChild(activeCell.childNodes.item(0));
-		activeCell.appendChild(activeField);
-		activeField.focus();
-	}
+        if(Error==1) obj.style.backgroundColor='yellow';
+        else obj.style.backgroundColor='';
+        resetCell(Cell, what, Value);
+    });
 }
 
-function updateField() {
-	if(!XMLHttp) return;
-
-	if(activeField.value == activeValue) {
-		resetCell();
-		return;
-	}
-
-	try {
-		if ((XMLHttp.readyState==XHS_COMPLETE || XMLHttp.readyState==XHS_UNINIT) ) {
-			var session=(activeWhat=='session' ? activeValue : activeCell.parentNode.childNodes.item(RowNodes.enSession).innerHTML);
-			var targetno=(activeWhat=='targetno' ? activeValue : activeCell.parentNode.childNodes.item(RowNodes.enTargetno).innerHTML);
-			XMLHttp.open("GET", 'Set-UpdateField.php?id=' + enId
-					+ '&session=' + session
-					+ '&targetno=' + targetno
-					+ '&field=' + activeWhat
-					+ '&value=' + encodeURIComponent(activeField.value), true);
-			XMLHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-			XMLHttp.onreadystatechange=updateField_StateChange;
-			XMLHttp.send(null);
-		}
-	} catch (e) {
-	}
-}
-
-function updateField_StateChange() {
-	// if status not ready or error returns
-	if (XMLHttp.readyState!=XHS_COMPLETE) return;
-	if(XMLHttp.status!=200) {
-		setError();
-		return;
-	}
-
-	// leggo l'xml
-	var XMLResp=XMLHttp.responseXML;
-// intercetto gli errori di IE e Opera
-	if (!XMLResp || !XMLResp.documentElement)
-		throw(XMLResp.responseText);
-
-// Intercetto gli errori di Firefox
-	var XMLRoot;
-	if ((XMLRoot = XMLResp.documentElement.nodeName)=="parsererror")
-		throw("");
-
-	XMLRoot = XMLResp.documentElement;
-
-	var Error = XMLRoot.getElementsByTagName('error').item(0).firstChild.data;
-
-	//alert(Error);
-	activeValue=activeField.value;
-
-	var Update = XMLRoot.getElementsByTagName('update').item(0).firstChild.data;
-	var Value = XMLRoot.getElementsByTagName('value').item(0).firstChild.data;
-	if(Update==0 && Error==0) {
-		var tmp=rowId.split('_');
-		tmp[2]=XMLRoot.getElementsByTagName('id').item(0).firstChild.data
-		activeCell.parentNode.id = tmp.join('_') ;
-		enId=tmp[2];
-	}
-
-	activeField.value=Value;
-
-	if(Error==1) activeCell.style.backgroundColor='yellow';
-	else activeCell.style.backgroundColor='';
+function setError(Cell) {
+	Cell.style='error';
 	resetCell();
 }
 
-function setError() {
-	activeCell.style='error';
-	resetCell();
-}
-
-function resetCell() {
-	switch(activeWhat) {
-	case 'subclass':
-		if (activeCell.addEventListener)
-			activeCell.addEventListener("click", function(){insertInput(this, 'subclass');this.removeEventListener('click',arguments.callee,false);}, false);
-		else if (activeCell.attachEvent)
-			activeCell.attachEvent("onclick", function(){insertInput(this, 'subclass');this.detachEventListener('onclick',arguments.callee);});
-		break;
-	case 'firstname':
-		if (activeCell.addEventListener)
-			activeCell.addEventListener("click", function(){insertInput(this, 'firstname');this.removeEventListener('click',arguments.callee,false);}, false);
-		else if (activeCell.attachEvent)
-			activeCell.attachEvent("onclick", function(){insertInput(this, 'firstname');this.detachEventListener('onclick',arguments.callee);});
-		break;
-	case 'name':
-		if (activeCell.addEventListener)
-			activeCell.addEventListener("click", function(){insertInput(this, 'name');this.removeEventListener('click',arguments.callee,false);}, false);
-		else if (activeCell.attachEvent)
-			activeCell.attachEvent("onclick", function(){insertInput(this, 'name');this.detachEventListener('onclick',arguments.callee);});
-		break;
-	}
-
-	activeCell.innerHTML=activeField.value;
-
-	rowId=null;
-	enId=0;
-	activeCell=null;
-	activeValue='';
-	activeField='';
-	activeWhat='';
+function resetCell(Cell, what, Value) {
+    $(Cell).html(Value);
+    $(Cell).on('click', function(){ insertInput(this, what);});
+    switch(what) {
+        case 'division':
+            insertInput($(Cell).next()[0], 'ageclass');
+            break;
+        case 'ageclass':
+            insertInput($(Cell).next()[0], 'class');
+            break;
+    }
+    // switch(what) {
+    // case 'subclass':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'subclass');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'subclass');this.detachEventListener('onclick',arguments.callee);});
+		// break;
+    // case 'firstname':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'firstname');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'firstname');this.detachEventListener('onclick',arguments.callee);});
+		// break;
+    // case 'name':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'name');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'name');this.detachEventListener('onclick',arguments.callee);});
+		// break;
+    // case 'caption':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'caption');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'caption');this.detachEventListener('onclick',arguments.callee);});
+		// break;
+    // case 'localCode':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'localCode');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'localCode');this.detachEventListener('onclick',arguments.callee);});
+		// break;
+    // case 'email':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'email');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'email');this.detachEventListener('onclick',arguments.callee);});
+		// break;
+    // case 'division':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'division');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'division');this.detachEventListener('onclick',arguments.callee);});
+    //     ContActiveWhat=activeWhat;
+		// break;
+    // case 'ageclass':
+		// if (activeCell.addEventListener)
+		// 	activeCell.addEventListener("click", function(){insertInput(this, 'ageclass');this.removeEventListener('click',arguments.callee,false);}, false);
+		// else if (activeCell.attachEvent)
+		// 	activeCell.attachEvent("onclick", function(){insertInput(this, 'ageclass');this.detachEventListener('onclick',arguments.callee);});
+    //     ContActiveWhat=activeWhat;
+		// break;
+    // }
+    //
+    // activeCell.innerHTML=activeField.value;
+    //
+    // rowId=null;
+    // enId=0;
+    // activeCell=null;
+    // activeValue='';
+    // activeField='';
+    // activeWhat='';
+    // switch(ContActiveWhat) {
+    //     case 'division':
+    //         insertInput(ContActiveCell.nextElementSibling, 'ageclass');
+    //         break;
+    //     case 'ageclass':
+    //         insertInput(ContActiveCell.nextElementSibling, 'class');
+    //         break;
+    // }
 }
 

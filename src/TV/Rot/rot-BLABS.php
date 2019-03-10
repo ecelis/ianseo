@@ -51,7 +51,7 @@ function rotBlAbs($TVsettings, $RULE) {
 		. "INNER JOIN CasScore ON CaTournament=CaSTournament AND CaPhase=CaSPhase AND CaMatchNo=CaSMatchNo AND  CaEventCode=CaSEventCode AND CGRound=CaSRound "
 		. "WHERE CaEventCode=" . StrSafe_DB($e) . " AND CaTournament=" . $RULE->TVRTournament . " AND CaPhase=0 "
 		. "GROUP BY CaPhase,CaEventCode,CGGroup,CaTeam,CaSubTeam,CaMatchNo,CoCode,CoName,CaTiebreak,CaRank "
-		. "ORDER BY CaEventCode ASC, CGGroup ASC, SUM(CaSPoints) DESC, SUM(CaSScore) DESC, CaRank ASC ";
+		. "ORDER BY CaEventCode ASC, CGGroup ASC, SUM(CaSPoints) DESC, SUM(CaSSetScore) DESC, CaRank ASC ";
 
 	$q=safe_r_sql($Sql);
 
@@ -60,7 +60,10 @@ function rotBlAbs($TVsettings, $RULE) {
 	while($r=safe_fetch($q)) {
 		if($OldGroup!=$r->CGGroup) {
 			// TITLE
-			$ret[]='<div class="Title">'.get_text('Group', 'Tournament').' ' . chr(64+$r->CGGroup) . '</div>';
+			$ret[]='<div class="Title">
+				<div class="TitleImg" style="float:left;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
+				<div class="TitleImg" style="float:right;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
+				'.get_text('Group', 'Tournament').' ' . chr(64+$r->CGGroup) . '</div>';
 
 			// Header header;
 			$tmp ='<div class="QualRow Headers">';
@@ -73,6 +76,7 @@ function rotBlAbs($TVsettings, $RULE) {
 			}
 			$tmp.='<div class="Athlete Headers">'.get_text('Team').'</div>';
 			$tmp.='<div class="Score Headers">' . get_text('Points', 'Tournament') . '</div>';
+            $tmp.='<div class="Score Headers">' . get_text('SetPoints', 'Tournament') . '</div>';
 			$tmp.='<div class="XNine Headers">' . get_text('Tie') . '</div>';
 			$tmp.='</div>';
 			$ret[]=$tmp;
@@ -81,6 +85,7 @@ function rotBlAbs($TVsettings, $RULE) {
 			$myRank = 0;
 			$myPos = 0;
 			$OldPoints = 0;
+            $OldSetPoints = 0;
 			$OldTie=0;
 
 			$key=0;
@@ -91,7 +96,7 @@ function rotBlAbs($TVsettings, $RULE) {
 
 		//Calcolo della Rank;
 		$myPos++;
-		if(!($r->Points == $OldPoints && $r->CaTiebreak == $OldTie)) {
+		if(!($r->Points == $OldPoints AND $r->SetScore == $OldSetPoints AND $r->CaTiebreak == $OldTie)) {
 			$myRank=$myPos;
 		}
 		$tmp.='<div class="Rank">' . $myRank . '</div>';
@@ -106,11 +111,11 @@ function rotBlAbs($TVsettings, $RULE) {
 		$tmp.='<div class="Athlete">'.$r->CoName.'</div>';
 
 		$tmp.='<div class="Score">' . $r->Points . '</div>';
+        $tmp.='<div class="Score">' . $r->SetScore . '</div>';
 
 		//Valuto il TieBreak
 		$TmpTie = '';
-		if(strlen(trim($r->CaTiebreak)) > 0)
-		{
+		if(strlen(trim($r->CaTiebreak)) > 0) {
 			for($countArr=0; $countArr<strlen(trim($r->CaTiebreak)); $countArr = $countArr+3)
 				$TmpTie .= ValutaArrowString(substr(trim($r->CaTiebreak),$countArr,3)) . ",";
 				$TmpTie = substr($TmpTie,0,-1);
@@ -119,6 +124,7 @@ function rotBlAbs($TVsettings, $RULE) {
 		$tmp.='<div class="XNine">' . $TmpTie . '</div>';
 
 		$OldPoints = $r->Points;
+        $OldSetPoints = $r->SetScore;
 		$OldTie = $r->CaTiebreak;
 
 		$tmp.='</div>';
@@ -163,14 +169,14 @@ function rotBlAbsSettings($Settings) {
 function getPageDefaults(&$RMain) {
 	global $CFG;
 	$ret=array(
-			'Title' => 'margin-top:1em;',
-			'Rank' => 'flex: 0 0 4rem; text-align:right;',
-			'CountryCode' => 'flex: 0 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-			'FlagDiv' => 'flex: 0 0 3.95rem;',
-			'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-			'Athlete' => 'flex: 1 1 3rem;',
-			'Score' => 'flex: 0 0 6rem; text-align:right; font-size:1.25em;margin-right:0.5rem;',
-			'XNine' => 'flex: 0 0 3rem; text-align:right; font-size:1em;',
+		'Title' => 'margin-top:1em;',
+		'Rank' => 'flex: 0 0 4vw; text-align:right;',
+		'Athlete' => 'flex: 1 1 20vw;white-space:nowrap;overflow:hidden;',
+		'Score' => 'flex: 1 0 10vw; text-align:right; font-size:1.25em;margin-right:0.5rem;',
+		'XNine' => 'flex: 1 0 4vw; text-align:right; font-size:1em;',
+		'CountryCode' => 'flex: 0 0 3.5vw; font-size:0.8vw; margin-left:-3.75ch',
+		'FlagDiv' => 'flex: 0 0 4.35vw;',
+		'Flag' => 'height:2.8vw; border:0.05vw solid #888;box-sizing:border-box;',
 	);
 	foreach($ret as $k=>$v) {
 		if(!isset($RMain[$k])) $RMain[$k]=$v;

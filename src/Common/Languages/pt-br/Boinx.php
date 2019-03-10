@@ -4,6 +4,7 @@ $lang['BoinxLayer']='Camada do Boinx (layer)';
 $lang['BoinxSchedule']='Agendador de camadas do Boinx';
 $lang['Download']='Download';
 $lang['HowToUse']='Como integrar o Ianseo e o Boinx';
+$lang['IanseoStanding.qtz']='Chamada para Cerimônia de Premiação. Medalhas e Nomes dos Vencedores (virão em pouco tempo) direto do Ianseo.';
 $lang['SavePath']='Diretório padrão para XML';
 $lang['ScheduleAwards']='Cerimônia de Premiação';
 $lang['ScheduleFeed']='Feeds RSS';

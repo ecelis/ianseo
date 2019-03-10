@@ -94,11 +94,7 @@
 		$Disable=array();
 		if (is_numeric($_REQUEST['x_Session']))	 {
 			//qual
-
-			$Sql = "SELECT DISTINCT SUBSTRING(AtTargetNo,2,LENGTH(AtTargetNo)-2) AS TargetNo
-				FROM AvailableTarget
-				WHERE AtTournament={$_SESSION['TourId']}
-				AND AtTargetNo LIKE '{$_REQUEST['x_Session']}%'";
+            safe_w_sql("delete from HhtData where HdTournament={$_SESSION['TourId']} and HdTargetNo like '{$_REQUEST['x_Session']}%' and HdFinScheduling=0");
 		} else {
 			// matches
 			$team=substr($_REQUEST['x_Session'],0,1);
@@ -110,12 +106,12 @@
 					AND CONCAT(FSScheduledDate,' ',FSScheduledTime)=" . StrSafe_DB($when) . "
 					AND FSTeamEvent=" . StrSafe_DB($team) . "
 					AND FSTarget<>''";
+            $q=safe_r_SQL($Sql);
+            while($r=safe_fetch($q)) {
+                safe_w_sql("delete from HhtData where HdTournament={$_SESSION['TourId']} and HdRealTargetNo = ".intval($r->TargetNo));
+            }
 		}
 
-		$q=safe_r_SQL($Sql);
-		while($r=safe_fetch($q)) {
-			safe_w_sql("delete from HhtData where HdTournament={$_SESSION['TourId']} and HdRealTargetNo = ".intval($r->TargetNo));
-		}
 		CD_redirect(basename(__FILE__));
 	}
 
@@ -234,7 +230,7 @@ if(!$ResponseFromHHT) {
 	<td class="Center">
 		<input type="submit" name="truncate" value="<?php print get_text('CmdTruncateHTTData','HTT');?>" onClick="return(confirm('<?php print addslashes(get_text('MsgAreYouSure')); ?>'))">
 		<?php
-		if(isset($_REQUEST["x_Hht"]) and $_REQUEST["x_Hht"]!=-1) {
+		if(isset($_REQUEST["x_Hht"]) and $_REQUEST["x_Hht"]!=-1 and isset($_REQUEST['x_Session']) and $_REQUEST['x_Session']!=-1) {
 			echo '<input type="submit" name="truncatemy" value="'.get_text('CmdTruncateMyHTTData','HTT').'" onClick="return(confirm(\''.addslashes(get_text('MsgAreYouSure')).'\'))">';
 		}
 

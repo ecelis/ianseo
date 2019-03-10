@@ -1,12 +1,14 @@
 <?php
 
 require_once(dirname(dirname(__FILE__)).'/config.php');
+require_once(dirname(__FILE__).'/Lib.php');
 $Error=1;
 
 if(!CheckTourSession()) {
 	header('Content-Type: text/xml');
 	die('<response error="'.$Error.'"/>');
 }
+checkACL(AclISKServer, AclReadOnly,false);
 
 require_once('Common/Lib/Fun_Modules.php');
 
@@ -14,7 +16,7 @@ $Sequence=$_REQUEST['ses'];
 $Dist=intval($_REQUEST['dist']);
 $End=intval($_REQUEST['end']);
 
-// fetches an array of alla available ends
+// fetches an array of all available ends
 $Ends=array();
 $EndsStatus=array();
 $TgtsStatus=array();
@@ -28,27 +30,48 @@ $MatchOvers=array();
 $ShowImport=array();
 $Anomalies=array();
 
+
 switch($Sequence[0]) {
 	case 'Q':
 		// gets the targets
-		$SqlTargets="select distinct left(QuTargetNo, 4) Target from Entries inner join Qualifications on EnId=QuId and QuSession={$Sequence[2]} where EnTournament={$_SESSION['TourId']} and substr(QuTargetNo,2)+0>0 order by Target";
-// 		$Out.='<q><![CDATA['.$SqlTargets.']]></q>';
-		$q=safe_r_sql($SqlTargets);
-		while($r=safe_Fetch($q)) {
-			$Targets[]=StrSafe_DB($r->Target);
-			$TgtsStatus[intval(substr($r->Target,1))]='';
-		}
+//		$SqlTargets="select distinct left(QuTargetNo, 4) Target from Entries inner join Qualifications on EnId=QuId and QuSession={$Sequence[2]} where EnTournament={$_SESSION['TourId']} and substr(QuTargetNo,2)+0>0 order by Target";
+//// 		$Out.='<q><![CDATA['.$SqlTargets.']]></q>';
+//		$q=safe_r_sql($SqlTargets);
+//		while($r=safe_Fetch($q)) {
+//			$Targets[]=StrSafe_DB($r->Target);
+//			$TgtsStatus[intval(substr($r->Target,1))]='';
+//		}
 		// prepares an array with all the available ends and the values if any
-		$SQL="select substring(AtTargetNo, -4, 3)+0 Target, right(AtTargetNo, 1) Letter, AtTargetNo, Arrowstring, DiArrows
-			from AvailableTarget
-			left join (select QuTargetNo, EnTournament, QuD{$Dist}ArrowString Arrowstring
-					from Qualifications
-					inner join Entries on EnId=QuId and EnTournament={$_SESSION['TourId']} and EnStatus<=1
-					) Quals on AtTargetNo=QuTargetNo and AtTournament=EnTournament
-			left join DistanceInformation on DiType='Q' and DiDistance=$Dist and DiSession={$Sequence[2]} and DiTournament={$_SESSION['TourId']}
-			where AtTournament={$_SESSION['TourId']} and left(AtTargetNo, 4) in (".implode(',', $Targets).")
-			order by AtTargetNo";
+		//$SQL="select substring(AtTargetNo, -4, 3)+0 Target, right(AtTargetNo, 1) Letter, AtTargetNo, Arrowstring, DiArrows
+		//	from AvailableTarget
+		//	left join (select QuTargetNo, EnTournament, QuD{$Dist}ArrowString Arrowstring
+		//			from Qualifications
+		//			inner join Entries on EnId=QuId and EnTournament={$_SESSION['TourId']} and EnStatus<=1
+		//			) Quals on AtTargetNo=QuTargetNo and AtTournament=EnTournament
+		//	left join DistanceInformation on DiType='Q' and DiDistance=$Dist and DiSession={$Sequence[2]} and DiTournament={$_SESSION['TourId']}
+		//	where AtTournament={$_SESSION['TourId']} and left(AtTargetNo, 4) in (".implode(',', $Targets).")
+		//	order by AtTargetNo";
 // 		$Out.='<q><![CDATA['.$SQL.']]></q>';
+
+		$SQL="select distinct AtTarget Target, AtLetter Letter, AtTargetNo
+			from Entries 
+			inner join Qualifications on QuId=EnId and QuSession={$Sequence[2]} and QuTarget>0
+			inner join AvailableTarget on QuTarget=AtTarget and QuSession=AtSession and AtTournament=EnTournament
+			where EnTournament={$_SESSION['TourId']}
+			order by AtTargetNo";
+		$q=safe_r_sql($SQL);
+		while($r=safe_fetch($q)) {
+			$Ends[$r->Target][$r->Letter]='G';
+			$TgtsStatus[$r->Target]='';
+		}
+
+		$SQL="select distinct QuTarget Target, QuLetter Letter, QuTargetNo, QuD{$Dist}ArrowString as Arrowstring, DiArrows, concat(EnDivision, EnClass) as Category
+			from Entries
+			inner join Qualifications on QuId=EnId and QuSession=$Sequence[2] and QuTarget>0
+			left join DistanceInformation on DiType='Q' and DiDistance=$Dist and DiSession={$Sequence[2]} and DiTournament={$_SESSION['TourId']}
+			where EnStatus<=1 and EnTournament={$_SESSION['TourId']}
+			order by QuTargetNo";
+
 		$q=safe_r_sql($SQL);
 		while($r=safe_fetch($q)) {
 			$Ends[$r->Target][$r->Letter]='';
@@ -87,14 +110,17 @@ switch($Sequence[0]) {
 				left join DistanceInformation on DiType='Q' and DiDistance=$Dist and DiSession={$Sequence[2]} and DiTournament={$_SESSION['TourId']}
 				left join IskDevices on IskDvTournament=IskDtTournament and IskDvState>0 and IskDvDevice=IskDtDevice
 				where IskDtTournament={$_SESSION['TourId']}
+				order by IskDtTargetNo, IskDtEndNo
 				";
 // 		$Out.='<q><![CDATA['.$SQL.']]></q>';
 		$q=safe_r_sql($SQL);
 		while($r=safe_fetch($q)) {
 			$SkipRest=false;
-			$popId="data[$r->IskDtMatchNo][".($r->IskDtEvent ? $r->IskDtEvent : ':::')."][$r->IskDtTeamInd][$r->IskDtType][".($r->IskDtTargetNo ? $r->IskDtTargetNo : ':::')."][$r->IskDtDistance][$r->IskDtEndNo]=$r->IskDtArrowstring";
+			$popId="data[$r->IskDtMatchNo][".($r->IskDtEvent ? $r->IskDtEvent : ':::')."][$r->IskDtTeamInd][$r->IskDtType][".($r->IskDtTargetNo ? substr($r->IskDtTargetNo, 0, 4) : ':::')."][$r->IskDtDistance][$r->IskDtEndNo]=1";
 			// check the correct code of device
 			$r->IskDvCode=($r->IskDvCode ? $r->IskDvCode : 'Unknown');
+			$GroupTargets=getGroupedTargets($r->IskDvTarget, $Sequence[2], 'Q', '', true);
+
 
 			// readdress the correct target for matches
 			if($r->IskDtType!='Q' and $r->IskDtType!='E') {
@@ -104,7 +130,7 @@ switch($Sequence[0]) {
 				// device is not known...
 				$Msg.='<div>'.get_text('IskUnknownDevice', 'Api', $r->Target ? $r->Target : $r->FsTarget).'</div>';
 			}
-			if(!isset($TgtsStatus[$r->Target])) {
+			if(!isset($TgtsStatus[$r->Target]) and !in_array($r->Target, $GroupTargets)) {
 				// device is not involved on this... but is sending scores
 				$Msg.='<div ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target ? $r->Target : $r->FsTarget).'" value="'.$popId.'">'.get_text('IskSpuriousDevice', 'Api', array($r->IskDvCode, $r->Target ? $r->Target : $r->FsTarget)).'</div>';
 				$SkipRest=true;
@@ -121,26 +147,35 @@ switch($Sequence[0]) {
 				// actually scoring something
 				switch(true) {
 					case ($Ends[$r->Target][$r->Letter]=='G'): // this Position should not score at all!!!
-						$Messages[$r->Target][$r->IskDvCode]['Empty'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->Letter . '</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->Letter . '</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['Empty']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['Empty'])) $Messages[$r->Target][$r->IskDvCode]['Empty'][]=$span;
 						$TgtsStatus[$r->Target]='R';
 						break;
 					case ($r->IskDtEvent): // scoring on another session!
-						$Messages[$r->Target][$r->IskDvCode]['Match'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEvent . '</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEvent . '</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['Match']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['Match'])) $Messages[$r->Target][$r->IskDvCode]['Match'][]=$span;
 						$Ends[$r->Target][$r->Letter]='R'; // Red, error condition
 						$TgtsStatus[$r->Target]='R';
 						break;
 					case ($r->IskDtDistance!=$Dist): // scoring on a different distance
-						$Messages[$r->Target][$r->IskDvCode]['Distance'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtDistance . '</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtDistance . '</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['Distance']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['Distance'])) $Messages[$r->Target][$r->IskDvCode]['Distance'][]=$span;
 						$Ends[$r->Target][$r->Letter]='R'; // Red, error condition
 						$TgtsStatus[$r->Target]='R';
 						break;
 					case ($r->IskDtEndNo!=$End):
-						$Messages[$r->Target][$r->IskDvCode]['End'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo . '</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo . '</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['End']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['End'])) {
+							$Messages[$r->Target][$r->IskDvCode]['End'][]=$span;
+						}
 // 						$Ends[$r->Target][$r->Letter]='O'; // Orange, error condition
 						if($TgtsStatus[$r->Target]!='R') $TgtsStatus[$r->Target]='O';
 						break;
-					case ($r->IskDvTarget!=$r->Target):
-						$Messages[$r->Target][$r->IskDvCode]['End'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo . '</span>';
+					case ($r->IskDvTarget!=$r->Target and !in_array($r->Target, $GroupTargets)):
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo . '</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['End']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['End'])) {
+							$Messages[$r->Target][$r->IskDvCode]['End'][]=$span;
+						}
 // 						$Ends[$r->Target][$r->Letter]='O'; // Orange, error condition
 						if($TgtsStatus[$r->Target]!='R') $TgtsStatus[$r->Target]='O';
 						break;
@@ -264,6 +299,7 @@ switch($Sequence[0]) {
 			inner join IskDevices on IskDvTournament=IskDtTournament and IskDvState>0 and IskDvDevice=IskDtDevice
 			inner join Events on IskDtEvent=EvCode and EvTeamEvent=0 and EvTournament={$_SESSION['TourId']}
 			where IskDtTournament={$_SESSION['TourId']}
+			order by IskDvTarget, IskDtEndNo
 			";
 		$Out.='<q><![CDATA['.$SQL.']]></q>';
 		$q=safe_r_sql($SQL);
@@ -307,26 +343,31 @@ switch($Sequence[0]) {
 				// actually scoring something
 				switch(true) {
 					case ($Ends[$Tgt][$Let]=='G'): // this Position should not score at all!!!
-						$Messages[$r->Target][$r->IskDvCode]['Empty'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">'.$Tgt.'</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">'.$Tgt.'</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['Empty']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['Empty'])) $Messages[$r->Target][$r->IskDvCode]['Empty'][]=$span;
 						$TgtsStatus[$Tgt]='R';
 						break;
 					case ($r->IskDtDistance!=$Dist): // scoring on a different distance
-						$Messages[$Tgt][$r->IskDvCode]['Distance'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtDistance .'</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">'.$r->IskDtDistance.'</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['Distance']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['Distance'])) $Messages[$r->Target][$r->IskDvCode]['Distance'][]=$span;
 						$Ends[$Tgt][$Let]='R'; // Red, error condition
 						$TgtsStatus[$Tgt]='R';
 						break;
 					case ($Tgt!=$TargetsInvolved[$r->Target]):
-						$Messages[$r->Target][$r->IskDvCode]['End'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo .'</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo .'</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['End']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['End'])) $Messages[$r->Target][$r->IskDvCode]['End'][]=$span;
 						if(empty($TgtsStatus[$r->Target]) or $TgtsStatus[$r->Target]!='R') $TgtsStatus[$r->Target]='O';
 						break;
 					case ($r->IskDtEndNo!=$End):
-						$Messages[$Tgt][$r->IskDvCode]['End'][]='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo .'</span>';
+						$span='<span ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">' . $r->IskDtEndNo .'</span>';
+						if(empty($Messages[$r->Target][$r->IskDvCode]['End']) or !in_array($span, $Messages[$r->Target][$r->IskDvCode]['End'])) $Messages[$r->Target][$r->IskDvCode]['End'][]=$span;
 						$Ends[$Tgt][$Let]='O'; // Orange, error condition
 						if($TgtsStatus[$Tgt]!='R') $TgtsStatus[$Tgt]='O';
 						break;
 					default:
 						if(empty($AssignedDevices[$Tgt]) or !in_array($r->IskDvCode, $AssignedDevices[$Tgt])) {
-							$Messages[$Tgt][$r->IskDvCode]['IskScoringDevice']='<div ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">'.get_text('IskScoringDevice', 'Api', $r->IskDvCode).'</div>';
+							$span='<div ondblclick="seeTarget(this)" title="'.get_text('IskTargetTitle', 'Api', $r->Target).'" value="'.$popId.'">'.get_text('IskScoringDevice', 'Api', $r->IskDvCode).'</div>';
+							if(empty($Messages[$Tgt][$r->IskDvCode]['IskScoringDevice']) or !in_array($span, $Messages[$Tgt][$r->IskDvCode]['IskScoringDevice'])) $Messages[$Tgt][$r->IskDvCode]['IskScoringDevice'][]=$span;
 						}
 						if(strlen(str_replace(' ', '', $r->Arrowstring))!=($End>$r->Ends ? $r->SO : $r->Arrows) ) {
 							$Ends[$Tgt][$Let]='Z'; // Yellow, score in progress
@@ -347,16 +388,12 @@ switch($Sequence[0]) {
 								} else {
 									$TgtsStatus[$Tgt]='Z';
 								}
-// 						if($r->IskDtMatchNo==5) {
-// 							debug_svela($TgtsStatus[$Tgt]);
-// 						}
 							}
 						}
 				}
 			}
 		}
 		$Error=0;
-// 		debug_svela($Ends);
 		break;
 	case 'T':
 		$MatchTarget=array();
@@ -451,7 +488,7 @@ switch($Sequence[0]) {
 			left join IskDevices on IskDvTournament=IskDtTournament and IskDvState>0 and IskDvDevice=IskDtDevice
 			left join Events on IskDtEvent=EvCode and EvTeamEvent=1 and EvTournament={$_SESSION['TourId']}
 			where IskDtTournament={$_SESSION['TourId']}
-			";
+			order by IskDvTarget, IskDtEndNo";
 // 		$Out.='<q><![CDATA['.$SQL.']]></q>';
 		$q=safe_r_sql($SQL);
 		while($r=safe_fetch($q)) {
@@ -545,7 +582,6 @@ foreach($Ends as $Tgt => $Let) {
 }
 
 // Target status and target messages
-// 							debug_svela($TgtsStatus);
 foreach($TgtsStatus as $Tgt => $status) {
 	// target as a whole is in "currently scoring" if at least one is still scoring...
 	if(!empty($Ends[$Tgt]) and in_array('Z', $Ends[$Tgt])) $status='Z';
@@ -561,7 +597,6 @@ foreach($TgtsStatus as $Tgt => $status) {
 			}
 		}
 		// G =
-// 		debug_svela($Messages[$Tgt]);
 	}
 	$Out.=']]></t>';
 }

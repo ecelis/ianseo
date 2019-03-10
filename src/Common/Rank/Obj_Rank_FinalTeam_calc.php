@@ -72,7 +72,7 @@
 						Events
 					ON TeEvent=EvCode AND TeTournament=EvTournament AND TeFinEvent=1
 				SET
-					TeRankFinal=IF(TeRank>IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56,(EvFinalFirstPhase*2))),TeRank,0),
+					TeRankFinal=IF(TeRank > EvNumQualified, TeRank, 0),
 					TeTimeStampFinal='{$date}'
 				WHERE
 					TeTournament={$this->tournament} AND EvCode='{$event}' AND EvTeamEvent=1
@@ -91,10 +91,7 @@
 	 * @param int $phase: fase
 	 * @return boolean: true ok false altrimenti. In un ciclo il primo errore fa terminare il metodo con false!
 	 */
-		protected function calcFromPhase($event, $phase, $FirstCycle=true) {
-			// trasformo la fase
-			$phase=valueFirstPhase($phase);
-
+		protected function calcFromPhase($event, $realphase, $FirstCycle=true) {
 			$date=date('Y-m-d H:i:s');
 
 		// reset delle RankFinal della fase x le persone di quell'evento e quella fase
@@ -106,12 +103,12 @@
 					ON TeCoId=TfTeam AND TeSubTeam=TfSubTeam AND TeTournament=TfTournament AND TeEvent=TfEvent AND TeFinEvent=1
 					INNER JOIN
 						Grids
-					ON TfMatchNo=GrMatchNo AND GrPhase={$phase}
+					ON TfMatchNo=GrMatchNo AND GrPhase={$realphase}
 				SET
 					TeRankFinal=0,
 					TeTimeStampFinal='{$date}'
 				WHERE
-					GrPhase={$phase} AND TeTournament={$this->tournament} AND TeEvent='{$event}' AND TeFinEvent=1
+					GrPhase={$realphase} AND TeTournament={$this->tournament} AND TeEvent='{$event}' AND TeFinEvent=1
 			";
 			//print $q.'<br><br>';
 			$r=safe_w_sql($q);
@@ -122,7 +119,7 @@
 		 *  Tiro fuori gli scontri con i perdenti nei non Opp
 		 */
 			$q="
-				SELECT
+				SELECT EvWinnerFinalRank, EvCodeParent, SubCodes, EvFinalFirstPhase,
 					tf.TfTeam AS TeamId,
 					tf.TfSubTeam AS SubTeam,
 					tf2.TfTeam AS OppTeamId,
@@ -132,26 +129,18 @@
 
 				FROM
 					TeamFinals AS tf
-
-					INNER JOIN
-						TeamFinals AS tf2
-					ON tf.TfEvent=tf2.TfEvent AND tf.TfMatchNo=IF((tf.TfMatchNo % 2)=0,tf2.TfMatchNo-1,tf2.TfMatchNo+1) AND tf.TfTournament=tf2.TfTournament
-
-					INNER JOIN
-						Grids
-					ON tf.TfMatchNo=GrMatchNo
-
-					INNER JOIN
-						Events
-					ON tf.TfEvent=EvCode AND tf.TfTournament=EvTournament AND EvTeamEvent=1
-
+					INNER JOIN TeamFinals AS tf2 ON tf.TfEvent=tf2.TfEvent AND tf.TfMatchNo=IF((tf.TfMatchNo % 2)=0,tf2.TfMatchNo-1,tf2.TfMatchNo+1) AND tf.TfTournament=tf2.TfTournament
+					INNER JOIN Grids ON tf.TfMatchNo=GrMatchNo
+					INNER JOIN Events ON tf.TfEvent=EvCode AND tf.TfTournament=EvTournament AND EvTeamEvent=1
+					left join (select group_concat(DISTINCT concat(EvCode, '@', EvFinalFirstPhase)) SubCodes, EvCodeParent SubMainCode, EvFinalFirstPhase SubFirstPhase from Events where EvCodeParent!='' and EvTeamEvent=1 and EvTournament={$this->tournament} group by EvCodeParent, EvFinalFirstPhase) Secondary on SubMainCode=EvCode and SubFirstPhase=GrPhase/2
 				WHERE
-					tf.TfTournament={$this->tournament} AND tf.TfEvent='{$event}' AND GrPhase={$phase}
-					AND (tf.TfWinLose=1 OR tf2.TfWinLose=1)
-					AND (IF(EvMatchMode=0,tf.TfScore,tf.TfSetScore) < IF(EvMatchMode=0,tf2.TfScore,tf2.TfSetScore) OR (IF(EvMatchMode=0,tf.TfScore,tf.TfSetScore)=IF(EvMatchMode=0,tf2.TfScore,tf2.TfSetScore) AND tf.TfTie < tf2.TfTie))
+					tf.TfTournament={$this->tournament} AND tf.TfEvent='{$event}' AND GrPhase={$realphase}
+					AND (tf.TfNotes='DNS' or ((tf.TfWinLose=1 OR tf2.TfWinLose=1)
+					AND (IF(EvMatchMode=0,tf.TfScore,tf.TfSetScore) < IF(EvMatchMode=0,tf2.TfScore,tf2.TfSetScore) OR (IF(EvMatchMode=0,tf.TfScore,tf.TfSetScore)=IF(EvMatchMode=0,tf2.TfScore,tf2.TfSetScore) AND tf.TfTie < tf2.TfTie))))
 				ORDER BY
 					IF(EvMatchMode=0,tf.TfScore,tf.TfSetScore) DESC,tf.TfScore DESC
 			";
+
 
 			$rs=safe_r_sql($q);
 
@@ -166,27 +155,43 @@
 				 *
 				 * Per le altre fasi si cicla nel recordset che ha il numero di righe >=0
 				 */
-					if ($phase==0 || $phase==1)
-					{
-						$myRow=safe_fetch($rs);
+
+					$myRow=safe_fetch($rs);
+
+					// trasformo la fase
+					$phase=namePhase($myRow->EvFinalFirstPhase, $realphase);
+
+					// get the parent chain for this event if any
+					$EventToUse=$event;
+					$ParentCode=$myRow->EvCodeParent;
+					while($ParentCode) {
+						$EventToUse=$ParentCode;
+						$t=safe_r_sql("select EvCodeParent from Events where EvCode=".StrSafe_DB($ParentCode));
+						if($u=safe_fetch($t)) {
+							$ParentCode=$u->EvCodeParent;
+						} else {
+							$ParentCode='';
+						}
+					}
+
+					if ($phase==0 || $phase==1) {
 
 						$toWrite=array();
 
 						if ($phase==0)
 						{
 						// vincente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->OppTeamId,'subteam'=>$myRow->OppSubTeam, 'rank'=>1);
+							$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->OppTeamId,'subteam'=>$myRow->OppSubTeam, 'rank'=>$myRow->EvWinnerFinalRank);
 						// perdente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->TeamId,'subteam'=>$myRow->SubTeam, 'rank'=>2);
+							$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->TeamId,'subteam'=>$myRow->SubTeam, 'rank'=>$myRow->EvWinnerFinalRank+1);
 						}
 						elseif ($phase==1)
 						{
 						// vincente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->OppTeamId,'subteam'=>$myRow->OppSubTeam, 'rank'=>3);
+							$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->OppTeamId,'subteam'=>$myRow->OppSubTeam, 'rank'=>$myRow->EvWinnerFinalRank+2);
 						// perdente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->TeamId,'subteam'=>$myRow->SubTeam, 'rank'=>4);
+							$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->TeamId,'subteam'=>$myRow->SubTeam, 'rank'=>$myRow->EvWinnerFinalRank+3);
 						}
-
 						foreach ($toWrite as $values)
 						{
 							$x=$this->writeRow($values['id'],$values['subteam'], $values['event'],$values['rank']);
@@ -194,7 +199,7 @@
 								return false;
 						}
 					}
-					elseif ($phase==2)
+					elseif ($phase==2 or $myRow->SubCodes)
 					{
 					// non faccio nulla!
 					}
@@ -209,26 +214,34 @@
 					 *  che decide se incrementare o no sarà vera. Per gli altri non ci sarà
 					 *  l'incremento così avrò sempre il valore iniziale (senza il -1)
 					 */
-						switch ($phase)
-						{
-							case 4:
-								$pos=8-safe_num_rows($rs);		// dovendo partire dal fondo, recupero l'ultimo posto disponibile
-								break;
-							case 8:
-								$pos=9;
-								break;
-							case 16:
-								$pos=17;
-								break;
-							case 32: // (e 24)
-								$pos=33;
-								break;
-							case 48:
-								$pos=49;
-								break;
-							default:
-								return false;
+						if($realphase==4) {
+							// dovendo partire dal fondo, recupero l'ultimo posto disponibile
+							$pos=max(4, 8-safe_num_rows($rs));
+						} elseif($realphase>4) {
+							$pos=numMatchesByPhase($phase)+SavedInPhase($phase)+1;
+						} else {
+							// no need to rerank
+							return false;
 						}
+						//switch ($phase)
+						//{
+						//	case 4:
+						//		break;
+						//	case 8:
+						//		$pos=9;
+						//		break;
+						//	case 16:
+						//		$pos=17;
+						//		break;
+						//	case 32: // (e 24)
+						//		$pos=33;
+						//		break;
+						//	case 48:
+						//		$pos=49;
+						//		break;
+						//	default:
+						//		return false;
+						//}
 
 						if ($phase==4)
 						{
@@ -242,8 +255,7 @@
 						$scoreOld=0;
 						$cumOld=0;
 
-						while ($myRow=safe_fetch($rs))
-						{
+						while ($myRow) {
 							if ($phase==4)
 							{
 								++$pos;
@@ -257,13 +269,17 @@
 							$cumOld=$myRow->CumScore;
 
 						// devo scrivere solo il perdente
-							$x=$this->writeRow($myRow->TeamId,$myRow->SubTeam,$event,$rank);
+							$x=$this->writeRow($myRow->TeamId,$myRow->SubTeam,$event,$rank+$myRow->EvWinnerFinalRank-1);
 
-							if ($x===false)
+							if ($x===false) {
 								return false;
+							}
+
+							$myRow=safe_fetch($rs);
 						}
 					}
 				}
+
 
 				if($FirstCycle) {
 					// get all ranked 0 with next matches already won...
@@ -271,7 +287,7 @@
 					SELECT distinct GrPhase
 
 					FROM TeamFinals AS tf
-					INNER JOIN Teams on TeCoId=tf.TfTeam and TeSubTeam=tf.TfSubTeam and TeTournament=tf.TfTournament and TeEvent=tf.TfEvent and TeRankFinal=0
+					INNER JOIN Teams on TeCoId=tf.TfTeam and TeSubTeam=tf.TfSubTeam and TeTournament=tf.TfTournament and TeEvent=tf.TfEvent and TeRankFinal=0 and TeFinEvent=1
 					INNER JOIN Grids
 						ON tf.TfMatchNo=GrMatchNo
 					INNER JOIN TeamFinals AS tf2
@@ -297,6 +313,7 @@
 					";
 					$t=safe_r_sql($q);
 					while($u=safe_fetch($t)) {
+						//echo "<div>$event, $u->GrPhase</div>";
 						$this->calcFromPhase($event, $u->GrPhase, false);
 					}
 				}

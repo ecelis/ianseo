@@ -2,6 +2,7 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/pdf/BackNoPDF.php');
 	require_once('Common/Fun_FormatText.inc.php');
+	checkACL(AclEliminations, AclReadOnly);
 
 	$pdf = new BackNoPDF($_REQUEST['BackNo']);
 

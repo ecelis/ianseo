@@ -2,6 +2,7 @@
 	define('debug',false);	// settare a true per l'output di debug
 
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+    checkACL(AclCompetition, AclReadWrite);
 
 	if (!IsBlocked(BIT_BLOCK_REPORT))
 	{

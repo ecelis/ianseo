@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
 
 	$JS_SCRIPT=array(
@@ -48,7 +49,7 @@
 			. '<td class="Title">' . get_text('DOB', 'Tournament') . '</td>'
 			. '<td class="Title">' . get_text('Country') . '</td>'
 			. '<td class="Title">' . get_text('NationShort','Tournament') . '</td>'
-		 	. '</tr>' . "\n";
+		 	. '</tr>';
 
 		while ($MyRow=safe_fetch($Rs)) {
 			echo '<tr>';

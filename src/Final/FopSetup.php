@@ -3,6 +3,9 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 include_once('Common/pdf/ResultPDF.inc.php');
 require_once('Common/Fun_Phases.inc.php');
 require_once('Common/Lib/CommonLib.php');
+require_once('Common/Lib/Fun_Scheduler.php');
+
+checkACL(AclCompetition, AclReadOnly);
 
 if(!$FopLocations=Get_Tournament_Option('FopLocations')) {
 	$FopLocations=array();
@@ -20,6 +23,9 @@ if(!empty($_REQUEST['Day'])) {
 		$DaysToPrint[]=date('Y-m-d', $_SESSION['ToWhenFromUTS'] + $n*86400);
 	}
 }
+
+
+$pdf=NULL;
 
 // defines the Locations (these will be printed on a single page)
 $LocationsToPrint=array();
@@ -39,6 +45,16 @@ if(empty($_REQUEST['Print'])) {
 		$LocationsToPrint[]=$FopLocations[$k];
 	}
 }
+
+$Scheduler=new Scheduler();
+$Scheduler->SplitLocations=true;
+$Scheduler->DaysToPrint=$DaysToPrint;
+$Scheduler->LocationsToPrint=$LocationsToPrint;
+
+$pdf=$Scheduler->FOP();
+$pdf->Output();
+
+die();
 
 define("ColName",18);
 define("RowH",17);
@@ -92,7 +108,6 @@ $ColorAssignment = array();
 
 $First=true;
 
-
 foreach($LocationsToPrint as $Location) {
 	foreach($DaysToPrint as $Day) {
 		$FirstTarget=1;
@@ -132,8 +147,8 @@ foreach($LocationsToPrint as $Location) {
 
 		if(!$FirstTarget AND !$LastTarget) exit();
 
-		list($a, $FirstTarget)=each($DayFirstTargets);
-		list($a, $LastTarget)=each($DayLastTargets);
+		$FirstTarget = current($DayFirstTargets);
+		$LastTarget = current($DayLastTargets);
 		// $FirstTarget=1; // che senso ha???
 
 
@@ -144,7 +159,7 @@ foreach($LocationsToPrint as $Location) {
 			. " FsMatchNo,"
 			. " FsTarget,"
 			. " '' as TargetTo,"
-			. " EvMatchArrowsNo, EvMatchMode, EvMixedTeam, EvTeamEvent, "
+			. " EvMatchArrowsNo, EvMatchMode, EvMixedTeam, EvTeamEvent, EvWinnerFinalRank, "
 			. " UNIX_TIMESTAMP(FSScheduledDate) as SchDate,"
 			. " DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') as SchTime, "
 			. " EvFinalFirstPhase,"
@@ -158,10 +173,11 @@ foreach($LocationsToPrint as $Location) {
 			. " FROM FinSchedule"
 			. " INNER JOIN Grids ON FSMatchNo=GrMatchNo"
 			. " INNER JOIN Events ON FSEvent=EvCode AND FSTeamEvent=EvTeamEvent AND FSTournament=EvTournament "
+			. " INNER JOIN Phases ON PhId=EvFinalFirstPhase and (PhIndTeam & pow(2, EvTeamEvent))>0 "
 			. " WHERE FSTournament=" . StrSafe_DB($_SESSION['TourId']) . "
 					AND FSScheduledDate='$Day'
 					AND (FSTarget*1) between $Location->Tg1 and $Location->Tg2
-					AND GrPhase<=if(EvFinalFirstPhase=24, 32, if(EvFinalFirstPhase=48, 64, EvFinalFirstPhase)) "
+					AND GrPhase<=greatest(PhId, PhLevel) "
 			. ") UNION ("
 			. "SELECT '1' as Warmup, '".get_text('WarmUp','Tournament')."',"
 			. " '',"
@@ -169,7 +185,7 @@ foreach($LocationsToPrint as $Location) {
 			. " '',"
 			. " FwTargets, "
 			. " FwOptions,"
-			. " '--' as EvMatchArrowsNo, 0 as EvMatchMode, 0, 0, "
+			. " '--' as EvMatchArrowsNo, 0 as EvMatchMode, 0, 0, 0, "
 			. " UNIX_TIMESTAMP(FwDay) as SchDate,"
 			. " DATE_FORMAT(FwTime,'" . get_text('TimeFmt') . "') as SchTime,"
 			. " 0,"
@@ -186,7 +202,6 @@ foreach($LocationsToPrint as $Location) {
 					AND date_format(FwDay, '%Y-%m-%d')='$Day' and FwTargets between $Location->Tg1 and $Location->Tg2"
 			. " )"
 			. " ORDER BY FSScheduledDate ASC, FSScheduledTime ASC, Warmup ASC, FSTarget ASC, FSMatchNo ASC";
-
 		$Rs = safe_r_sql($MyQuery);
 		if(safe_num_rows($Rs)>0) {
 			if($First) {
@@ -334,16 +349,18 @@ foreach($LocationsToPrint as $Location) {
 				} else {
 					if(!in_array($MyRow->FSEvent, $TimeEvents)) $TimeEvents[]=$MyRow->FSEvent;
 					// devo calcolare fin dove si estende l'evento corrente
-					if($MyRow->EvFinalFirstPhase==24 or $MyRow->EvFinalFirstPhase==48) {
-						if($MyRow->GrPhase==32) $MyRow->GrPhase=24;
-						elseif($MyRow->GrPhase==64) $MyRow->GrPhase=48;
-					}
 					$OldEvent = $MyRow->FSEvent . $MyRow->FSTeamEvent . $MyRow->GrPhase;
 					$TgNo=1;
 					$actTarget = $MyRow->FsTarget;
 					if(!in_array($MyRow->FSEvent, $ColorAssignment)) $ColorAssignment[] = $MyRow->FSEvent;
 					$TmpColor=$ColorArray[array_search($MyRow->FSEvent, $ColorAssignment)];
-					$TgText = $MyRow->FSEvent . "|" . (get_text($MyRow->GrPhase . '_Phase'));
+					if($MyRow->GrPhase==0) {
+						$TgText = $MyRow->FSEvent . "|" . ($MyRow->EvWinnerFinalRank==1 ? get_text('0_Phase') : $MyRow->EvWinnerFinalRank.' vs '.($MyRow->EvWinnerFinalRank+1));
+					} elseif($MyRow->GrPhase==1) {
+						$TgText = $MyRow->FSEvent . "|" . ($MyRow->EvWinnerFinalRank==1 ? get_text('1_Phase') : ($MyRow->EvWinnerFinalRank+2).' vs '.($MyRow->EvWinnerFinalRank+3));
+					} else {
+						$TgText = $MyRow->FSEvent . "|" . (get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->GrPhase) . '_Phase'));
+					}
 					$TgFirst = $MyRow->FsTarget;
 					$arcTarget=($MyRow->FSTeamEvent ? $MyRow->EvMaxTeamPerson : 1);
 					$WU=$MyRow->Warmup;
@@ -352,10 +369,6 @@ foreach($LocationsToPrint as $Location) {
 
 					while($MyRow and $OldEvent == $MyRow->FSEvent . $MyRow->FSTeamEvent . $MyRow->GrPhase and $MyRow->FsTarget==$actTarget and $OldSched == $MyRow->SchDate . $MyRow->SchTime) {
 						if($MyRow=safe_fetch($Rs)) {
-							if($MyRow->EvFinalFirstPhase==24 or $MyRow->EvFinalFirstPhase==48) {
-								if($MyRow->GrPhase==32) $MyRow->GrPhase=24;
-								elseif($MyRow->GrPhase==64) $MyRow->GrPhase=48;
-							}
 							if($OldEvent == $MyRow->FSEvent . $MyRow->FSTeamEvent . $MyRow->GrPhase) {
 								if($actTarget==$MyRow->FsTarget and $WU==$MyRow->Warmup) {
 									$arcTarget=-2;
@@ -363,10 +376,7 @@ foreach($LocationsToPrint as $Location) {
 									$actTarget++;
 									$TgNo++;
 								}
-		// 						if(!$Distance) $Distance=$MyRow->EvDistance;
 							}
-						} else {
-		// 					$TgNo++;
 						}
 					}
 
@@ -455,6 +465,8 @@ foreach($LocationsToPrint as $Location) {
 }
 
 
-$pdf->Output();
+if(empty($pdf)) {
+	$pdf=new ResultPDF(get_text('FopSetup'));
+}
 
-?>
+$pdf->Output();

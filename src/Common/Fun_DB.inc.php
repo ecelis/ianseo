@@ -11,6 +11,22 @@
 
 */
 
+function getMyScheme() {
+	$SCHEME='http';
+	if(!empty($_SERVER['HTTPS']) and $_SERVER['HTTPS'] !== 'off') {
+		$SCHEME='https';
+	}
+	return $SCHEME;
+}
+
+function getHomeURL() {
+    global $CFG;
+    return $_SERVER["REQUEST_SCHEME"] . "://" .
+        $_SERVER['SERVER_NAME'] .
+        ((($_SERVER["REQUEST_SCHEME"]=='http' AND $_SERVER['SERVER_PORT']!=80) OR ($_SERVER["REQUEST_SCHEME"]=='https' AND $_SERVER['SERVER_PORT']!=443)) ? '' : ':'.$_SERVER['SERVER_PORT']).
+        $CFG->ROOT_DIR;
+}
+
 function StrSafe_DB($TheString, $RemoveQuotes=false) {
 	global $WRIT_CON, $ERROR_REPORT;
 	if(!$WRIT_CON) $WRIT_CON=safe_w_con();
@@ -31,15 +47,23 @@ function StrSafe_DB($TheString, $RemoveQuotes=false) {
 // 	return "'" . str_replace(array("'", '\\'), array("''",'\\\\'), $TheString) . "'";
 }
 
-function GetParameter($ParameterName, $InfoSystem=false) {
+function GetParameter($ParameterName, $InfoSystem=false, $default='', $encoded=false) {
 	$TmpSql = "SELECT ParValue FROM Parameters WHERE ParId=" . StrSafe_DB($ParameterName);
 	if($InfoSystem) $TmpSql = "SELECT IsValue as ParValue FROM InfoSystem WHERE IsId=" . StrSafe_DB($ParameterName);
 	$Rs=safe_r_sql($TmpSql, false, true);
-	if($Rs and $TmpRow = safe_fetch($Rs))return ($InfoSystem ? unserialize($TmpRow->ParValue) : $TmpRow->ParValue);
-	return '';
+	if($Rs and $TmpRow = safe_fetch($Rs)) {
+		return (($InfoSystem or $encoded) ? unserialize($TmpRow->ParValue) : $TmpRow->ParValue);
+	}
+	if($default) {
+		SetParameter($ParameterName, $default, $encoded);
+	}
+	return $default;
 }
 
-function SetParameter($ParId, $ParValue) {
+function SetParameter($ParId, $ParValue, $encoded=false) {
+	if($encoded) {
+		$ParValue=serialize($ParValue);
+	}
 	$Query = "INSERT into Parameters SET ParValue=" . StrSafe_DB($ParValue) . ", ParId="  .StrSafe_DB($ParId) . " ON DUPLICATE KEY UPDATE ParValue=" . StrSafe_DB($ParValue) ;
 	safe_w_SQL($Query);
 }
@@ -62,8 +86,8 @@ function safe_w_con($error=false) {
 	mysqli_set_charset($a, "utf8");
 // 	mysqli_query($a, "SET NAMES 'utf8' COLLATE '{$_SESSION['COLLATION']}'") or safe_error(mysqli_error($a));
 // 	mysqli_query($a, "SET CHARACTER SET 'utf8'") or safe_error(mysqli_error($a));
-	mysqli_query($a, "SET time_zone = '".date('P')."'") or safe_error(mysqli_error($a));
-	mysqli_query($a, "SET sql_mode = 'NO_UNSIGNED_SUBTRACTION'") or safe_error(mysqli_error($a));
+	mysqli_query($a, "SET session time_zone = '".date('P')."'") or safe_error(mysqli_error($a));
+	mysqli_query($a, "SET session sql_mode = 'NO_UNSIGNED_SUBTRACTION'") or safe_error(mysqli_error($a));
 
 	if($error and !$b) return array($a, 'NO_DATABASE');
 	Return $a;
@@ -77,8 +101,8 @@ function safe_r_con() {
 	mysqli_set_charset($a, "utf8");
 // 	mysqli_query($a, "SET NAMES 'utf8' COLLATE '{$_SESSION['COLLATION']}'") or safe_error(mysqli_error($a));
 // 	mysqli_query($a, "SET CHARACTER SET 'utf8'") or safe_error(mysqli_error($a));
-	mysqli_query($a, "SET time_zone = '".date('P')."'") or safe_error(mysqli_error($a));
-	mysqli_query($a, "SET sql_mode = 'NO_UNSIGNED_SUBTRACTION'") or safe_error(mysqli_error($a));
+	mysqli_query($a, "SET session time_zone = '".date('P')."'") or safe_error(mysqli_error($a));
+	mysqli_query($a, "SET session sql_mode = 'NO_UNSIGNED_SUBTRACTION'") or safe_error(mysqli_error($a));
 	Return $a;
 }
 
@@ -263,10 +287,10 @@ function go_get($item='',$value='',$togli='') {
 	foreach($get as $key=>$val) {
 		if(is_array($val)) {
 			foreach($val as $key2=>$val2) {
-				$tmp[]="$key".'['.$key2.']'."=$val2";
+				$tmp[]="$key".'['.$key2.']'."=".urlencode($val2);
 			}
 		} else {
-			$tmp[]="$key=$val";
+			$tmp[]="$key=".urlencode($val);
 		}
 	}
 	if($tmp) {
@@ -306,4 +330,44 @@ function GetAccBoothEnWhere($EnId, $Division=false, $Limit=false) {
 		return $ret;
 	}
 	return '';
+}
+
+function checkGPL() {
+	if(isset($_REQUEST['acceptGPL'])) {
+		SetParameter('AcceptGPL', date('Y-m-d H:i:s'));
+	}
+	if(GetParameter('AcceptGPL')<date('Y-m-d H:i:s', strtotime('-1 month'))) {
+		AcceptGPL();
+	}
+}
+
+function AcceptGPL() {
+	global $CFG;
+	include('Common/Templates/head.php');
+
+	echo '<style>
+			.AgreeGPL {font-size:1.25rem;text-align: center; margin:0 auto; max-width:60rem;} 
+			.AgreeGPL input[type=checkbox] { width:1.5rem;height:1.5rem; } 
+			.AgreeGPL input[type=button] { font-size:2rem; } 
+			.AgreeGPL > div { margin-top:1rem; } 
+			.AgreeGPL > div.checkbox { padding:0.5rem; background-color:#ffaaaa; }
+			#AcceptGPL {margin-top:1rem;}
+		</style>
+		<div class="AgreeGPL">
+		<h2>'.get_text('Install-0 Title', 'Install').'</h2>
+		<div>' . get_text('AcceptGPL-Desc0', 'Install') . '</div>
+		<div>' . get_text('AcceptGPL-Desc1', 'Install', '<a href="https://www.gnu.org/licenses/gpl.html" target="License">GNU General Public License</a>') . '</div>
+		<div><a href="'.$CFG->ROOT_DIR.'LICENSE.txt" target="License">' . get_text('AcceptGPL-ReadTXT', 'Install') . '</a></div>
+		<div>' . get_text('AcceptGPL-Desc2', 'Install', '<a href="https://www.gnu.org/licenses/gpl.html" target="License">https://www.gnu.org/licenses/gpl.html</a>') . '</div>
+		<div><a href="https://www.gnu.org/licenses/gpl.html" target="License">' . get_text('Credits-License', 'Install') . '</a></div>
+        <div><a href="https://www.gnu.org/licenses/gpl.html" target="License"><img src="'.$CFG->ROOT_DIR.'Common/Images/gplv3.png" alt="GPLv3" border="0"></a></div>
+        <div>'.get_text('AcceptGPL-Start', 'Install', 'http://www.gnu.org').'</div>
+        <div class="checkbox">
+        	<div><input type="checkbox" onclick="document.getElementById(\'AcceptGPL\').style.display=\'block\'">&nbsp;'.get_text('AcceptGPL', 'Install', 'http://www.gnu.org').'</div>
+        	<div id="AcceptGPL" style="display:none"><input type="button" onclick="location.href=\'?acceptGPL\'" value="'.htmlspecialchars(get_text('AcceptGPL-Accept', 'Install')).'"></div>
+        </div>
+        <div><a href="https://www.gnu.org/licenses/gpl.html" target="License">' . get_text('AcceptGPL-Logo', 'Install') . '</a></div>
+        </div>';
+	include('Common/Templates/tail.php');
+	die();
 }

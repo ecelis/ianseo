@@ -1,5 +1,15 @@
 <?php
 $lang['Aggiorna']='Aggiorna';
+$lang['CA-Ev-CM']='Compound Uomini';
+$lang['CA-Ev-CMT']='Compound Squadra Uomini';
+$lang['CA-Ev-CW']='Compound Donne';
+$lang['CA-Ev-CWT']='Compound Squadra Donne';
+$lang['CA-Ev-CX']='Compound Mixed Team';
+$lang['CA-Ev-RM']='Olimpico Maschile';
+$lang['CA-Ev-RMT']='Olimpico Squadre Maschile';
+$lang['CA-Ev-RW']='Olimpico Donne';
+$lang['CA-Ev-RWT']='Olimpico Squadre Femminile';
+$lang['CA-Ev-RX']='Olimpico Mixed Team';
 $lang['CmdSearch']='Trova moduli';
 $lang['Create']='Crea';
 $lang['CreateDescr']='Bisogna creare il file tradotto';

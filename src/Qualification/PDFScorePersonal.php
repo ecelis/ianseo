@@ -2,6 +2,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/ScorePDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 $pdf = new ScorePDF(true);
 
@@ -79,12 +80,13 @@ else
 		. ' INNER JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament '
 		. ' INNER JOIN Tournament ON EnTournament=ToId '
 		. ' INNER JOIN TournamentDistances ON ToType=TdType and TdTournament=ToId AND CONCAT(TRIM(EnDivision),TRIM(EnClass)) LIKE TdClasses '
-		. ' WHERE EnTournament = ' . StrSafe_DB($_SESSION['TourId']) . " AND QuTargetNo>='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_From'],TargetNoPadding,"0",STR_PAD_LEFT) . "A' AND QuTargetNo<='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_To'],TargetNoPadding,"0",STR_PAD_LEFT) . "Z' "
+		. ' WHERE EnTournament = ' . StrSafe_DB($_SESSION['TourId'])
+        . (($_REQUEST['x_Session']==-1 and $FillWithArrows) ? "" : " AND QuTargetNo>='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_From'],TargetNoPadding,"0",STR_PAD_LEFT) . "A' AND QuTargetNo<='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_To'],TargetNoPadding,"0",STR_PAD_LEFT) . "Z' ")
 		. ') as Sqy ON at.AtTargetNo = Sqy.QuTargetNo '
 		. " WHERE at.AtTournament =  " . StrSafe_DB($_SESSION['TourId']) . ' '
-		. " AND at.AtTargetNo>='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_From'],TargetNoPadding,"0",STR_PAD_LEFT) . "A' AND at.AtTargetNo<='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_To'],TargetNoPadding,"0",STR_PAD_LEFT) . "Z' "
+		. (($_REQUEST['x_Session']==-1 and $FillWithArrows) ? "" : " AND at.AtTargetNo>='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_From'],TargetNoPadding,"0",STR_PAD_LEFT) . "A' AND at.AtTargetNo<='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_To'],TargetNoPadding,"0",STR_PAD_LEFT) . "Z' ")
 		. ' ORDER BY at.AtTargetNo ASC, Ath, Noc ';
-	//print $MyQuery;Exit;
+//	print $MyQuery;Exit;
 	$Rs=safe_r_sql($MyQuery);
 	if(safe_num_rows($Rs)>0)
 	{
@@ -94,6 +96,7 @@ else
 
 		while($MyRow=safe_fetch($Rs))
 		{
+			set_time_limit(0);
 			$pdf->AddPage(($NumDistances<4 ? "L":"P"));
 			$Value =  array(
 				"tNo"=>$MyRow->tNo,

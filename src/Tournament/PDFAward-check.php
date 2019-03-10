@@ -1,7 +1,7 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/OrisPDF.inc.php');
-require_once('Common/Fun_Modules.php');
+checkACl(AclCompetition,AclReadOnly);
 
 $arrPosition=array('','1st','2nd','3rd','4th','5th');
 $par_RepresentCountry = getModuleParameter('Awards','RepresentCountry',1);
@@ -13,10 +13,22 @@ $pdf = new OrisPDF('Awards',get_text('MenuLM_PrintAwards'));
 // $pdf->FontFix='droidsansfallback';
 $pdf->SetFont($pdf->FontStd,'',8);
 
-$pdf->SecondLang='hr'; // set to empty string to avoid double printout
+$pdf->FontStd2=$pdf->FontStd;
+$pdf->FontFix2=$pdf->FontFix;
+
+$pdf->FirstLang=(getModuleParameter('Awards', 'FirstLanguageCode') ? getModuleParameter('Awards', 'FirstLanguageCode') : ($_SESSION['TourPrintLang'] ? $_SESSION['TourPrintLang'] : SelectLanguage())); // set to empty string to avoid double printout
+$pdf->SecondLang=''; // set to empty string to avoid double printout
 $pdf->AddPage();
 $pdf->SetTopMargin($pdf->lastY+1);
 $pdf->sety($pdf->lastY+1);
+
+if(getModuleParameter('Awards', 'SecondLanguage')) {
+	$pdf->SecondLang=getModuleParameter('Awards', 'SecondLanguageCode');
+	if(in_array($pdf->SecondLang, array('zh-cn', 'zh-tw'))) {
+		$pdf->FontStd2='droidsansfallback';
+		$pdf->FontFix2='droidsansfallback';
+	}
+}
 $pdf->SetAutoPageBreak(true, 20);
 
 $LangCol=($pdf->getpagewidth()-20)/($pdf->SecondLang ? 2 : 1);
@@ -26,11 +38,13 @@ $Y=$pdf->gety();
 $pdf->multicell($LangCol, 6, getModuleParameter('Awards', 'Aw-Intro-1'), 'R', 'L');
 $Y1=$pdf->gety();
 if($pdf->SecondLang) {
+	$pdf->SetFont($pdf->FontStd2);
 	if($Y1<$Y) $Y=$pdf->lastY+1;
 	$pdf->setXY($LangCol+10, $Y);
 	$pdf->multicell($LangCol, 6, getModuleParameter('Awards', 'Aw-Intro-2'), 'L', 'L');
 	$Y1=max($Y1, $pdf->gety());
 	$pdf->sety($Y1, true);
+	$pdf->SetFont($pdf->FontStd);
 }
 $pdf->ln(3);
 
@@ -72,11 +86,13 @@ while($r=safe_fetch($q)) {
 	$pdf->multicell($LangCol, 6, $r->EvCode . ': ' . $r->Event , 'R', 'L');
 	$Y1=$pdf->gety();
 	if($pdf->SecondLang) {
+		$pdf->SetFont($pdf->FontStd2);
 		if($Y1<$Y) $Y=$pdf->lastY+1;
 		$pdf->setXY($LangCol+10, $Y);
 		$pdf->multicell($LangCol, 6, $r->AwEventTrans, 'L', 'L');
 		$Y1=max($Y1, $pdf->gety());
 		$pdf->sety($Y1, true);
+		$pdf->SetFont($pdf->FontStd);
 	}
 	$pdf->ln(3);
 
@@ -106,11 +122,13 @@ foreach($Lines as $line) {
 	$pdf->multicell($LangCol, 6, getModuleParameter('Awards', $line.'-1'), 'R', 'L');
 	$Y1=$pdf->gety();
 	if($pdf->SecondLang) {
+		$pdf->SetFont($pdf->FontStd2);
 		if($Y1<$Y) $Y=$pdf->lastY+1;
 		$pdf->setXY($LangCol+10, $Y);
 		$pdf->multicell($LangCol, 6, getModuleParameter('Awards', $line.'-2'), 'L', 'L');
 		$Y1=max($Y1, $pdf->gety());
 		$pdf->sety($Y1, true);
+		$pdf->SetFont($pdf->FontStd);
 	}
 	$pdf->ln(3);
 }
@@ -119,14 +137,16 @@ $n=1;
 $def='ssss';
 while(($awarder=getModuleParameter('Awards', 'Aw-Award-1-'.$n, $def))!=$def) {
 	$Y=$pdf->gety();
-	$pdf->multicell($LangCol, 6, getModuleParameter('Awards', 'Aw-Award-1-'. $n), 'R', 'L');
+	$pdf->multicell($LangCol, 7, getModuleParameter('Awards', 'Aw-Award-1-'. $n), 'R', 'L');
 	$Y1=$pdf->gety();
 	if($pdf->SecondLang) {
+		$pdf->SetFont($pdf->FontStd2);
 		if($Y1<$Y) $Y=$pdf->lastY+1;
 		$pdf->setXY($LangCol+10, $Y);
-		$pdf->multicell($LangCol, 6, getModuleParameter('Awards', 'Aw-Award-2-'. $n), 'L', 'L');
+		$pdf->multicell($LangCol, 7, getModuleParameter('Awards', 'Aw-Award-2-'. $n), 'L', 'L');
 		$Y1=max($Y1, $pdf->gety());
 		$pdf->sety($Y1, true);
+		$pdf->SetFont($pdf->FontStd);
 	}
 	$pdf->ln(3);
 
@@ -137,11 +157,41 @@ $Y=$pdf->gety();
 $pdf->multicell($LangCol, 6, getModuleParameter('Awards', 'Aw-Special-1'), 'R', 'L');
 $Y1=$pdf->gety();
 if($pdf->SecondLang) {
+	$pdf->SetFont($pdf->FontStd2);
 	if($Y1<$Y) $Y=$pdf->lastY+1;
 	$pdf->setXY($LangCol+10, $Y);
 	$pdf->multicell($LangCol, 6, getModuleParameter('Awards', 'Aw-Special-2'), 'L', 'L');
 	$Y1=max($Y1, $pdf->gety());
 	$pdf->sety($Y1, true);
+	$pdf->SetFont($pdf->FontStd);
+}
+
+// print all the countries involved in the finals
+//
+$q=safe_r_sql("(select distinct CoCode 
+	from Countries
+		inner join Entries on CoId in (EnCountry, EnCountry2, EnCountry3)
+		inner join Finals on FinAthlete=EnId and FinMatchNo<4 and FinTournament={$_SESSION['TourId']})
+	union
+	(select distinct CoCode 
+	from Countries
+	inner join TeamFinals on TfTeam=CoId and TfMatchNo<4 and TfTournament={$_SESSION['TourId']})");
+$pdf->dy(1);
+while($r=safe_fetch($q)) {
+	$Y=$pdf->gety();
+	$pdf->multicell($LangCol, 5, get_text($r->CoCode, 'IOC_Codes', '', '', '', $pdf->FirstLang, false), 'R', 'L');
+	$Y1=$pdf->gety();
+	if($pdf->SecondLang) {
+		$pdf->SetFont($pdf->FontStd2);
+		if($Y1<$Y) $Y=$pdf->lastY+1;
+		$pdf->setXY($LangCol+10, $Y);
+		$pdf->multicell($LangCol, 5, get_text($r->CoCode, 'IOC_Codes', '', '', '', $pdf->SecondLang, false), 'L', 'L');
+		$Y1=max($Y1, $pdf->gety());
+		$pdf->sety($Y1, true);
+		$pdf->SetFont($pdf->FontStd);
+	}
+	$pdf->ln(2);
+	$n++;
 }
 
 // Awarders
@@ -150,20 +200,24 @@ $pdf->SetTopMargin($pdf->lastY+1);
 $pdf->sety($pdf->lastY+1);
 
 $n=1;
-while($a=getModuleParameter('Awards', 'Aw-Awarder-1-'.$n)) {
+$def='ssss';
+while(($a=getModuleParameter('Awards', 'Aw-Awarder-1-'.$n, $def))!=$def) {
 	$Y=$pdf->gety();
 	$pdf->multicell($LangCol, 5, $a, 'R', 'L');
 	$Y1=$pdf->gety();
 	if($pdf->SecondLang) {
+		$pdf->SetFont($pdf->FontStd2);
 		if($Y1<$Y) $Y=$pdf->lastY+1;
 		$pdf->setXY($LangCol+10, $Y);
 		$pdf->multicell($LangCol, 5, getModuleParameter('Awards', 'Aw-Awarder-2-'.$n), 'L', 'L');
 		$Y1=max($Y1, $pdf->gety());
 		$pdf->sety($Y1, true);
+		$pdf->SetFont($pdf->FontStd);
 	}
 	$pdf->ln(2);
 	$n++;
 }
+
 
 // print the awarders and what they award
 $pdf->AddPage();
@@ -187,7 +241,6 @@ while ($MyRow=safe_fetch($q)) {
 	if($MyRow->AwAwarderGrouping) $Awards=@unserialize($MyRow->AwAwarderGrouping);
 
 	if(!$pdf->SamePage(2+count($Awards), 6)) {
-// 		debug_svela($Awards);
 // 		$pdf->AddPage();
 	}
 	$pdf->dy(2);

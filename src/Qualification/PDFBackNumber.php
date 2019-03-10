@@ -90,4 +90,3 @@ else
 if($pdf->BackGroundFile) unlink($pdf->BackGroundFile);
 
 $pdf->Output();
-?>

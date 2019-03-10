@@ -7,6 +7,7 @@ if (!CheckTourSession()) {
 	print get_text('CrackError');
 	exit;
 }
+checkACl(AclCompetition,AclReadWrite, false);
 
 $Errore=0;
 $Answer='';
@@ -42,6 +43,7 @@ $AllowedModuleFields=array(
 	'Aw-Anthem-TPE-2',
 	'Aw-Applause-2',
 	'Aw-Special-2',
+    'PrintPositions',
 );
 
 $Field=$_REQUEST["field"];
@@ -101,6 +103,7 @@ if (!IsBlocked(BIT_BLOCK_PARTICIPANT)) {
 			or substr($_REQUEST["field"], 0, 11)=='Aw-Awarder-'
 			or substr($_REQUEST["field"], 0, 9)=='Aw-Award-'
 			or substr($_REQUEST["field"], 0, 9)=='Aw-Custom'
+            or $_REQUEST["field"]=='PrintPositions'
 			) {
 		if($_REQUEST["field"]=='SecondLanguageCode') {
 			$_REQUEST["value"]=strtolower($_REQUEST["value"]);

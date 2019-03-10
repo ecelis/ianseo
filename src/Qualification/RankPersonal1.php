@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
 
 

@@ -139,6 +139,9 @@
 				$filter.=" AND EnCountry=" . intval($this->opts['coid'])  . " " ;
 			}
 
+			if (!empty($this->opts['sessions'])) {
+				$filter.=" AND QuSession in (" . implode(',', $this->opts['sessions'])  . ") " ;
+			}
 
 			return $filter;
 		}
@@ -382,12 +385,22 @@
 					}
 
 					$myPos++;
-					if(!($oldScore==$myRow->OrderScore && $oldGold==$myRow->OrderGold && $oldXnine==$myRow->OrderXnine))
+					if(!($oldScore==$myRow->OrderScore && $oldGold==$myRow->OrderGold && $oldXnine==$myRow->OrderXnine)){
 						$myRank = $myPos;
+					}
 					$oldScore = $myRow->OrderScore;
 					$oldGold = $myRow->OrderGold;
 					$oldXnine = $myRow->OrderXnine;
-				// creo un elemento per la sezione
+
+					if($myRow->Rank==9999) {
+						$tmpRank = 'DSQ';
+					} else if ($myRow->Rank==9998) {
+						$tmpRank = 'DNS';
+					} else {
+						$tmpRank= (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRank : $myRow->Rank);
+					}
+
+					// creo un elemento per la sezione
 					$item=array(
 						'id'  => $myRow->EnId,
 						'bib' => $myRow->EnCode,
@@ -406,7 +419,7 @@
 						'contAssoc' => $myRow->FlContAssoc,
 						'countryIocCode' => $myRow->EnIocCode,
 						'countryName' => $myRow->CoName,
-						'rank' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRank : $myRow->Rank),
+						'rank' => $tmpRank,
 						'score' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRow->OrderScore : $myRow->Score),
 						'gold' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRow->OrderGold : $myRow->Gold),
 						'xnine' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRow->OrderXnine : $myRow->XNine),

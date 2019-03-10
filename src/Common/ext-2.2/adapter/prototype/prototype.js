@@ -1411,7 +1411,7 @@ Ajax.Response = Class.create({
   _getResponseJSON: function() {
     var options = this.request.options;
     if (!options.evalJSON || (options.evalJSON != 'force' &&
-      !(this.getHeader('Content-type') || '').include('application/json')) ||
+      !(this.getHeader('Content-type') || '').include('application/javascript')) ||
         this.responseText.blank())
           return null;
     try {

@@ -30,6 +30,53 @@ define ("BIT_BLOCK_PUBBLICATION",0x200); // Blocco pubblicazioni online
 define ("BIT_BLOCK_FLIGHTS",0x400); // Blocco gestione Flights
 define ('BIT_BLOCK_ALL', 0xFFFF);
 
+define ("AclNoAccess",0);
+define ("AclReadOnly",1);
+define ("AclReadWrite",2);
+
+define ('AclRoot', 0);
+define ('AclCompetition', 1);
+define ('AclParticipants', 2);
+define ('AclQualification', 3);
+define ('AclEliminations', 4);
+define ('AclIndividuals', 5);
+define ('AclTeams', 6);
+define ('AclAccreditation', 7);
+define ('AclModules', 8);
+define ('AclInternetPublish', 9);
+define ('AclAPI', 10);
+define ('AclISKClient', 11);
+define ('AclISKServer', 12);
+define ('AclSpeaker', 13);
+define ('AclOutput', 14);
+
+
+$limitedACL = array(
+    AclRoot => AclReadWrite,
+    AclInternetPublish => AclReadWrite,
+    AclAPI => AclReadWrite,
+    AclISKClient => AclReadWrite,
+    AclSpeaker => AclReadOnly,
+);
+
+$listACL = array(
+    AclRoot => 'AclRoot',
+    AclCompetition => 'AclCompetition',
+    AclParticipants => 'AclParticipants',
+    AclQualification => 'AclQualification',
+    AclEliminations => 'AclEliminations',
+    AclIndividuals => 'AclIndividuals',
+    AclTeams => 'AclTeams',
+    AclAccreditation => 'AclAccreditation',
+    AclModules => 'AclModules',
+    AclInternetPublish => 'AclInternet',
+    AclAPI => 'AclAPI',
+    AclISKClient => 'AclISKClient',
+    AclISKServer => 'AclISKServer',
+    AclSpeaker => 'AclSpeaker',
+    AclOutput => 'AclOutput'
+);
+
 /*
  * La chiave rappresenta il bit di cui si è chiesto l'unset
  * Il vecchio valore nel db viene posto in AND con il valore corrispondente alla chiave
@@ -68,73 +115,79 @@ function getBlocksToSet() {
 	return $ToSet;
 }
 
-function getACLFeatureList() {
-	$tmpList=array();
-	$Sql = "SELECT AclFeId as Id, AclFeName as Name FROM AclFeatures ORDER BY AclFeId";
-	$Rs = safe_r_sql($Sql);
-	while($r=safe_fetch($Rs))
-		$tmpList[$r->Id]=$r->Name;
-	return $tmpList;
+function actualACL() {
+    global $listACL;
+    $lockEnabled = getModuleParameter("ACL", "AclEnable", "00");
+    $ip = $_SERVER["REMOTE_ADDR"];
+    if($ip == '127.0.0.1' OR $ip == '::1' OR $lockEnabled[0] == "0") {
+        $acl = array_fill(0, count($listACL), AclReadWrite);
+    } else {
+        $acl = array_fill(0, count($listACL), AclNoAccess);
+        $Sql = "SELECT AclDtFeature, AclDtLevel FROM AclDetails WHERE AclDtTournament=" . intval($_SESSION['TourId']) . " AND AclDtIP='{$ip}'";
+        $q = safe_r_SQL($Sql);
+        while($r=safe_fetch($q)) {
+            $acl[$r->AclDtFeature] = $r->AclDtLevel;
+        }
+    }
+    return $acl;
 }
 
-function getBlockList() {
-	$tmpList=array();
-	$Sql = "SELECT AclDtIP as Ip, AclDtFeature as Feature, AclDtLevel as Level FROM AclDetails WHERE AclDtTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY AclDtIP,AclDtFeature ";
-	$Rs = safe_r_sql($Sql);
-	while($r=safe_fetch($Rs)) {
-		if(!array_key_exists($r->Ip,$tmpList))
-			$tmpList[$r->Ip]=array();
-		$tmpList[$r->Ip][$r->Feature] = $r->Level;
-	}
-	return $tmpList;
+function panicACL() {
+    $ipC = $_SERVER["REMOTE_ADDR"];
+    $ipS = $_SERVER["SERVER_ADDR"];
+
+    if(($ipC == '127.0.0.1' OR $ipC == '::1') AND ($ipS == '127.0.0.1' OR $ipS == '::1') AND isset($_REQUEST['ACLReset']) AND preg_match("/^[0-9a-z.,:;_-]*$/i",$_REQUEST['ACLReset'])) {
+        $TourId = getIdFromCode($_REQUEST['ACLReset']);
+        if($TourId) {
+            setModuleParameter("ACL","AclEnable","00",$TourId);
+            die();
+        }
+
+    }
 }
 
-function nextLevel($IP,$Feature) {
-	$level=getLevel($IP,$Feature);
-	if(++$level>3)
-		$level=0;
-	$Sql = "REPLACE INTO AclDetails (AclDtTournament, AclDtIP, AclDtFeature, AclDtLevel)
-			VALUES (" . StrSafe_DB($_SESSION['TourId']) . ", " . StrSafe_DB($IP) . "," . StrSafe_DB($Feature) . "," . $level . ")";
-	if(!$level)
-		$Sql = "DELETE FROM AclDetails WHERE AclDtTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND AclDtIP=" . StrSafe_DB($IP) . " AND AclDtFeature=" . StrSafe_DB($Feature);
-	$Rs = safe_w_sql($Sql);
-	return getLevel($IP,$Feature);
+function checkACL($feature, $level, $redirect=true, $TourId=0) {
+    global $INFO, $CFG;
+    if(!is_array($feature)) {
+        $feature = array($feature);
+    }
+    $INFO->ACLReqfeatures = $feature;
+    $INFO->ACLReqlevel = $level;
+    $INFO->ACLEnabled = false;
+
+    if ($TourId == 0 AND !empty($_SESSION['TourId'])) {
+        $TourId = intval($_SESSION['TourId']);
+    }
+    $lockEnabled = getModuleParameter("ACL", "AclEnable", "00", $TourId, true);
+    if($lockEnabled[0] == "1") {
+        $INFO->ACLEnabled = true;
+    }
+
+    $ip = $_SERVER["REMOTE_ADDR"];
+    if($ip == '127.0.0.1' OR $ip == '::1') {
+        return AclReadWrite;
+    } else {
+        if ($lockEnabled[0] == "1") {
+            if($lockEnabled[1] == "1") {
+                safe_w_SQL("INSERT IGNORE INTO ACL (AclTournament, AclIP, AclNick, AclEnabled) VALUES ({$TourId},'{$ip}',NOW(),1)");
+            }
+            $Sql = "SELECT AclDtLevel FROM AclDetails WHERE AclDtTournament={$TourId} AND AclDtIP='{$ip}' && AclDtFeature IN (" . implode(',', $feature) . ") ORDER BY AclDtLevel ASC";
+            $q = safe_r_SQL($Sql);
+            if ($r = safe_fetch($q) and $level <= $r->AclDtLevel) {
+                return $r->AclDtLevel;
+            } else if($level==AclNoAccess) {
+                return AclNoAccess;
+            } else {
+                if ($redirect) {
+                    CD_redirect($CFG->ROOT_DIR.'noAccess.php');
+                } else {
+                    http_response_code(404);
+                }
+                die();
+            }
+        } else {
+            return AclReadWrite;
+        }
+    }
 }
 
-function getLevel($IP,$Feature) {
-	$level=0;
-	$Sql = "SELECT AclDtLevel as Level
-			FROM AclDetails
-			WHERE AclDtTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND AclDtIP=" . StrSafe_DB($IP) . " AND AclDtFeature=" . StrSafe_DB($Feature);
-
-	$Rs = safe_r_sql($Sql);
-	if(safe_num_rows($Rs)){
-		$r=safe_fetch($Rs);
-		$level = $r->Level;
-	}
-	return $level;
-}
-
-function toggleEnabled($IP) {
-	$enabled=getEnabled($IP);
-	if(++$enabled!=1)
-		$enabled=0;
-	$Sql = "UPDATE ACL SET AclEnabled={$enabled}
-			WHERE AclTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND AclIP=" . StrSafe_DB($IP);
-	$Rs = safe_w_sql($Sql);
-	return getEnabled($IP);
-}
-
-
-function getEnabled($IP) {
-	$enabled=0;
-	$Sql = "SELECT AclEnabled as Enabled
-			FROM ACL
-			WHERE AclTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND AclIP=" . StrSafe_DB($IP);
-	$Rs = safe_r_sql($Sql);
-	if(safe_num_rows($Rs)){
-		$r=safe_fetch($Rs);
-		$enabled = $r->Enabled;
-	}
-	return $enabled;
-}

@@ -3,6 +3,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Fun_Sessions.inc.php');
 CheckTourSession(true);
+$lvl = checkACL(AclQualification, AclReadOnly);
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Lib/CommonLib.php');
 
@@ -106,12 +107,14 @@ if($_POST) {
 // immagine fittizia del pettorale
 	echo '<td width="50%" align="center"><br/>';
 	echo '<img src="../Tournament/ImgBackNumber.php"><br/><br/>';
-	echo '<input type="button" value="' . get_text('BackNoEdit', 'BackNumbers') . '" onClick="document.location=\''.$CFG->ROOT_DIR.'Tournament/BackNumber.php?BackNo=0\'">';
-	echo '<br />';
-	echo '<input type="button" value="' . get_text('BackNoExportLayout', 'BackNumbers') . '" onClick="document.location=\''.$CFG->ROOT_DIR.'Tournament/BackNumbersExport.php\'">';
-	echo '<br />';
-	echo '<input type="file" name="ImportBackNumbers" />&nbsp;&nbsp;&nbsp;';
-	echo '<input type="submit" value="' . get_text('BackNoImportLayout', 'BackNumbers') . '" onClick="document.location=\''.$CFG->ROOT_DIR.'Tournament/BackNumber.php?BackNo=0\'">';
+	if($lvl == AclReadWrite) {
+        echo '<input type="button" value="' . get_text('BackNoEdit', 'BackNumbers') . '" onClick="document.location=\'' . $CFG->ROOT_DIR . 'Tournament/BackNumber.php?BackNo=0\'">';
+        echo '<br />';
+        echo '<input type="button" value="' . get_text('BackNoExportLayout', 'BackNumbers') . '" onClick="document.location=\'' . $CFG->ROOT_DIR . 'Tournament/BackNumbersExport.php\'">';
+        echo '<br />';
+        echo '<input type="file" name="ImportBackNumbers" />&nbsp;&nbsp;&nbsp;';
+        echo '<input type="submit" value="' . get_text('BackNoImportLayout', 'BackNumbers') . '" onClick="document.location=\'' . $CFG->ROOT_DIR . 'Tournament/BackNumber.php?BackNo=0\'">';
+    }
 	echo '</td>';
 	echo '</tr>';
 

@@ -1,7 +1,9 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
+	require_once('Common/Fun_Sessions.inc.php');
 
 	$PAGE_TITLE=get_text('PrintList', 'Tournament');
 
@@ -101,7 +103,7 @@
 
 	$TypeVisible='';
 	$TypeHidden=' style="display:none"';
-	if($_SESSION['TourType']==14) {
+	if($_SESSION['TourType']==14 or $_SESSION['TourType']==32) {
 		$TypeVisible=' style="display:none"';
 // 		$TypeHidden='';
 	}
@@ -113,12 +115,13 @@
 
 	// Subclass ranking
 	echo '<br><div id="SubClassRankCommand">';
-	echo '<div><input name="SubClassRank" type="checkbox" onclick="changevisibility(this,\'SubClassRank\', \'SnapShot\', \'DistanceRankings\')"'.($_SESSION['TourType']==14 ? ' checked="checked"' : '').'>' . get_text('SubClassRank','Tournament') . '</div>';
-	if($_SESSION['TourType']==14) echo '<div><input name="ShowAwards" type="checkbox">' . get_text('PrintFlightsAwards','Tournament') . '</div>';
+	echo '<div><input name="SubClassRank" type="checkbox" onclick="changevisibility(this,\'SubClassRank\', \'SnapShot\', \'DistanceRankings\')"'.(($_SESSION['TourType']==14 or $_SESSION['TourType']==32) ? ' checked="checked"' : '').'>' . get_text('SubClassRank','Tournament') . '</div>';
+	if($_SESSION['TourType']==14 or $_SESSION['TourType']==32) echo '<div><input name="ShowAwards" type="checkbox">' . get_text('PrintFlightsAwards','Tournament') . '</div>';
 	echo '<div id="SubClassRank"'.$TypeHidden.'>';
 	echo '<div><input name="OnlySubClass" type="checkbox">' . get_text('SubClassOnly','Tournament') . '</div>';
 	echo '<div><input name="SubClassDivRank" type="checkbox">' . get_text('SubClassDivJoinRank','Tournament') . '</div>';
 	echo '<div><input name="SubClassClassRank" type="checkbox">' . get_text('SubClassClassJoinRank','Tournament') . '</div>';
+    echo '<div><input name="SubClassGenderRank" type="checkbox">' . get_text('SubClassGenderJoinRank','Tournament') . '</div>';
 	echo '</div>';
 	echo '</div>';
 
@@ -146,6 +149,13 @@
 		echo '</div>';
 	}
 	echo "</div>";
+	echo '</td>';
+
+	// Session filter
+	echo '<td nowrap="nowrap">';
+	foreach(GetSessions('Q') as $Ses) {
+		echo '<div><input type="checkbox" name="Session[]" value="'.$Ses->SesOrder.'">'.$Ses->SesName.'</div>';
+	}
 	echo '</td>';
 	echo '</tr>';
 	echo '</table>';

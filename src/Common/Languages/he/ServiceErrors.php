@@ -50,4 +50,5 @@ $lang['ErrSubClass']='קטגוריית משנה לא חוקית';
 $lang['ErrSubClassNotFound']='לא נמצאה קבוצת משנה';
 $lang['ErrWronglevel']='רמת מועדון/קשת שגויה';
 $lang['LoginTooManyArchers']='כתובת דואר אלקטרוני זו קיימת עבור יותר מקשת אחד. נא השתמשו בזיהוי החברות';
+$lang['WrongType']='סוג לא תקין';
 ?>

@@ -5,9 +5,7 @@
  *
  *
  */
-function PdfChunkLoader($file, $localRule='') {
-	$Type='';
-	$SubRule='';
+function PdfChunkLoader($file, $localRule='', $Type='', $SubRule='') {
 	if(!$localRule) {
 		$q="SELECT ToLocRule, ToType, ToTypeSubRule FROM Tournament WHERE ToId={$_SESSION['TourId']}";
 		$r=safe_r_sql($q);

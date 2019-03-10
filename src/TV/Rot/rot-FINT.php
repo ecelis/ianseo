@@ -22,16 +22,40 @@ function rotFint($TVsettings, $RULE) {
 	$ViewCode=(in_array('CODE', $Columns) or in_array('ALL', $Columns));
 	$ViewAths=(in_array('ATHL', $Columns) or in_array('ALL', $Columns));
 	$ViewByes=(in_array('BYE', $Columns) or in_array('ALL', $Columns));
+	$ViewEnds=(in_array('ENDS', $Columns) or in_array('ALL', $Columns));
 	$Title2Rows=(in_array('TIT2ROWS', $Columns) ? '<br/>' : ': ');
 
-
-	$options=array('tournament' => $RULE->TVRTournament);
+	$options=array();
 	$Arr_Ev = array();
 	$Arr_Ph = array();
-	if($TVsettings->TVPEventTeam) $Arr_Ev = explode('|', $TVsettings->TVPEventTeam);
+	if($TVsettings->TVPEventTeam) {
+		$Arr_Ev = explode('|', $TVsettings->TVPEventTeam);
+		$Group='';
+		if(preg_match('/^##([0-9]+)##$/', $Arr_Ev[0], $Group)) {
+			if ($IskGroup = getModuleParameter('ISK', 'Sequence', '', $RULE->TVRTournament)) {
+				$Group = $IskGroup[$Group[1]];
+				if($Group['type']=='T') {
+					// get the events and phases of that session!!!
+					$q=safe_r_sql("select distinct FSEvent, GrPhase from FinSchedule inner join Grids on GrMatchNo=FSMatchNo where FSTeamEvent=1 and FSScheduledDate='".substr($Group['session'], 0, 10)."' and FSScheduledTime='".substr($Group['session'], -8)."' and FSTournament=$RULE->TVRTournament");
+					while($r=safe_fetch($q)) {
+						$options['events'][] = $r->FSEvent . '@' . $r->GrPhase;
+					}
+					$Arr_Ev = array();
+					$Arr_Ph = array();
+					$TVsettings->TVPPhasesTeam='';
+				}
+			}
+			if(empty($options)) {
+				// nothing to follow, so returns an empty string
+				return 'NOTHING TO FOLLOW';
+			}
+		}
+	}
 	if(strlen($TVsettings->TVPPhasesTeam)) {
 		$Arr_Ph = explode('|', $TVsettings->TVPPhasesTeam);
 	}
+
+	$options['tournament']=$RULE->TVRTournament;
 
 	if($Arr_Ev and count($Arr_Ph)) {
 		$options['events']=array();
@@ -66,9 +90,11 @@ function rotFint($TVsettings, $RULE) {
 
 	if($SubBlock>count($rankData['sections'])) $SubBlock=1;
 
-	while($SubBlock) {
-		list($IdEvent, $section)=each($rankData['sections']);
+	foreach($rankData['sections'] as $IdEvent => $section) {
 		$SubBlock--;
+		if(!$SubBlock) {
+			break;
+		}
 	}
 
 	$Columns=(isset($TVsettings->TVPColumns) && !empty($TVsettings->TVPColumns) ? explode('|',$TVsettings->TVPColumns) : array());
@@ -85,7 +111,10 @@ function rotFint($TVsettings, $RULE) {
 
 		foreach($section['phases'] as $IdPhase => $phase) {
 			// Titolo della tabella
-			$ret[] = '<div class="Title" >' . $section['meta']['eventName'] . $Title2Rows . $phase['meta']['phaseName'] . '</div>' ;
+			$ret[] = '<div class="Title" >
+				<div class="TitleImg" style="float:left;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
+				<div class="TitleImg" style="float:right;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
+				' . $section['meta']['eventName'] . $Title2Rows . $phase['meta']['phaseName'] . '</div>' ;
 
 			foreach($phase['items'] as $key => $item) {
 				if(($IsBye=($item['tie']==2 or $item['oppTie']==2) or (!$item['countryCode'] or !$item['oppCountryCode'])) and !$ViewByes) continue;
@@ -165,19 +194,21 @@ function rotFint($TVsettings, $RULE) {
 
 		$Return['Block']= 'GridId';
 		$Return['BlockCss']='display:flex; flex-direction:row; justify-content:center; align-items:center; box-sizing:border-box; overflow:hidden; white-space: nowrap; font-size:2em; margin:auto; box-sizing:border-box;';
-	} else {
+	} elseif(!empty($section['meta'])) {
 		// Grid view
-
 		$ret[] = '<div class="Title">' . $section['meta']['eventName'] . '</div>';
 		$ret[]='<div id="content" data-direction="up">';
 		$NumColBase = 3 + $ViewTeams;
 			$RowIndex=0;
+
 		foreach($section['phases'] as $IdPhase => $phase) {
 
 			// Titolo della tabella
 			$ret[] = '<div class="Title">' . $phase['meta']['phaseName'] . '</div>';
 
 			foreach($phase['items'] as $key => $item) {
+				if(($IsBye=($item['tie']==2 or $item['oppTie']==2) or (!$item['countryCode'] or !$item['oppCountryCode'])) and !$ViewByes) continue;
+
 				$Class=($RowIndex++%2 ? 'e' : 'o');
 				$tmp1 ='<div class="Grid Font1'.$Class.' Back1'.$Class.' TopRow'.($item['oppWinner'] ? ' Loser' : '').'">';
 				$tmp2 ='<div class="Grid Font1'.$Class.' Back1'.$Class.' BottomRow'.($item['winner'] ? ' Loser' : '').'">';
@@ -215,12 +246,39 @@ function rotFint($TVsettings, $RULE) {
 					$tmp2 .= '</div>';
 				}
 
+				if($ViewEnds) {
+					$ends1=explode('|', $item['setPoints']);
+					$ends2=explode('|', $item['oppSetPoints']);
+					if(count($ends1)==count($ends2)) {
+						while($ends1 and end($ends1)==0 and end($ends2)==0) {
+							array_pop($ends1);
+							array_pop($ends2);
+						}
+					}
+
+					if($item['tiebreakDecoded']) {
+						$ends1[]='- '.$item['tiebreakDecoded'];
+					}
+					if($item['oppTiebreakDecoded']) {
+						$ends2[]='- '.$item['oppTiebreakDecoded'];
+					}
+
+					$tmp1.='<div class="EndPoints">'.implode(' ', $ends1).'</div>';
+					$tmp2.='<div class="EndPoints">'.implode(' ', $ends2).'</div>';
+				}
+
 				if($item['tie']==2) {
 					// it is a bye
 					$Score=$rankData['meta']['fields']['bye'];
 				} elseif($item['countryName']) {
 					// archer is there
-					$Score=  $item[$section['meta']['matchMode'] ? 'setScore' : 'score'] . ($item['tie']==1 ? '*' : ($item['oppTie']==1 ? '<tt>&nbsp;</tt>' : ''));
+					if($section['meta']['matchMode']) {
+						// sets
+						$Score = $item['setScore'];
+					} else {
+						// cumulative
+						$Score = $item['score'] . ($item['tie']==1 ? '*' : '<tt>&nbsp;</tt>' );
+					}
 				} else {
 					// it is the bye's opponent?
 					$Score='';
@@ -232,7 +290,12 @@ function rotFint($TVsettings, $RULE) {
 					$Score=$rankData['meta']['fields']['bye'];
 				} elseif($item['oppCountryName']) {
 					// archer is there
-					$Score= $item[$section['meta']['matchMode'] ? 'oppSetScore' : 'oppScore'] . ($item['oppTie']==1 ? '*' : ($item['tie']==1 ? '<tt>&nbsp;</tt>' : ''));
+					if($section['meta']['matchMode']) {
+						// set system
+						$Score= $item['oppSetScore'];
+					} else {
+						$Score= $item['oppScore'] . ($item['oppTie']==1 ? '*' : '<tt>&nbsp;</tt>' );
+					}
 				} else {
 					// it is the bye's opponent?
 					$Score='';
@@ -286,33 +349,31 @@ function rotFintSettings($Settings) {
 function getPageDefaults(&$RMain) {
 	global $CFG;
 	$ret=array(
-			'MainContent' => 'left:15%;width:50%',
-			'Title' => 'margin-top:2rem',
-			'TopRow' => 'margin-top:1rem',
-			'Divider' => 'display:block;height:0.5rem; background-color:gray;',
-			'BottomRow' => '',
-			'Loser' => 'opacity:0.3;',
-// 			'RankUp' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Up.png\');',
-// 			'RankDown' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Down.png\');',
-// 			'RankMinus' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Minus.png\');',
-// 			'Rank' => 'flex: 0 0 1.75em; text-align:right;',
-			'CountryCode' => 'flex: 0 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-			'FlagDiv' => 'flex: 0 0 3.95rem; ',
-			'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-			'Target' => 'flex: 0 0 4ch; font-size:75%; text-align:right;',
-			'Athlete' => 'flex: 1 1 15em;font-size:50%;overflow:hidden;white-space:nowrap;',
-			'CountryDescr' => 'flex: 1 1 15em;',
-			'DistScore' => 'flex: 0 0 3ch; text-align:right; font-size:0.8em;',
-			'DistPos' => 'flex: 0 0 3ch; text-align:left; font-size:0.7em;',
-			'Score' => 'flex: 0 0 4ch; text-align:right; font-size:1.25em;',
-			'Gold' => 'flex: 0 0 3ch; text-align:right; font-size:1em;',
-			'XNine' => 'flex: 0 0 3ch; text-align:right; font-size:1em;',
-			'IdTarget' => 'border-top-left-radius:1em; border-top-right-radius:1em; width:100%; margin-top:1em; padding:0.5em; box-sizing:border-box; font-size:1em;',
-			'IdAthletes' => 'flex:2 0 20%; font-size:1.5em; text-align: center; padding:0 0.5em; ',
-			'IdPanel' => 'flex:2 0 20%; display:flex;flex-flow:row nowrap; justify-content:center;align-items:center',
-			'IdPicture' => 'flex:2 0 33%; text-align:center; ',
-			'IdPictureImg' => 'height:5em; padding:1rem; ',
-			'IdScore' => 'flex:0 0 auto; text-align:center; font-size:4rem; ',
+		'MainContent' => 'left:2vw;width:96vw;',
+		'Title' => '',
+		'TopRow' => 'margin-top:1vh',
+		'Divider' => 'display:block;height:0.5vh; background-color:gray;',
+		'BottomRow' => '',
+		'Loser' => 'opacity:0.3;',
+		'CountryCode' => 'flex: 0 0 3.5vw; font-size:0.8vw; margin-left:-3.75ch',
+		'FlagDiv' => 'flex: 0 0 4.35vw;',
+		'Flag' => 'height:2.8vw; border:0.05vw solid #888;box-sizing:border-box;',
+		'Target' => 'flex: 0 0 6vw; text-align:right;margin-right:0.5em;',
+		'Athlete' => 'flex: 1 1 20vw;font-size:0.5em;white-space:nowrap;overflow:hidden;',
+		'CountryDescr' => 'flex: 1 1 25vw;white-space:nowrap;overflow:hidden;',
+		'Arrows' => 'flex: 0 0 5vw; text-align:right; font-size:1em;margin-right:0.5rem;',
+		'DistScore' => 'flex: 0 0 5vw; text-align:right; font-size:0.8em;',
+		'DistPos' => 'flex: 0 0 3vw; text-align:left; font-size:0.7em;',
+		'Score' => 'flex: 0 0 6vw; text-align:right; font-size:1.25em;margin-right:0.5rem;',
+		'Gold' => 'flex: 0 0 3vw; text-align:right; font-size:1em;',
+		'XNine' => 'flex: 0 0 3vw; text-align:right; font-size:1em;',
+		'EndPoints' => 'flex: 0 0 14ch; text-align:left; font-size:0.8em;',
+		'IdTarget' => 'border-top-left-radius:1em; border-top-right-radius:1em; width:100%; margin-top:1em; padding:0.5em; box-sizing:border-box; font-size:1em;',
+		'IdAthletes' => 'flex:2 0 20%; font-size:1.5em; text-align: center; padding:0 0.5em; ',
+		'IdPanel' => 'flex:2 0 20%; display:flex;flex-flow:row nowrap; justify-content:center;align-items:center',
+		'IdPicture' => 'flex:2 0 33%; text-align:center; ',
+		'IdPictureImg' => 'height:5em; padding:1rem; ',
+		'IdScore' => 'flex:0 0 auto; text-align:center; font-size:4rem; ',
 		);
 	foreach($ret as $k=>$v) {
 		if(!isset($RMain[$k])) $RMain[$k]=$v;

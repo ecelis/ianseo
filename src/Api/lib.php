@@ -53,3 +53,29 @@ function BuildGroups($SesType='Q', $Session=0, $ElPhase=0, $ArrTargets=array(), 
 
 	return $ret;
 }
+
+function BuildDeviceGroups($ArrTargets=array(), $GroupName='') {
+	global $CFG;
+	static $Groups=array();
+	if(empty($Groups)) {
+		$q=safe_r_sql("select * from TargetGroups
+				where TgTournament={$_SESSION['TourId']}
+				".($GroupName ? " and TgGroup='$GroupName' " : '')."
+				order by TgTargetNo+0");
+		while($r=safe_fetch($q)) $Groups[$r->TgGroup][]=$r->TgTargetNo;
+	}
+
+	$ret='';
+
+	foreach($Groups as $Group=>$Targets) {
+		$ret.= '<tr>';
+		$ret.= '<th><img id="g'.$Group.'" title="'.get_text('CmdDelete', 'Tournament').'" alt="delete" src="'.$CFG->ROOT_DIR.'Common/Images/Enabled0.png" height="20" alt="del" onclick="DeleteGroup(this)"></th>';
+		$ret.= '<th>'.$Group.'</th>';
+		foreach($ArrTargets as $Target) {
+			$ret.= '<td><input type="radio" onclick="UpdateDeviceGroup(this)" name="tgt['.$Target.']" value="'.$Group.'" '.(in_array($Target, $Targets) ? ' checked="checked"' : '').'></td>';
+		}
+		$ret.= '</tr>';
+	}
+
+	return $ret;
+}

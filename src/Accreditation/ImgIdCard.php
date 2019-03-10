@@ -27,6 +27,7 @@ $Rs=safe_r_sql($Select);
 
 $RowBn=emptyIdCard($OrgRow=safe_fetch($Rs));
 
+
 $img=imagecreatetruecolor($RowBn->Settings["Width"]*2, $RowBn->Settings["Height"]*2);
 $ColWhi=imagecolorallocate($img, 255, 255, 255); // bianco
 $ColBlk=imagecolorallocate($img, 192, 192, 192); // black e sfondo
@@ -64,7 +65,7 @@ function draw_pip($r) {
 	$Options=unserialize($r->IceOptions);
 	$CardFile="{$r->IceCardType}-{$r->IceCardNumber}-{$r->IceOrder}";
 
-// 	error_reporting(E_ALL);
+ 	//error_reporting(E_ALL);
 
 	switch($r->IceType) {
 		case 'ToLeft':
@@ -77,13 +78,23 @@ function draw_pip($r) {
 			if(!isset($im)) {
 				$im=$CFG->DOCUMENT_PATH.'TV/Photos/'.$_SESSION['TourCodeSafe'].'-RandomImage-'.$CardFile.'.jpg';
 			}
+		case 'TgtSequence':
+			if(!isset($im)) {
+				$im=$CFG->DOCUMENT_PATH.'Common/Images/TgtSequence'.($r->IceContent=='Coloured' ? 'Col' : 'BW').'.png';
+			}
 		case 'Image':
 			if(!isset($im)) {
 				$im=$CFG->DOCUMENT_PATH.'TV/Photos/'.$_SESSION['TourCodeSafe'].'-Image-'.$CardFile.'.jpg';
 			}
 
 			if(file_exists($im)) {
-				if(!($im2=imagecreatefromjpeg($im))) $im2=imagecreatefromgif($im);
+				if(strtolower(substr($im, -4)) =='.jpg') {
+					$im2=imagecreatefromjpeg($im);
+				} elseif(strtolower(substr($im, -4)) =='.png') {
+					$im2=imagecreatefrompng($im);
+				} else {
+					$im2=imagecreatefromgif($im);
+				}
 				if($Options['H'] or $Options['W']) {
 					$h=$Options['H']*2;
 					$w=$Options['W']*2;
@@ -170,7 +181,7 @@ function draw_pip($r) {
 			if(!isset($Text)) {
 				switch($r->IceContent) {
 					case 'CatCode':$Text='CODE'; break;
-					case 'CatCode-CatDescr':$Text='CODE-Category'; break;
+					case 'CatCode-EvDescr':$Text='CODE-Category'; break;
 					case 'CatDescr':$Text='Category'; break;
 				}
 			}
@@ -246,6 +257,8 @@ function draw_pip($r) {
 			if(!isset($txt1)) $txt1=imagecreatefromjpeg($CFG->DOCUMENT_PATH.'Common/Images/qrcode.jpg');
 		case 'Flag':
 			if(!isset($txt1)) $txt1=imagecreatefromjpeg($CFG->DOCUMENT_PATH.'Common/Images/Flag.jpg');
+		case 'AccessGraphics':
+			if(!isset($txt1)) $txt1=imagecreatefrompng($CFG->DOCUMENT_PATH.'Common/Images/AccessCodes.png');
 		case 'Accomodation':
 			if(!isset($txt1)) $txt1=imagecreatefrompng($CFG->DOCUMENT_PATH.'Common/Images/Accomodations.png');
 			imagecopyresampled($img, $txt1, $Options['X']*2, $Options['Y']*2, 0, 0, $Options['W']*2, $Options['H']*2, imagesx($txt1), imagesy($txt1));
@@ -257,7 +270,7 @@ function draw_pip($r) {
 	}
 
 	return;
-
+	//
 	// Calculate the dimensions of the box containing the text
 	$font=dirname(dirname(__FILE__))."/Common/tcpdf/fonts/"
 		.$Fonts[$RowBn->Settings[$Field.'_Font']]

@@ -17,6 +17,7 @@ require_once('Common/Lib/Fun_Modules.php');
 require_once('Common/Lib/ArrTargets.inc.php');
 require_once('Common/Lib/Obj_RankFactory.php');
 require_once('Final/Fun_MatchTotal.inc.php');
+require_once(dirname(__FILE__).'/Lib.php');
 
 $CompId = 0;
 $CompCode = (empty($_REQUEST['compcode']) ? '' : $_REQUEST['compcode']);
@@ -57,20 +58,13 @@ function SendResult($Result) {
 
 	UpdateLastSeen();
 
-	header('Access-Control-Allow-Origin: *');
-	header('Content-Type: application/json');
-
-	echo $_REQUEST["callback"] . '(' . json_encode($Result) . ')';
-	exit();
+	JsonOut($Result, 'callback');
 }
 
 function SendResetIsk($DevCode, $Version, $IsPro) {
 	global $DEVICE;
 	// resets the status of the device to "wait for QrCode"
 	safe_w_sql("update IskDevices set IskDvState=2 where IskDvCode='$DevCode'");
-
-	header('Access-Control-Allow-Origin: *');
-	header('Content-Type: application/json');
 
 	$DefAnswer=array('onlypro'=>true, 'devicecode'=>$DevCode, 'error' => get_text('ISK-OnlyProAloud', 'Api'));
 	if(!$IsPro) {
@@ -86,29 +80,9 @@ function SendResetIsk($DevCode, $Version, $IsPro) {
 
 	}
 
-	echo $_REQUEST["callback"] . '('.json_encode($DefAnswer).')';
-	exit();
+	JsonOut($DefAnswer, 'callback');
 }
 
-function getGroupedTargets($TargetNo, $Session=0, $SesType='Q', $SesPhase='') {
-	global $CompId;
-	// get all targets associated/grouped together with the target requested
-	$SubSelect="select TgGroup, TgSession, TgSesType
-		from TargetGroups
-		where TgTournament=$CompId
-		and TgTargetNo='$TargetNo'";
-	if($SesType!='Q') {
-		$SubSelect.=" and TgSesType='{$SesType}{$SesPhase}'";
-	}
-	$Tmp=array();
-	$q=safe_r_sql("Select TgTargetNo
-		from TargetGroups
-		where TgTournament=$CompId
-		and (TgGroup, TgSession, TgSesType)=($SubSelect) order by TgTargetNo");
-	while($r=safe_fetch($q)) $Tmp[]=$r->TgTargetNo;
-	if($Tmp) $TargetNo=implode("','", $Tmp);
-	return $TargetNo;
-}
 
 
 /**
@@ -124,8 +98,16 @@ function getQrCode($States = '1,2,3') {
 		if(!getModuleParameter('ISK', 'Mode', '', $r->IskDvTournament)) {
 			return "";
 		}
+
+		// Get the sequence if any...
+		$tmp = getModuleParameter('ISK', 'Sequence', array("type"=>'', "session"=>'', "distance"=>'',  "maxdist"=>'', "end"=>''),$r->IskDvTournament);
+		if(!isset($tmp["type"])) {
+			delModuleParameter('ISK', 'Sequence', $r->IskDvTournament);
+			$tmp = getModuleParameter('ISK', 'Sequence', array("type"=>'', "session"=>'', "distance"=>'',  "maxdist"=>'', "end"=>''),$r->IskDvTournament);
+		}
+
 		// check if the device has a target assigned
-		if(!$r->IskDvTarget) {
+		if(!($r->IskDvTarget and $tmp["type"])) {
 			// reset the device!
 			SendResetIsk($r->IskDvCode, $r->IskDvVersion, $r->IskDvAppVersion);
 		}
@@ -134,11 +116,24 @@ function getQrCode($States = '1,2,3') {
 		$Opts['u']=getModuleParameter('ISK', 'ServerUrl', '', $r->IskDvTournament).$CFG->ROOT_DIR; // .'Api/ISK-Lite/';
 		$Opts['c']=$r->ToCode;
 
-		$tmp = getModuleParameter('ISK', 'Sequence', array("type"=>'', "session"=>'', "distance"=>'',  "maxdist"=>'', "end"=>''),$r->IskDvTournament);
 		switch ($tmp["type"]) {
 			case 'Q':
 				// check if there is a target assigned to that target...
 				$q=safe_r_sql("select QuId from Qualifications inner join Entries on QuId=EnId and EnTournament={$r->IskDvTournament} where QuSession='{$tmp["session"]}' and substr(QuTargetNo, -4,3)+0= $r->IskDvTarget");
+				if(!safe_num_rows($q)) {
+					// no available targets !
+					SendResetIsk($r->IskDvCode, $r->IskDvVersion, $r->IskDvAppVersion);
+				}
+				$Opts['st'] = 'Q';
+				$Opts['s'] = (string) $tmp["session"];
+				$Opts['d'] = (string) $tmp["distance"];
+				$Opts['t'] = str_pad($r->IskDvTarget,3,"0",STR_PAD_LEFT);
+				if(intval($tmp["end"]))
+					$Opts['e'] = (string) $tmp["end"];
+				break;
+			case 'E':
+				// check if there is a target assigned to that target...
+				$q=safe_r_sql("select ElId from Eliminations inner join Entries on QuId=EnId and EnTournament={$r->IskDvTournament} where QuSession='{$tmp["session"]}' and substr(QuTargetNo, -4,3)+0= $r->IskDvTarget");
 				if(!safe_num_rows($q)) {
 					// no available targets !
 					SendResetIsk($r->IskDvCode, $r->IskDvVersion, $r->IskDvAppVersion);
@@ -157,7 +152,8 @@ function getQrCode($States = '1,2,3') {
 					FROM FinSchedule
 					INNER JOIN Grids ON FSMatchNo=GrMatchNo
 					WHERE FSTournament=" . $r->IskDvTournament . " AND FsTeamEvent=" . ($tmp["type"]=='I' ? "0":"1") . "
-					AND CONCAT(FSScheduledDate,FSScheduledTime)=" . StrSafe_DB($tmp["session"]) . " AND FSTarget=" . StrSafe_DB(str_pad($r->IskDvTarget,3,"0",STR_PAD_LEFT)));
+					AND CONCAT(FSScheduledDate,FSScheduledTime)=" . StrSafe_DB($tmp["session"]) . " AND FSTarget=" . StrSafe_DB(str_pad($r->IskDvTarget,3,"0",STR_PAD_LEFT))."
+					order by FsMatchNo");
 				if($r2=safe_fetch($q) and $r2->FSMatchNo%2==0) {
 					$Opts['s'] = $r2->FSEvent;
 					$Opts['d'] = (string) $r2->FSMatchNo;
@@ -190,7 +186,7 @@ function checkDeviceApp($chkCompetition) {
 			$iskCode = base_convert(base_convert($r->IskDvCode,36,10)+1,10,36);
 		}
 		safe_w_SQL("INSERT INTO IskDevices
-			(IskDvTournament, IskDvDevice, IskDvCode, IskDvVersion, IskDvAppVersion, IskDvState, IskDvIpAddress, IdLastSeen) VALUES
+			(IskDvTournament, IskDvDevice, IskDvCode, IskDvVersion, IskDvAppVersion, IskDvState, IskDvIpAddress, IskDvLastSeen) VALUES
 			('{$CompId}', '{$DeviceId}', '{$iskCode}', '{$Version}', {$AppVersion}, 0, '" . $_SERVER["REMOTE_ADDR"] . "', '".date('Y-m-d H:i:s')."')");
 
 		$q=safe_r_sql("SELECT * FROM IskDevices WHERE IskDvDevice='{$DeviceId}'");
@@ -215,7 +211,7 @@ function checkDeviceApp($chkCompetition) {
 			}
 		}
 		safe_w_SQL("UPDATE IskDevices SET
-			IskDvIpAddress='" . $_SERVER["REMOTE_ADDR"] . "', IdLastSeen='".date('Y-m-d H:i:s')."' $AppVersion $Version
+			IskDvIpAddress='" . $_SERVER["REMOTE_ADDR"] . "', IskDvLastSeen='".date('Y-m-d H:i:s')."' $AppVersion $Version
 			WHERE IskDvDevice='{$DeviceId}'");
 		if($iskModePro && $chkCompetition && $DEVICE->IskDvTournament != $CompId) {
 			SendResetIsk($DEVICE->IskDvCode, $DEVICE->IskDvVersion, $DEVICE->IskDvAppVersion);
@@ -233,7 +229,7 @@ function UpdateLastSeen() {
 	global $DeviceId;
 	if(!$DeviceId) return;
 	safe_w_SQL("UPDATE IskDevices SET
-		IdLastSeen='".date('Y-m-d H:i:s')."'
+		IskDvLastSeen='".date('Y-m-d H:i:s')."'
 		WHERE IskDvDevice='{$DeviceId}'");
 }
 
@@ -280,8 +276,9 @@ function getQualificationTotals($EnId, $dist=1, $end=1, $arr4End, $end4Dist, $G,
 function importQualifications($EnId, $dist=1, $end=1) {
 	global $CompId;
 	$amended=array();
-	$SQL="SELECT QuId, EnDivision, EnClass, EnCountry, EnCountry2, EnCountry3, IF(EnCountry2=0,EnCountry,EnCountry2) as TeamCode, EnIndClEvent, EnTeamClEvent, EnIndFEvent, (EnTeamFEvent+EnTeamMixEvent) as EnTeamFEvent,
-			QuTargetNo, QuD{$dist}Arrowstring as Arrowstring, IskDtArrowstring, IskDtEndNo, DIDistance, DIEnds, DIArrows, ToGoldsChars, ToXNineChars from Qualifications
+	$SQL="SELECT QuId, EnDivision, EnClass, EnSubClass, EnCountry, EnCountry2, EnCountry3, IF(EnCountry2=0,EnCountry,EnCountry2) as TeamCode, EnIndClEvent, EnTeamClEvent, EnIndFEvent, (EnTeamFEvent+EnTeamMixEvent) as EnTeamFEvent,
+			QuTargetNo, QuD{$dist}Arrowstring as Arrowstring, IskDtArrowstring, IskDtEndNo, DIDistance, DIEnds, DIArrows, ToGoldsChars, ToXNineChars 
+		from Qualifications
 		INNER JOIN Entries ON QuId=EnId
 		INNER JOIN Tournament ON ToId=EnTournament
 		INNER JOIN DistanceInformation ON DITournament=EnTournament AND DISession=QuSession AND DIDistance=".StrSafe_DB($dist)." AND DIType='Q'
@@ -323,20 +320,20 @@ function importQualifications($EnId, $dist=1, $end=1) {
 			Obj_RankFactory::create('DivClass',array('tournament'=>$CompId,'events'=>$r->EnDivision.$r->EnClass,'dist'=>0))->calculate();
 		}
 		if($r->EnTeamClEvent!=0) {
-			MakeTeams($r->TeamCode, $r->EnDivision.$r->EnClass);
+			MakeTeams($r->TeamCode, $r->EnDivision.$r->EnClass, $CompId);
 		}
 
 		$SQL = "SELECT DISTINCT EvCode, EvTeamEvent, EvTeamCreationMode
 			FROM Events
-			INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent=EcTeamEvent AND EvTournament=EcTournament
-			WHERE EvTournament={$CompId} AND EcClass='{$r->EnClass}' AND EcDivision='{$r->EnDivision}'
+			INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent=if(EcTeamEvent=0, 0, 1) AND EvTournament=EcTournament
+			WHERE EvTournament={$CompId} AND EcClass='{$r->EnClass}' AND EcDivision='{$r->EnDivision}' and if(EcSubClass='', true, EcSubClass='{$r->EnSubClass}')
 			ORDER BY EvTeamEvent, EvCode";
 		$q2=safe_r_sql($SQL);
 		while($r2=safe_fetch($q2)) {
 			if($r2->EvTeamEvent==0 && $r->EnIndFEvent!=0) {
 				Obj_RankFactory::create('Abs',array('tournament'=>$CompId,'events'=>$r2->EvCode,'dist'=>$dist))->calculate();
 				Obj_RankFactory::create('Abs',array('tournament'=>$CompId,'events'=>$r2->EvCode,'dist'=>0))->calculate();
-				ResetShootoff($r2->EvCode,0,0);
+				ResetShootoff($r2->EvCode,0,0, $CompId);
 			} else {
 				if($r->EnTeamFEvent!=0) {
 					$calculateTeam=$r->TeamCode;
@@ -346,7 +343,7 @@ function importQualifications($EnId, $dist=1, $end=1) {
 						$calculateTeam=$r->EnCountry2;
 					elseif($r2->EvTeamCreationMode==3)
 						$calculateTeam=$r->EnCountry3;
-					MakeTeamsAbs($calculateTeam, $r->EnDivision, $r->EnClass);
+					MakeTeamsAbs($calculateTeam, $r->EnDivision, $r->EnClass, $CompId);
 				}
 			}
 		}
@@ -376,7 +373,6 @@ function getMatchTotals($Event, $MatchNo, $IndTeam, $end=1, $arr4End, $end4Match
 			ORDER BY IskDtEndNo";
 		$q=safe_r_sql($SQL);
 		while($r2=safe_fetch($q)){
-// 			debug_svela($r2);
 			if($r2->IskDtEndNo<=$end4Match)
 				$curArrowString = substr_replace($curArrowString, $r2->IskDtArrowstring, ($r2->IskDtEndNo-1)*$arr4End, $arr4End);
 			else

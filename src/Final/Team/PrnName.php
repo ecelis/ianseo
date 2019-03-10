@@ -2,6 +2,7 @@
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once('Common/Fun_Phases.inc.php');
 require_once('Common/Lib/Fun_PrintOuts.php');
+checkACL(AclTeams, AclReadOnly);
 
 $TeamLeaf=false;
 
@@ -12,7 +13,7 @@ if(!empty($_REQUEST['TestCountries'])) {
 	. " '' EvCode, '' EvEventName, '' EvFinalFirstPhase, '' GrPhase, "
 	. " '' TfTarget, '' GrMatchNo, "
 	. " FlCode CoCode, concat(FlCode,' ', IF(co.CoName,co.CoName,'TEST')) Athlete, 1 AS Rank, 'test1|test2|test3' CoName, "
-	. " '' s8, '' s4, '' s2, '' sBr, '' sGo "
+	. " '' s16, '' s8, '' s4, '' s2, '' sBr, '' sGo "
 	. " FROM Flags "
 	. " left join (select CoCode, CoName from Countries group by CoCode) co on CoCode=FlCode "
 	. " Where FlSVG>'' and FlTournament=-1 "
@@ -30,7 +31,7 @@ if(!empty($_REQUEST['TestCountries'])) {
 	. " '' TfTarget, '' GrMatchNo, "
 	. " CoCode, Countries.CoName Athlete, 1 AS Rank, 'test1|test2|test3' CoName, "
 	. " FlSVG, FlJPG, "
-	. " '' s8, '' s4, '' s2, '' sBr, '' sGo "
+	. " '' s16, '' s8, '' s4, '' s2, '' sBr, '' sGo "
 	. " FROM Countries "
 	. " INNER JOIN Entries on EnCountry=CoId "
 	. " left join Flags on FlTournament={$_SESSION['TourId']} and CoCode=FlCode "
@@ -39,31 +40,31 @@ if(!empty($_REQUEST['TestCountries'])) {
 	;
 	$TeamLeaf=true;
 } else {
-	$MyQuery = 'SELECT '
-		. ' EvCode, EvEventName, EvFinalFirstPhase, GrPhase, '
-		. ' TfTarget, GrMatchNo, '
-		. ' CoCode, CoName Athlete, TeRank AS Rank, group_concat(concat(upper(EnFirstname), " ", EnName) separator "|") CoName, '
-		. ' NULLIF(s8.FSTarget,\'\') s8, NULLIF(s4.FSTarget,\'\') s4, NULLIF(s2.FSTarget,\'\') s2, NULLIF(sb.FSTarget,\'\') sBr, NULLIF(sg.FSTarget,\'\') sGo '
-		. ' '
-		. ' FROM Events'
-		. ' INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament '
-		. ' INNER JOIN Grids ON TfMatchNo=GrMatchNo /* AND GrPhase<=EvFinalFirstPhase */ '
-		. ' LEFT JOIN Teams ON TfTeam=TeCoId AND TfTournament=TeTournament AND TfEvent=TeEvent and TfSubTeam=TeSubTeam AND TeFinEvent=1 '
-		. ' LEFT JOIN Countries on TfTeam=CoId AND TfTournament=CoTournament'
-		. ' left join TeamFinComponent on  TfcCoId=CoId and TfcSubTeam=TeSubTeam and TfcTournament=EvTournament and TfcEvent=EvCode '
-		. ' left join Entries on TfcId=EnId '
-		. ' LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(EvFinalFirstPhase=8,TfMatchNo,-256)=s8.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(EvFinalFirstPhase=4,TfMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(EvFinalFirstPhase=2,TfMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo'
-		. ' LEFT JOIN FinSchedule sb ON EvCode=sb.FSEvent AND EvTeamEvent=sb.FSTeamEvent AND EvTournament=sb.FSTournament AND FLOOR(s2.FSMatchNo/2)=sb.FSMatchNo'
-		. ' LEFT JOIN FinSchedule sg ON EvCode=sg.FSEvent AND EvTeamEvent=sg.FSTeamEvent AND EvTournament=sg.FSTournament AND FLOOR(s2.FSMatchNo/2)-2=sg.FSMatchNo'
-		. ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 ';
-		$MyQuery.=' AND EvFinalFirstPhase=GrPhase ';
-		if (!empty($_REQUEST['Event'])) $MyQuery.= CleanEvents($_REQUEST['Event'], 'EvCode') . ' ';
+	$MyQuery = 'SELECT EvCode, EvEventName, EvFinalFirstPhase, concat(TeCoId,\'-\',TeSubTeam,\'-\',TeEvent) as EnId, GrPhase, TfTarget, GrMatchNo, 
+	    CoCode, CoName Athlete, TeRank AS Rank, group_concat(concat(upper(EnFirstname), " ", EnName) separator "|") CoName, 
+		NULLIF(s16.FSTarget,\'\') s16, NULLIF(s8.FSTarget,\'\') s8, NULLIF(s4.FSTarget,\'\') s4, NULLIF(s2.FSTarget,\'\') s2, NULLIF(sb.FSTarget,\'\') sBr, NULLIF(sg.FSTarget,\'\') sGo 
+        FROM Events
+		INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament 
+		INNER JOIN Grids ON TfMatchNo=GrMatchNo 
+		inner JOIN Teams ON TfTeam=TeCoId AND TfTournament=TeTournament AND TfEvent=TeEvent and TfSubTeam=TeSubTeam AND TeFinEvent=1 
+		inner JOIN Countries on TfTeam=CoId AND TfTournament=CoTournament
+		inner join TeamFinComponent on  TfcCoId=CoId and TfcSubTeam=TeSubTeam and TfcTournament=EvTournament and TfcEvent=EvCode 
+		inner join Entries on TfcId=EnId 
+		LEFT JOIN FinSchedule s16 ON EvCode=s16.FSEvent AND EvTeamEvent=s16.FSTeamEvent AND EvTournament=s16.FSTournament AND IF(GrPhase=16,TfMatchNo,-256)=s16.FSMatchNo
+		LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(GrPhase=8,TfMatchNo,FLOOR(s16.FSMatchNo/2))=s8.FSMatchNo
+		LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(GrPhase=4,TfMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo
+		LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(GrPhase=2,TfMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo
+		LEFT JOIN FinSchedule sb ON EvCode=sb.FSEvent AND EvTeamEvent=sb.FSTeamEvent AND EvTournament=sb.FSTournament AND FLOOR(s2.FSMatchNo/2)=sb.FSMatchNo
+		LEFT JOIN FinSchedule sg ON EvCode=sg.FSEvent AND EvTeamEvent=sg.FSTeamEvent AND EvTournament=sg.FSTournament AND FLOOR(s2.FSMatchNo/2)-2=sg.FSMatchNo
+		WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 ';
+		if (!empty($_REQUEST['Event'])){
+            $MyQuery.= CleanEvents($_REQUEST['Event'], 'EvCode') . ' ';
+        }
 		if (isset($_REQUEST['Phase']) && preg_match("/^[0-9]{1,2}$/i",$_REQUEST["Phase"])) {
 			$MyQuery.= ' AND (TfEvent, TfTeam, TfSubTeam) IN (SELECT DISTINCT TfEvent,TfTeam, TfSubTeam FROM TeamFinals INNER JOIN Grids ON TfMatchNo=GrMatchNo WHERE TfTournament='.$_SESSION['TourId'].' and TfTie != 2 and grPhase=' . $_REQUEST['Phase']  . (!empty($_REQUEST['Event']) ? CleanEvents($_REQUEST['Event'], 'TfEvent'):''). ')';
 		}
 		$MyQuery .= ' Group By EvCode, GrPhase, TfMatchNo ';
+
 		$MyQuery .= ' ORDER BY EvCode, GrPhase DESC, TfMatchNo ASC, TfcOrder';
 }
 $Rs=safe_r_sql($MyQuery);

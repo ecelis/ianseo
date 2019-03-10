@@ -24,7 +24,7 @@ function SetAccreditation($Id, $SetRap=0, $return='RicaricaOpener', $TourId=0, $
 				. StrSafe_DB($TourId) . ","
 				. StrSafe_DB(date('Y-m-d H:i')) . ","
 				. "INET_ATON('" . ($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1') . "'), "
-				. StrSafe_DB($SetRap) . ""
+				. StrSafe_DB($SetRap)
 			. ") ON DUPLICATE KEY UPDATE "
 				. "AEWhen=" . StrSafe_DB(date('Y-m-d H:i')) . ","
 				. "AEFromIp=INET_ATON('" . ($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1') . "') ";
@@ -71,7 +71,219 @@ function getAccrQuery($Id=0) {
 		LEFT JOIN AccOperationType ON m.AEOperation=AOTId
 		LEFT JOIN Photos ON EnId=PhEnId
 		WHERE ".implode(' AND ', $Where). "
-		ORDER BY HasPhoto desc, HasPaid desc, IsAccredited desc, QuSession ASC, TargetNo ASC, EnFirstName ASC , EnName ASC , CoCode ASC ";
+		ORDER BY HasPhoto desc, HasPaid desc, IsAccredited desc, QuSession ASC, TargetNo ASC, EnFirstName ASC , EnName ASC , CoCode ASC, EnCode ";
 }
 
+function CheckAccreditationCode($EnCode, $Options=array(), $OnlyTour=false) {
+	// if EnCode starts with '$' then it is an EnId
+	if (substr($EnCode,0,1)=='$') {
+		return intval(substr($EnCode,1));
+	}
 
+	if(empty($Options)) {
+		$Options=array($_SESSION['TourId'] => array());
+	}
+
+
+	$WAbib=preg_split("/['-]/", $EnCode);
+
+	$tmp=stripslashes($EnCode);
+
+	if (is_numeric($tmp)) {
+		$bib=ltrim($tmp,'0');
+	} else {
+		$bib = $tmp;
+	}
+
+	$ret=array();
+	foreach($Options as $TourId => $Sessions) {
+		if($Sessions and !$OnlyTour) {
+			$Where="EnTournament=$TourId and QuSession in (" . implode(',', $Sessions) . ")";
+		} else {
+			$Where="EnTournament=$TourId";
+			if($Sessions) $GLOBALS['SESSION_TRICK']=$Sessions;
+		}
+
+		if($ID=CheckBibIsOk($bib, $Where, $WAbib)) {
+			return $ID;
+		}
+
+		// Normal check failed, check against all the accreditation QRcodes for this competition...
+		$q=safe_r_sql("select * from IdCardElements where IceType='AthQrCode' and IceContent!='' and IceTournament=$TourId");
+		while($r=safe_fetch($q)) {
+			$CardsMatched=getModuleParameter('Accreditation', 'Matches-'.$r->IceCardType.'-'.$r->IceCardNumber, '', $TourId, true);
+
+			$RegExp=preg_quote($r->IceContent, '/');
+
+			$iceContent=getIceRegExpMatches($r->IceContent);
+
+			$RegExp=str_replace(array('\\{ENCODE\\}', '\\{COUNTRY\\}','\\{DIVISION\\}','\\{CLASS\\}', '\\{TOURNAMENT\\}'), '(.+?)', $RegExp);
+			unset($Matches);
+
+			preg_match('/^'.$RegExp.'$/', $bib, $Matches);
+			$BibCode=($iceContent['encode']!=-1 && isset($Matches[$iceContent['encode']]) ? $Matches[$iceContent['encode']] : 0);
+			$Division='';
+			$Class='';
+			$Country='';
+			$ToCode='';
+
+			if($BibCode) {
+				$Continue=true;
+				if($iceContent['country']!=-1) {
+					if(isset($Matches[$iceContent['country']])) {
+						$Country=$Matches[$iceContent['country']];
+					} else {
+						$Continue=false;
+					}
+				}
+				if($iceContent['division']!=-1) {
+					if(isset($Matches[$iceContent['division']])) {
+						$Division=$Matches[$iceContent['division']];
+					} else {
+						$Continue=false;
+					}
+				}
+				if($iceContent['class']!=-1) {
+					if(isset($Matches[$iceContent['class']])) {
+						$Class=$Matches[$iceContent['class']];
+					} else {
+						$Continue=false;
+					}
+				}
+				if($iceContent['tocode']!=-1) {
+					if(isset($Matches[$iceContent['tocode']])) {
+						$ToCode=$Matches[$iceContent['tocode']];
+					} else {
+						$Continue=false;
+					}
+				}
+				$CheckCode=str_replace(array('{ENCODE}', '{COUNTRY}','{DIVISION}','{CLASS}','{TOURNAMENT}'), array($BibCode, $Country, $Division, $Class, $ToCode), $r->IceContent);
+
+					// check the cardtype matches the requested bib
+				if($Continue) {
+					$sql="select * from Entries where EnCode='$BibCode' and EnTournament=$TourId ".($CardsMatched ? "and concat(EnDivision,EnClass) in ('".str_replace(",", "','", $CardsMatched)."')" : "");
+					$d=safe_r_SQL($sql);
+
+					if(safe_num_rows($d) and $CheckCode==$EnCode and $ID=CheckBibIsOk($BibCode, $Where, $WAbib, $Country, $Division)) {
+						if(!in_array($ID, $ret)) $ret[array_search($TourId, array_keys($Options))]= $ID;
+					}
+				}
+			}
+		}
+
+	}
+
+	if($ret) {
+		foreach($ret as $id) {
+			return $id;
+		}
+	}
+
+	// fallback!
+	return 0;
+}
+
+function getIceRegExpMatches($IceContent) {
+	unset($Elements);
+	preg_match_all('/(\\{[A-Z]+\\})/sim', $IceContent, $Elements);
+
+	$ret=array(
+		'encode' => '-1',
+		'country' => '-1',
+		'division' => '-1',
+		'class' => '-1',
+		'tocode' => '-1',
+	);
+	foreach($Elements[0] as $k => $v) {
+		switch($v) {
+			case '{ENCODE}':
+				$ret['encode']=$k+1;
+				break;
+			case '{COUNTRY}':
+				$ret['country']=$k+1;
+				break;
+			case '{DIVISION}':
+				$ret['division']=$k+1;
+				break;
+			case '{CLASS}':
+				$ret['class']=$k+1;
+				break;
+			case '{TOURNAMENT}':
+				$ret['tocode']=$k+1;
+				break;
+		}
+	}
+	return $ret;
+}
+
+function CheckBibIsOk($Bib, $Where, $WAbib = null, $Country=null, $Division=null, $Class=null) {
+	$Select = "SELECT EnId FROM Entries INNER JOIN Qualifications ON EnId=QuId inner join Countries on CoId=EnCountry WHERE EnCode=" . StrSafe_DB($Bib) . " AND $Where";
+	if($Country) {
+		$Select.=' and CoCode='. StrSafe_DB($Country);
+	}
+	if($Division) {
+		$Select.=' and EnDivision='. StrSafe_DB($Division);
+	}
+	if($Class) {
+		$Select.=' and EnClass='. StrSafe_DB($Class);
+	}
+	if(!empty($GLOBALS['SESSION_TRICK'])) {
+		$tmp=array();
+		foreach($GLOBALS['SESSION_TRICK'] as $s) {
+			if($s[0]=='Q') {
+				$tmp[]=substr($s,-1);
+			}
+		}
+		if($tmp) {
+			$Select.=' order by QuSession in ('.implode(',', $tmp).') desc';
+		}
+
+	}
+
+
+	$RsSel =safe_r_sql($Select);
+
+	if (safe_num_rows($RsSel)==1 or (safe_num_rows($RsSel) and !empty($GLOBALS['SESSION_TRICK']))) {
+		// ok
+		$row=safe_fetch($RsSel);
+		 return $row->EnId;
+	} elseif (safe_num_rows($RsSel)>1) {
+		// needs to select which one...
+		header('Location: SelArcher.php?bib=' . $Bib);
+		exit;
+	} elseif(!empty($WAbib) and count($WAbib)==3) {
+		// coming from  WA bib?
+		$Select = "SELECT EnId FROM Entries INNER JOIN Qualifications ON EnId=QuId 
+			WHERE EnCode=" . StrSafe_DB($WAbib[0]) . " 
+				AND $Where
+                AND EnDivision=".StrSafe_DB($WAbib[1])." 
+                AND EnClass=".StrSafe_DB($WAbib[2]);
+		//print $Select;exit;
+		$RsSel =safe_r_sql($Select);
+		if (safe_num_rows($RsSel)==1) {
+			// ok
+			$row=safe_fetch($RsSel);
+			return $row->EnId;
+		}
+	}
+	return false;
+}
+
+function GateLog($EnId, $Status, $TourId, $Direction=1) {
+	safe_w_SQL("insert into GateLog set 
+		GLEntry=$EnId,
+		GLDateTime=now(),
+		GLIP=".StrSafe_DB($_SERVER['REMOTE_ADDR']).",
+		GLDirection='$Direction',
+		GLTournament=$TourId,
+		GLStatus=$Status");
+}
+
+function GetGateAccess($EnId) {
+	$q=safe_r_sql("select sum(GLDirection) as HowMany from GateLog where GLEntry=$EnId");
+	if($r=safe_fetch($q)) {
+		return $r->HowMany;
+	}
+
+	return 0;
+}

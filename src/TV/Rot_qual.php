@@ -18,9 +18,9 @@ if(isset($TVsettings->TVPSession) && $TVsettings->TVPSession>0)
 	$options['session'] = $TVsettings->TVPSession;
 
 $Columns=(isset($TVsettings->TVPColumns) && !empty($TVsettings->TVPColumns) ? explode('|',$TVsettings->TVPColumns) : array());
-$ViewTeams=((in_array('TEAM', $Columns) or in_array('ALL', $Columns)) and $TourType != 14);
+$ViewTeams=((in_array('TEAM', $Columns) or in_array('ALL', $Columns)) and $TourType != 14 and $TourType != 32);
 $ViewDists=((in_array('DIST', $Columns) or in_array('ALL', $Columns)) and $TVsettings->TVPViewPartials);
-$View10s=((in_array('10', $Columns) or in_array('ALL', $Columns)) and $TourType != 14);
+$View10s=((in_array('10', $Columns) or in_array('ALL', $Columns)) and $TourType != 14 and $TourType != 32);
 $ViewX9s=(in_array('X9', $Columns) or in_array('ALL', $Columns));
 $comparedTo=preg_grep('/^COMP:/', $Columns);
 if(!empty($comparedTo))
@@ -135,7 +135,7 @@ foreach($rankData['sections'] as $IdEvent => $data) {
 			for ($i=1; $i<=$rankData['meta']['numDist']; ++$i) {
 				if($data['meta']['fields']['dist_'.$i]=='-') continue;
 				$bits=explode('|', $archer['dist_'.$i]);
-				$tmp.= '<td class="NumberAlign">' . str_pad($bits[1],3," ",STR_PAD_LEFT) . '<span class="piccolo">/' . str_pad(($TourType != 14 ? $bits[0] : $bits[3]),2," ",STR_PAD_LEFT) . '</span></td>';
+				$tmp.= '<td class="NumberAlign">' . str_pad($bits[1],3," ",STR_PAD_LEFT) . '<span class="piccolo">/' . str_pad((($TourType != 14 and $TourType != 32) ? $bits[0] : $bits[3]),2," ",STR_PAD_LEFT) . '</span></td>';
 			}
 		}
 
@@ -146,7 +146,7 @@ foreach($rankData['sections'] as $IdEvent => $data) {
 		if($ViewX9s) $tmp.= '<td class="NumberAlign">' . $archer['xnine'] . '</td>';
 		$tmp.= '</tr>' . "\n";
 
-		// COMMENTATO PER VEGAS
+		// COMMENTATO PER NFAA
 		if($archer['rank']<=3)
 		{
 			if(isset($data['items'][5]) && $data['items'][5]['rank']==1 && $key>0)

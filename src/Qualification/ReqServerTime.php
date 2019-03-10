@@ -3,11 +3,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession() || !isset($_REQUEST['When']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['When'])) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclQualification, AclReadOnly,false);
 
 	if (!is_numeric($_REQUEST['When']) || $_REQUEST['When']<0)
 	{
@@ -24,8 +24,8 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<hour>' . $TxtHour . '</hour>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<hour>' . $TxtHour . '</hour>';
+	print '</response>';
 ?>

@@ -1,7 +1,7 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	$competitions = array("G1608065","G1608038","N1610002");
+	$competitions = array("G1709103", "G1704071", "N1704112");
 
 	$BonusDecode = array("T","T","T");
 

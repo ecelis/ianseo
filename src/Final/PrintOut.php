@@ -2,48 +2,12 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
 	require_once('Common/Fun_FormatText.inc.php');
-
+    checkACL(array(AclIndividuals, AclTeams), AclReadOnly);
 
 
 	$JS_SCRIPT=array(
-		'<script type="text/javascript">',
-		'	function CheckIfOris(chkValue,FormName,Individual)',
-		'	{',
-		'		if(Individual)',
-		'		{',
-		'			if(document.getElementById(chkValue).checked)',
-		'				document.getElementById(FormName).action = \'Individual/OrisIndividual.php\';',
-		'			else',
-		'				document.getElementById(FormName).action = \'Individual/PrnIndividual.php\';',
-		'		}',
-		'		else',
-		'		{',
-		'			if(document.getElementById(chkValue).checked)',
-		'				document.getElementById(FormName).action = \'Team/OrisTeam.php\';',
-		'			else',
-		'				document.getElementById(FormName).action = \'Team/PrnTeam.php\';',
-		'		}',
-		'',
-		'	}',
-		'	function CheckIfLabel(chkValue,FormName,Individual)',
-		'	{',
-		'		if(Individual)',
-		'		{',
-		'			if(document.getElementById(chkValue).checked)',
-		'				document.getElementById(FormName).action = \'Individual/PrnLabels.php\';',
-		'			else',
-		'				document.getElementById(FormName).action = \'Individual/PrnIndividual.php\';',
-		'		}',
-		'		else',
-		'		{',
-		'			if(document.getElementById(chkValue).checked)',
-		'				document.getElementById(FormName).action = \'Team/PrnLabels.php\';',
-		'			else',
-		'				document.getElementById(FormName).action = \'Team/PrnTeam.php\';',
-		'		}',
-		'',
-		'	}',
-	'</script>',
+		'<script src="'.$CFG->ROOT_DIR.'Common/js/jquery-3.2.1.min.js"></script>',
+		'<script src="PrintOut.js"></script>',
 		);
 
 	$PAGE_TITLE=get_text('PrintList','Tournament');
@@ -116,7 +80,7 @@
 	echo '<tr class="Divider"><td  colspan="4"></td></tr>';
 	echo '<tr>';
 	echo '<td class="Center" colspan="2" width="50%">';
-	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 ORDER BY EvProgr";
+	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 and EvCodeParent='' ORDER BY EvProgr";
 	$Rs = safe_r_sql($MySql);
 	if(safe_num_rows($Rs)>0)
 	{
@@ -140,7 +104,7 @@
 	}
 	echo '</td>';
 	echo '<td class="Center" colspan="2" width="50%">';
-	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 ORDER BY EvProgr";
+	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 and EvCodeParent='' ORDER BY EvProgr";
 	$Rs = safe_r_sql($MySql);
 	if(safe_num_rows($Rs)>0)
 	{
@@ -172,11 +136,11 @@
 	echo '<tr>';
 	//Eventi
 	echo '<td class="Center" width="50%">';
-	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 ORDER BY EvProgr";
+	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 and EvCodeParent='' ORDER BY EvProgr";
 	$Rs = safe_r_sql($MySql);
 	if(safe_num_rows($Rs)>0)
 	{
-		echo get_text('Event') . '<br><select name="Event[]" multiple="multiple" size="10">';
+		echo get_text('Event') . '<br><select id="IndividualEvents" name="Event[]" multiple="multiple" size="10">';
 		echo '<option value=".">' . get_text('AllEvents')  . '</option>';
 		while($MyRow=safe_fetch($Rs))
 			echo '<option value="' . $MyRow->EvCode . '">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';
@@ -190,6 +154,7 @@
 	echo '<input name="ShowSchedule" type="checkbox" value="1" checked>&nbsp;' . get_text('ManFinScheduleInd') . '<br>';
 	echo '<input name="ShowSetArrows" type="checkbox" value="1">&nbsp;' . get_text('ShowSetEnds', 'Tournament') . '<br>';
 	echo '<input id="ShowOrisInd" name="ShowOrisInd" type="checkbox" value="1" onClick="javascript:CheckIfOris(\'ShowOrisInd\',\'PrnParametersInd\',true);"'.($_SESSION['ISORIS'] ? ' checked="checked"' : '').'>&nbsp;' . get_text('StdORIS','Tournament') . '<br>';
+	echo '<br/><input name="ShowChildren" type="checkbox" onclick="updateEvents(this, 0)">&nbsp;' . get_text('ShowChildren', 'Tournament') . '<br>';
 	//echo '<input id="PrintLabelsInd" name="PrintLabelsInd" type="checkbox" value="1" onClick="javascript:CheckIfLabel(\'PrintLabelsInd\',\'PrnParametersInd\',true);">&nbsp;' . get_text('FinalIndividualLabels','Tournament') . '<br>';
 	echo '</td>';
 	echo '</tr>';
@@ -202,11 +167,11 @@
 	echo '<tr>';
 	//Eventi
 	echo '<td class="Center" width="50%">';
-	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 ORDER BY EvProgr";
+	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvFinalFirstPhase!=0 and EvCodeParent='' ORDER BY EvProgr";
 	$Rs = safe_r_sql($MySql);
 	if(safe_num_rows($Rs)>0)
 	{
-		echo get_text('Event') . '<br><select name="Event[]" multiple="multiple" size="10">';
+		echo get_text('Event') . '<br><select id="TeamEvents" name="Event[]" multiple="multiple" size="10">';
 		echo '<option value=".">' . get_text('AllEvents')  . '</option>';
 		while($MyRow=safe_fetch($Rs))
 			echo '<option value="' . $MyRow->EvCode . '">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';
@@ -220,6 +185,7 @@
 	echo '<input name="ShowSchedule" type="checkbox" value="1" checked>&nbsp;' . get_text('ManFinScheduleTeam') . '<br>';
 	echo '<input name="ShowSetArrows" type="checkbox" value="1">&nbsp;' . get_text('ShowSetEnds', 'Tournament') . '<br>';
 	echo '<input id="ShowOrisTeam" name="ShowOrisTeam" type="checkbox" value="1" onClick="javascript:CheckIfOris(\'ShowOrisTeam\',\'PrnParametersTeam\',false);"'.($_SESSION['ISORIS'] ? ' checked="checked"' : '').'>&nbsp;' . get_text('StdORIS','Tournament') . '<br>';
+	echo '<br/><input name="ShowChildren" type="checkbox" onclick="updateEvents(this, 1)">&nbsp;' . get_text('ShowChildren', 'Tournament') . '<br>';
 	// echo '<input id="PrintLabelsTeam" name="PrintLabelsTeam" type="checkbox" value="1" onClick="javascript:CheckIfLabel(\'PrintLabelsTeam\',\'PrnParametersTeam\',false);">&nbsp;' . get_text('FinalTeamLabels','Tournament') . '<br>';
 	echo '</td>';
 	echo '</tr>';

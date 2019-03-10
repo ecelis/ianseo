@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Tournament/Fun_Tournament.local.inc.php');
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	if (!CheckTourSession() ||
 		!isset($_REQUEST['ClId']) ||

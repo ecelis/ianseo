@@ -2,6 +2,7 @@
 define('debug',false);	// settare a true per l'output di debug
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclAccreditation, AclReadWrite);
 require_once('Common/Fun_Number.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once(dirname(__FILE__).'/Lib.php');
@@ -32,6 +33,24 @@ $SetRap=0;
 if(!isset($_SESSION['SetRap'])) $_SESSION['SetRap']=0;
 
 if (!IsBlocked(BIT_BLOCK_ACCREDITATION)) {
+    if(isset($_REQUEST['AccreditateAll'])) {
+        /// bulk accreditation of the visible ids
+	    $Select = getAccrQuery();
+        $q=safe_r_sql($Select);
+        while($r=safe_fetch($q)) {
+	        SetAccreditation($r->EnId, 0, 'RicaricaOpener', 0, $_SESSION['AccOp']);
+        }
+        CD_redirect('Accreditation.php'.go_get('AccreditateAll', '', true));
+    }
+    if(isset($_REQUEST['AccreditateNone'])) {
+        /// bulk accreditation of the visible ids
+	    $Select = getAccrQuery();
+        $q=safe_r_sql($Select);
+        while($r=safe_fetch($q)) {
+	        safe_w_sql("DELETE FROM AccEntries WHERE AEId=$r->EnId AND AEOperation=" . StrSafe_DB($_SESSION['AccOp']) . " AND AETournament=" . StrSafe_DB($_SESSION['TourId']));
+        }
+        CD_redirect('Accreditation.php'.go_get('AccreditateNone', '', true));
+    }
 	if(isset($_REQUEST["Command"])) {
 		if ($_REQUEST['Command']=='Del') {
 			$Sql
@@ -39,6 +58,7 @@ if (!IsBlocked(BIT_BLOCK_ACCREDITATION)) {
 				. "WHERE AEId=" . StrSafe_DB($_REQUEST['Del']) . " AND AEOperation=" . StrSafe_DB($_SESSION['AccOp']) . " AND AETournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
 			$Rs=safe_w_sql($Sql);
 // 			print $Sql;exit;
+//            CD_redirect('Accreditation.php'.go_get('Command', '', true));
 			header('Location: Accreditation.php');
 			exit;
 		} elseif ($_REQUEST['Command']=='NoAcc') {
@@ -135,7 +155,16 @@ $MyRowCounter = safe_fetch($Rs);
       <th><?php print get_text('Bill','Tournament');?></th>
     </tr>
     <tr>
-      <td class="Center" rowspan="3"><input type="text" name="bib" id="bib" tabindex="1">&nbsp;<input type="submit" name="Vai" value="<?php print get_text('CmdGo','Tournament');?>" id="Vai" onClick="javascript:SendBib();"></td>
+      <td class="Center" rowspan="3">
+          <div>
+            <input type="text" name="bib" id="bib" tabindex="1">&nbsp;<input type="submit" name="Vai" value="<?php print get_text('CmdGo','Tournament');?>" id="Vai" onClick="javascript:SendBib();">
+          </div>
+          <div>&nbsp;</div>
+          <div>
+              <input type="submit" name="AccreditateAll" value="<?php echo get_text('AccreditateAll', 'Tournament'); ?>" onclick="return confirm('Sure?')">
+              <input type="submit" name="AccreditateNone" value="<?php echo get_text('AccreditateNone', 'Tournament'); ?>" onclick="return confirm('Sure?')">
+          </div>
+      </td>
       <th width="16%"><?php print get_text('FamilyName','Tournament');?></th>
       <th width="16%"><?php print get_text('Country');?></th>
       <td width="10%" class="Center" rowspan="3">
@@ -234,9 +263,9 @@ $MyRowCounter = safe_fetch($Rs);
 
 			print '<td>';
 			if ($MyRow->EnStatus!=7) {
-				print '<input class="Full" type="button" onclick="' . ($_SESSION['AccOp']>=0 ? "SendId" : "getImage"). '(' . $MyRow->EnId . ');" value="' . ($MyRow->EnCode>0 ? $MyRow->EnCode : "- " . get_text('Archer') . " -") . '">';
+				print '<input class="Full" type="button" onclick="' . ($_SESSION['AccOp']>=0 ? "SendId" : "getImage"). '(' . $MyRow->EnId . ');" value="' . ($MyRow->EnCode!='' ? $MyRow->EnCode : "- " . get_text('Archer') . " -") . '">';
 			} else {
-				print ($MyRow->EnCode>0 ? $MyRow->EnCode : "- " . get_text('Archer') . " -");
+				print ($MyRow->EnCode!='' ? $MyRow->EnCode : "- " . get_text('Archer') . " -");
 			}
 			print '</td>';
 			print '<td class="Center">' . $MyRow->QuSession . '</td>';

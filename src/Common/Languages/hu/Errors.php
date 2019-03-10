@@ -1,6 +1,7 @@
 <?php
 $lang['ErrCodeExists']='Már létező kód!';
 $lang['ErrCommitteeError']='Érvénytelen bizottsági kód, vagy leírás';
+$lang['ErrConnection']='Nincs kapcsolat a $a szerverrel';
 $lang['ErrEmptyFields']='Üres mező(k)';
 $lang['ErrGenericError']='Általános hiba';
 $lang['ErrInvalidCode']='Érvénytlen kód';

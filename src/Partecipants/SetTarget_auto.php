@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Sessions.inc.php');
 
@@ -75,8 +76,8 @@ echo '<td class="Center" colspan="2">'.get_text('Targets','Tournament').'</td>';
 echo '</tr>';
 echo '<tr>';
 	echo '<td class="Center">';
-		echo '<select name="Session" id="Session">' . "\n";
-		echo '<option value="-1">---</option>' . "\n";
+		echo '<select name="Session" id="Session">';
+		echo '<option value="-1">---</option>';
 		foreach ($sessions as $s)
 			echo '<option value="' . $s->SesOrder . '"' . (isset($_REQUEST['Session']) && $_REQUEST['Session']==$s->SesOrder ? ' selected' : '') . '>' . $s->Descr . '</option>';
 		print '</select>';
@@ -312,16 +313,16 @@ if(isset($_REQUEST["Event"]) && isset($_REQUEST["Session"]) && isset($_REQUEST["
 
 		while($Group) {
 // 		foreach($Group as $Country => $Users) {
+            $Country=key($Group);
+            $Users=current($Group);
 			if($BottomCountry) {
 				end($Group);
-				$tmp=each($Group);
+                $Country=key($Group);
+                $Users=current($Group);
 				$Group=array_slice($Group, 0, -1, true);
 			} else {
-				$tmp=each($Group);
 				$Group=array_slice($Group, 1, count($Group), true);
 			}
-			$Country=$tmp[0];
-			$Users=$tmp[1];
 
 			if(!$BottomCountry) {
 // 				if($_REQUEST['FieldSeed']==2) {
@@ -403,7 +404,6 @@ if(isset($_REQUEST["Event"]) && isset($_REQUEST["Session"]) && isset($_REQUEST["
 					// search the first occurence of a "first line" place with a concurrent second row place
 					$ind=array_search($ThisTarget, $CurIndices);
 					$found=false;
-// 							debug_svela($CurIndices);
 					while(!empty($CurIndices[$ind]) and !$found) {
 						$found=(strstr($firstLine[$ToggleZigZag], $let=substr($CurIndices[$ind],-1))
 							and $targ2=str_replace($let, $TgtArray[array_search($let, $TgtArray)+($ToggleZigZag ? -1 : 1)], $CurIndices[$ind])
@@ -422,7 +422,6 @@ if(isset($_REQUEST["Event"]) && isset($_REQUEST["Session"]) && isset($_REQUEST["
 					if(!$found) {
 						$NotAssigned[]=$Archer;
 					} else {
-// 						if($Archer==89320) debug_svela($CurIndices[$ind]);
 						$Assignments[$CurIndices[$ind]]=ArcherAssign($Archer, $CurIndices[$ind], $Country);
 						// occupies the targets...
 						$GroupAvailable[$CurIndices[$ind]]=0;
@@ -439,7 +438,7 @@ if(isset($_REQUEST["Event"]) && isset($_REQUEST["Session"]) && isset($_REQUEST["
 					$ind=0;
 					$found=false;
 					while(!empty($CurIndices[$ind]) and !$found) {
-						$found=(strstr($LeftSide, $let=substr($CurIndices[$ind],-1))
+						$found=(strstr($LeftSide[$ToggleZigZag], $let=substr($CurIndices[$ind],-1))
 							and $targ2=str_replace($let, $TgtArray[2+array_search($let, $TgtArray)], $CurIndices[$ind])
 							and in_array($targ2, $CurIndices)
 							and $GroupAvailable[$targ2]

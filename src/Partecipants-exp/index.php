@@ -3,6 +3,7 @@
 	require_once('Common/Fun_Various.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 
 	$array = array(
 		'StrTourPartecipants' => get_text('TourPartecipants', 'Tournament'),

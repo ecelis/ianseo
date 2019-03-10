@@ -42,6 +42,7 @@ $lang['Matches']='Pojedynki';
 $lang['NewContent']='Dostępne nowe dane';
 $lang['NoDataDisplay']='Brak danyh do wyświetlenia';
 $lang['NotYetDefined']='-jeszcze nie zdefiniowane-';
+$lang['OfficialBiography']='Oficjalna biografia';
 $lang['OlympicFont']='Nazwa czcionki olimipjskiej';
 $lang['OlympicFont-use']='Użyj czcionki olimpijskiej';
 $lang['OtherInfo']='Inne informacje';

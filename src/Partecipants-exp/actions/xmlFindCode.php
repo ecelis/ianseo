@@ -18,6 +18,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(AclParticipants, AclReadWrite, false);
 
 	$tourId=$_SESSION['TourId'];
 

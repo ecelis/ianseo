@@ -30,6 +30,10 @@ function ts4qs()
 	return (year+month+day+hours+min+sec+milli);
 }
 
+function updateSpot(obj) {
+    updateScore(obj)
+    obj.select();
+}
 
 function makeScore(TeamEvent) {
 	try {
@@ -51,17 +55,26 @@ function makeScore(TeamEvent) {
 					var chunk=document.getElementById('outputChunk');
 					chunk.innerHTML=resp;
 
+					if(mm==128 && ElimPool==1) {
+					    var MoveTd=document.getElementById('buttonMove2Next').parentNode;
+					    MoveTd.innerHTML='<select id="buttonMove2Next" onchange="move2nextPhase(document.getElementById(\'d_Event\').value,document.getElementById(\'d_Match\').value,0, this.value);"><option value="0">'+Select+'</option><option value="A">'+MoveWinner2PoolA+'</option><option value="B">'+MoveWinner2PoolB+'</option></select>';
+                    } else {
+					    var MoveTd=document.getElementById('buttonMove2Next').parentNode;
+                        MoveTd.innerHTML='<input type="button" id="buttonMove2Next" value="'+MoveWinner2NextPhase+'" onclick="move2nextPhase(document.getElementById(\'d_Event\').value,document.getElementById(\'d_Match\').value,'+TeamEvent+');"/>';
+                    }
+
 					document.getElementById('buttonMove2Next').disabled = (document.getElementById('d_Modes').value == 2)
 
 					for(var i=0; i<=document.getElementById('rows').value; i++) {
 						var shootsFirst1=document.getElementById('first['+document.getElementById('team').value+']['+document.getElementById('event').value+']['+document.getElementById('match1').value+']['+i+']');
 						var shootsFirst2=document.getElementById('first['+document.getElementById('team').value+']['+document.getElementById('event').value+']['+document.getElementById('match2').value+']['+i+']');
-						if(shootsFirst1.checked) {
+						if(shootsFirst1 && shootsFirst1.checked) {
 							setShootingFirst(shootsFirst1);
-						} else if(shootsFirst2.checked) {
+						} else if(shootsFirst2 && shootsFirst2.checked) {
 							setShootingFirst(shootsFirst2);
 						}
 					}
+
 				}
 			};
 			XMLHttp.send(null);
@@ -90,8 +103,9 @@ function updateScore(obj) {
 		var event=document.getElementById('event').value;
 		var team=document.getElementById('team').value;
 
-		if(obj) {
-			var split=obj.id.split('_');
+		if(obj !== undefined) {
+			var tmp = obj.id;
+			var split=tmp.split('_');
 
 			what = split[0];
 			match = split[1];
@@ -421,18 +435,18 @@ function clickStar(clicked, star)
 				if(field.value.indexOf("*")=="-1")
 				{
 					field.value += "*";
-					updateScore(field.id);
+					updateScore(field);
 				}
 				else
 				{
 					field.value = field.value.replace("*","");
-					updateScore(field.id);
+					updateScore(field);
 				}
 			}
 			else
 			{
 				field.value = "";
-				updateScore(field.id);
+				updateScore(field);
 			}
 		}
 	}

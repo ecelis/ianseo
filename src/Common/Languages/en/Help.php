@@ -4,6 +4,12 @@ $lang['HomePage']='This is the page where you can select or create a tournament.
 $lang['ScoreBarCodeShortcuts']='Read the barcode printed on the scorecard.<br/>
 Inserting manually a # followed by the name of the athlete searches the database to find that athlete<br/>
 Inserting a @ followed by a target number searches for that target. Distance MUST be set. Session should be specified (first digit) and target is 0-padded to 3 digits.';
+$lang['TV-ChannelSetup']='= Channels Setup =
+After setting up your channels as desired, connect the browser of the device you want to link to a channel to
+
+<code>http://IP.OF.IANSEO/tv.php?id=CHANNEL</code>
+
+where \'\'\'IP.OF.IANSEO\'\'\' is the IP where ianseo is running (including the directory if any) and \'\'\'CHANNEL\'\'\' is the ID of the channel';
 $lang['TV-RotEdit']='<div>A presentation page is made of at least one content page.</div>
 <div>The content pages will then be shown one after the other and start over again.</div>
 <div><b>NOTE:</b> in regular and light version engines, the first content is again shown as last, so it is wise to insert as first content an image (logo of the competition for example).</div>

@@ -8,11 +8,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!isset($_REQUEST['which']) && !isset($_REQUEST['Code'])||  !CheckTourSession())
-	{
+	if (!isset($_REQUEST['which']) && !isset($_REQUEST['Code'])||  !CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite,false);
 
 	$Errore=0;
 	$Id = 0;
@@ -43,10 +43,10 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<which><![CDATA[' . $_REQUEST['which'] . ']]></which>' . "\n";
-	print '<id><![CDATA[' . $Id . ']]></id>' . "\n";
-	print '<name><![CDATA[' . $Name . ']]></name>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<which><![CDATA[' . $_REQUEST['which'] . ']]></which>';
+	print '<id><![CDATA[' . $Id . ']]></id>';
+	print '<name><![CDATA[' . $Name . ']]></name>';
+	print '</response>';
 ?>

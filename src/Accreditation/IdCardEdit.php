@@ -9,17 +9,17 @@
 
 */
 
-require_once(dirname(dirname(__FILE__)) . '/config.php');
+// ACL and other checks are made in the config
+require_once('./IdCardEdit-config.php');
+
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Lib/Fun_DateTime.inc.php');
+require_once('Common/Lib/Fun_Modules.php');
+require_once('Common/Lib/CommonLib.php');
 require_once('IdCardEmpty.php');
 
 define('MAX_PHOTO_PIXEL', 3000);
 
-CheckTourSession(true);
-
-$CardType=(empty($_REQUEST['CardType']) ? 'A' : $_REQUEST['CardType']);
-$CardNumber=(empty($_REQUEST['CardNumber']) ? 0 : intval($_REQUEST['CardNumber']));
 $CardFile="{$CardType}-{$CardNumber}";
 
 if(isset($_GET['delete'])) {
@@ -44,10 +44,57 @@ if(!empty($_REQUEST['DeleteBgImage'])) {
 	unlink($CFG->DOCUMENT_PATH.'TV/Photos/'.$_SESSION['TourCodeSafe'].'-'.$CardFile.'-Accreditation.jpg');
 }
 
-if(!empty($_REQUEST['IdCardsSettings'])) {
-	$sql="IcTournament={$_SESSION['TourId']}, IcType='$CardType', IcNumber=$CardNumber, IcSettings=".StrSafe_DB(serialize($_REQUEST["IdCardsSettings"]));
-	safe_w_sql("INSERT INTO IdCards set $sql on duplicate key update $sql");
-	$Rs=safe_r_sql($Select);
+if(!empty($_FILES["Content"])) {
+	// ATTENTION!!!!
+	foreach ($_FILES["Content"]['size'] as $IdOrder => $Options) {
+		$q=safe_r_sql("select * from IdCardElements where IceCardType='$CardType' and IceCardNumber=$CardNumber and IceOrder=$IdOrder and IceTournament={$_SESSION['TourId']}");
+		if(!($r=safe_fetch($q))) {
+			continue;
+		}
+		$SQL = array();
+		if (!empty($_FILES['Content']['size'][$IdOrder]['Image'])) {
+			unset($img);
+			switch ($_FILES['Content']['type'][$IdOrder]['Image']) {
+				case 'image/png':
+					$img = imagecreatefrompng($_FILES['Content']['tmp_name'][$IdOrder]['Image']);
+				case 'image/jpeg':
+					if (!isset($img)) $img = imagecreatefromjpeg($_FILES['Content']['tmp_name'][$IdOrder]['Image']);
+					break;
+			}
+			if (!empty($img)) {
+				$tmpfile = $CFG->DOCUMENT_PATH . 'TV/Photos/' . $_SESSION['TourCodeSafe'] . '-' . $r->IceType . '-' . $CardFile . '-' . $IdOrder . '.jpg';
+				$srcW = imagesx($img);
+				$srcH = imagesy($img);
+				if ($srcW > MAX_PHOTO_PIXEL or $srcH > MAX_PHOTO_PIXEL) {
+					// max dimension is a square of 2000 pixel!
+					$ratio = 1;
+					if ($srcW > MAX_PHOTO_PIXEL) $ratio = MAX_PHOTO_PIXEL / $srcW;
+					if ($srcH > MAX_PHOTO_PIXEL) $ratio = min($ratio, MAX_PHOTO_PIXEL / $srcH);
+					$dstW = intval($srcW * $ratio);
+					$dstH = intval($srcH * $ratio);
+					$im2 = imagecreatetruecolor($dstW, $dstH);
+					imagecopyresampled($im2, $img, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
+					imagejpeg($im2, $tmpfile, 85);
+				} else {
+					imagejpeg($img, $tmpfile, 85);
+				}
+				$SQL[] = 'IceContent=' . StrSafe_DB(file_get_contents($tmpfile));
+			}
+		}
+		if (!empty($_FILES['Content']['size'][$IdOrder]['ImageSvg'])) {
+			$img = file_get_contents($_FILES['Content']['tmp_name'][$IdOrder]['ImageSvg']);
+
+			if (!empty($img)) {
+				$tmpfile = $CFG->DOCUMENT_PATH . 'TV/Photos/' . $_SESSION['TourCodeSafe'] . '-' . $r->IceType . '-' . $CardFile . '-' . $IdOrder . '.svg';
+				file_put_contents($tmpfile, $img);
+				$SQL[] = 'IceContent=' . StrSafe_DB(gzdeflate($img));
+			}
+		}
+
+		if($SQL) {
+			safe_w_sql("update IdCardElements set " . implode(',', $SQL) . " where IceTournament={$_SESSION['TourId']} and IceCardType='$CardType' and IceCardNumber=$CardNumber and IceOrder=$IdOrder");
+		}
+	}
 }
 
 if(!empty($_REQUEST["NewContent"])) {
@@ -70,89 +117,7 @@ if(!empty($_REQUEST["NewContent"])) {
 	$SetOrder=intval($_REQUEST["NewOrder"]);
 	if(!empty($SetOrder)) {
 		if($SetOrder < $NewOrder) {
-			switchOrder($NewOrder, $SetOrder);
-		}
-	}
-} elseif(!empty($_REQUEST["Content"])) {
-	// ATTENTION!!!!
-	// CANNOT MIX NEW CONTENT AND UPDATING OLD THINGS!!!
-	foreach($_REQUEST["Content"] as $IdOrder => $Options) {
-		$SQL=array();
-		if(!empty($Options['File'])) {
-			$SQL[]='IceMimeType='.StrSafe_DB($Options['File']);
-		}
-		if(isset($Options['Text'])) {
-			$SQL[]='IceContent='.StrSafe_DB($Options['Text']);
-		}
-		if(!empty($Options['Event'])) {
-			$SQL[]='IceContent='.StrSafe_DB($Options['Event']);
-		}
-		if(!empty($Options['Category'])) {
-			$SQL[]='IceContent='.StrSafe_DB($Options['Category']);
-		}
-		if(!empty($Options['Athlete'])) {
-			$SQL[]='IceContent='.StrSafe_DB($Options['Athlete']);
-		}
-		if(!empty($Options['Club'])) {
-			$SQL[]='IceContent='.StrSafe_DB($Options['Club']);
-		}
-		if(!empty($Options['Options'])) {
-			if($Options['Type']=='Picture') {
-				if($Options['Options']['W'] or $Options['Options']['H']) {
-					if(empty($Options['Options']['W'])) {
-						$Options['Options']['W']=intval($Options['Options']['H']*MAX_WIDTH/MAX_HEIGHT);
-					} else {
-						$Options['Options']['H']=intval($Options['Options']['W']*MAX_HEIGHT/MAX_WIDTH);
-					}
-				} else {
-					$Options['Options']['W']=30;
-					$Options['Options']['H']=40;
-				}
-			}
-			$SQL[]='IceOptions='.StrSafe_DB(serialize($Options['Options']));
-		}
-		if(!empty($_FILES['Content']['size'][$IdOrder]['Image'])) {
-			unset($img);
-			switch($_FILES['Content']['type'][$IdOrder]['Image']) {
-				case 'image/png':
-					$img=imagecreatefrompng($_FILES['Content']['tmp_name'][$IdOrder]['Image']);
-				case 'image/jpeg':
-					if(!isset($img)) $img=imagecreatefromjpeg($_FILES['Content']['tmp_name'][$IdOrder]['Image']);
-					break;
-			}
-			if(!empty($img)) {
-				$tmpfile=$CFG->DOCUMENT_PATH.'TV/Photos/'.$_SESSION['TourCodeSafe'].'-'.$Options['Type'].'-'.$CardFile.'-'.$IdOrder.'.jpg';
-				$srcW=imagesx($img);
-				$srcH=imagesy($img);
-				if($srcW>MAX_PHOTO_PIXEL or $srcH>MAX_PHOTO_PIXEL) {
-					// max dimension is a square of 2000 pixel!
-					$ratio=1;
-					if($srcW>MAX_PHOTO_PIXEL) $ratio=MAX_PHOTO_PIXEL/$srcW;
-					if($srcH>MAX_PHOTO_PIXEL) $ratio=min($ratio, MAX_PHOTO_PIXEL/$srcH);
-					$dstW=intval($srcW*$ratio);
-					$dstH=intval($srcH*$ratio);
-					$im2=imagecreatetruecolor($dstW, $dstH);
-					imagecopyresampled($im2, $img, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
-					imagejpeg($im2, $tmpfile, 85);
-				} else {
-					imagejpeg($img, $tmpfile, 85);
-				}
-				$SQL[]='IceContent='.StrSafe_DB(file_get_contents($tmpfile));
-			}
-		}
-		if(!empty($_FILES['Content']['size'][$IdOrder]['ImageSvg'])) {
-			$img=file_get_contents($_FILES['Content']['tmp_name'][$IdOrder]['ImageSvg']);
-
-			if(!empty($img)) {
-				$tmpfile=$CFG->DOCUMENT_PATH.'TV/Photos/'.$_SESSION['TourCodeSafe'].'-'.$Options['Type'].'-'.$CardFile.'-'.$IdOrder.'.svg';
-				file_put_contents($tmpfile, $img);
-				$SQL[]='IceContent='.StrSafe_DB(gzdeflate($img));
-			}
-		}
-		safe_w_sql("update IdCardElements set ".implode(',', $SQL)." where IceTournament={$_SESSION['TourId']} and IceCardType='$CardType' and IceCardNumber=$CardNumber and IceOrder=$IdOrder");
-
-		if(!empty($Options['Order'])) {
-			switchOrder($IdOrder, intval($Options['Order']));
+			switchOrder($NewOrder, $SetOrder, $CardType, $CardNumber);
 		}
 	}
 }
@@ -191,9 +156,12 @@ if(!empty($_FILES['UploadedBgImage']['size'])) {
 $RowBn=emptyIdCard(safe_fetch($Rs));
 
 $JS_SCRIPT=array(
+	phpVars2js(array('CardType' => $CardType, 'CardNumber' => $CardNumber)),
+	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/jquery-3.2.1.min.js"></script>',
 	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>',
-	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Accreditation/Fun_AJAX_IdCard.js.php"></script>',
-	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ColorPicker/302pop.js"></script>',
+	//'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ColorPicker/302pop.js"></script>',
+	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/jscolor.js"></script>',
+	'<script type="text/javascript" src="./IdCardEdit.js"></script>',
 	);
 
 //$PAGE_TITLE=get_text('BackNumbers', 'BackNumbers');
@@ -215,26 +183,101 @@ echo '<td width="50%" valign="top">
 	<table align="center">
 		<tr align="center">
 			<th colspan="2">&nbsp;</th>
-			<th>'.get_text('IdCardOffsets', 'BackNumbers') . '</th>
+			<th colspan="2">'.get_text('IdCardOffsets', 'BackNumbers') . '</th>
 		</tr>
 		<tr align="center">
 			<th>'.get_text('Width', 'BackNumbers') . '</th>
-			<td><input type="text" name="IdCardsSettings[Width]" id="IdWidth" size="3" value="' . $RowBn->Settings["Width"] . '"></td>
-			<td><input type="text" name="IdCardsSettings[OffsetX]" id="IdRepX" size="10" value="' . $RowBn->Settings["OffsetX"] . '"></td>
-			<td><input type="text" name="IdCardsSettings[PaperWidth]" id="IdPaperWidth" size="10" value="' . $RowBn->Settings["PaperWidth"] . '"></td>
+			<td><input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[Width]" id="IdWidth" size="3" value="' . $RowBn->Settings["Width"] . '"></td>
+			<td><input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[OffsetX]" id="IdRepX" size="10" value="' . $RowBn->Settings["OffsetX"] . '"></td>
+			<td><input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[PaperWidth]" id="IdPaperWidth" size="10" value="' . $RowBn->Settings["PaperWidth"] . '"></td>
 		</tr>
 		<tr align="center">
 			<th>'.get_text('Heigh', 'BackNumbers') . '</th>
-			<td><input type="text" name="IdCardsSettings[Height]" id="IdHeight" size="3" value="' . $RowBn->Settings["Height"] . '"></td>
-			<td><input type="text" name="IdCardsSettings[OffsetY]" id="IdRepY" size="10" value="' . $RowBn->Settings["OffsetY"] . '"></td>
-			<td><input type="text" name="IdCardsSettings[PaperHeight]" id="IdPaperHeight" size="10" value="' . $RowBn->Settings["PaperHeight"] . '"></td>
-		</tr>';
+			<td><input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[Height]" id="IdHeight" size="3" value="' . $RowBn->Settings["Height"] . '"></td>
+			<td><input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[OffsetY]" id="IdRepY" size="10" value="' . $RowBn->Settings["OffsetY"] . '"></td>
+			<td><input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[PaperHeight]" id="IdPaperHeight" size="10" value="' . $RowBn->Settings["PaperHeight"] . '"></td>
+		</tr>
+	</table>';
 
-echo '</table></td>';
+// print the matching of the divclass
+echo '<br/><table class="Tabella">';
+switch($CardType) {
+	case 'A':
+	case 'Q':
+	case 'E':
+		$IsAthlete=($CardType!='A' ? '1' : '');
+		$Classes=array();
+		$q=safe_r_sql("select * from Classes where ClTournament={$_SESSION['TourId']} ".($IsAthlete ? 'and ClAthlete=1' : '')." order by ClViewOrder");
+		while($r=safe_fetch($q)) {
+			$Classes[$r->ClId]=$r->ClDescription;
+		}
+		$Divisions=array();
+		$q=safe_r_sql("select * from Divisions where DivTournament={$_SESSION['TourId']} ".($IsAthlete ? 'and DivAthlete=1' : '')." order by DivViewOrder");
+		while($r=safe_fetch($q)) {
+			$Divisions[$r->DivId]=$r->DivDescription;
+		}
+
+		$Categories=array();
+		$q=safe_r_sql("select * from Classes inner join Divisions on DivTournament=ClTournament and (ClDivisionsAllowed='' or find_in_set(DivId, ClDivisionsAllowed)) and ClAthlete=DivAthlete where DivTournament='{$_SESSION['TourId']}' ".($IsAthlete ? 'and DivAthlete=1' : '')." order by DivViewOrder, ClViewOrder");
+		while($r=safe_fetch($q)) {
+			$Categories[$r->DivId][$r->ClId]=$r->DivId.$r->ClId;
+		}
+
+		$Matches=getModuleParameter('Accreditation', 'Matches-'.$CardType.'-'.$CardNumber, '');
+		if($Matches) {
+			$Matches=explode(',', $Matches);
+		} else {
+			$Matches=array();
+		}
+
+		echo '<tr><th colspan="'.(1+count($Classes)).'" class="Title">'.get_text('SetAccreditationMatches', 'BackNumbers').'</th></tr>';
+		echo '<tr><th></th>';
+		foreach($Classes as $key => $desc) {
+			echo '<th onclick="toggleClass(\''.$key.'\')">'.$desc.'</th>';
+		}
+		echo '</tr>';
+
+		foreach($Divisions as $Div => $desc) {
+			echo '<tr>';
+			echo '<th onclick="toggleDiv(\''.$Div.'\')">'.$desc.'</th>';
+			foreach($Classes as $Cl => $desc) {
+				if(isset($Categories[$Div][$Cl])) {
+					echo '<td><input type="checkbox" onclick="toggleCategory()" class="CategorySelects ClSelect'.$Cl.' DivSelect'.$Div.'" value="'.$Categories[$Div][$Cl].'"'.(in_array($Categories[$Div][$Cl], $Matches) ? ' checked="checked"' : '').'></td>';
+				} else {
+					echo '<td></td>';
+				}
+			}
+			echo '</tr>';
+		}
+		break;
+	case 'I':
+	case 'T':
+		$Events=array();
+		$q=safe_r_sql("select * from Events where EvTeamEvent=".($CardType=='I' ? 0 : 1)." and EvTournament='{$_SESSION['TourId']}' order by EvProgr");
+		while($r=safe_fetch($q)) $Events[$r->EvCode]=$r->EvCode;
+
+		$Matches=getModuleParameter('Accreditation', 'Matches-'.$CardType.'-'.$CardNumber, '');
+		if($Matches) {
+			$Matches=explode(',', $Matches);
+		} else {
+			$Matches=array();
+		}
+
+		echo '<tr><th colspan="'.(count($Events)).'" class="Title">'.get_text('SetAccreditationMatches', 'BackNumbers').'</th></tr>';
+		echo '<tr>';
+		foreach($Events as $EvCode => $desc) {
+			echo '<td><input type="checkbox" onclick="toggleCategory()" class="CategorySelects" value="'.$EvCode.'"'.(in_array($EvCode, $Matches) ? ' checked="checked"' : '').'>'.$desc.'</td>';
+		}
+		echo '</tr>';
+		break;
+}
+
+echo '</table>';
+
+echo '</td>';
 
 //Esempio...
-echo '<td width="0%">';
-echo '<img src="ImgIdCard.php?CardType='.$CardType.'&CardNumber='.$CardNumber.'"></td>';
+echo '<td width="0%"><img id="IdCardImage" src="ImgIdCard.php?CardType='.$CardType.'&CardNumber='.$CardNumber.'"></td>';
 
 //Sfondo
 echo '<td width="50%"><br>';
@@ -244,21 +287,18 @@ if($RowBn->ImgSize>0) {
 } else {
 	echo '<input type="hidden" name="MAX_FILE_SIZE" value="6000000"><input name="UploadedBgImage" type="file" size="20" /><br>&nbsp;<br>';
 }
-echo  get_text('PosX', 'BackNumbers') . '&nbsp;<input type="text" name="IdCardsSettings[IdBgX]" id="BnBgX" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgX"] . '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-echo  get_text('PosY', 'BackNumbers') . '&nbsp;<input type="text" name="IdCardsSettings[IdBgY]" id="BnBgY" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgY"] . '"><br>&nbsp;<br>';
-echo  get_text('Heigh', 'BackNumbers') . '&nbsp;<input type="text" name="IdCardsSettings[IdBgH]" id="BnBgH" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgH"] . '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-echo  get_text('Width', 'BackNumbers') . '&nbsp;<input type="text" name="IdCardsSettings[IdBgW]" id="BnBgW" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgW"] . '"><br>&nbsp;<br>';
+echo  get_text('PosX', 'BackNumbers') . '&nbsp;<input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[IdBgX]" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgX"] . '" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+echo  get_text('PosY', 'BackNumbers') . '&nbsp;<input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[IdBgY]" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgY"] . '" /><br>&nbsp;<br>';
+echo  get_text('Heigh', 'BackNumbers') . '&nbsp;<input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[IdBgH]" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgH"] . '" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+echo  get_text('Width', 'BackNumbers') . '&nbsp;<input type="text" onchange="UpdateCardSettings()" id="IdCardsSettings[IdBgW]" size="7" maxlength="5" value="' . $RowBn->Settings["IdBgW"] . '" /><br>&nbsp;<br>';
 echo '</td>';
 echo '</tr>';
 
 echo '</table>';
 
 echo '<table class="Tabella">';
-
-
-
 echo '<tr><th>&nbsp;</th><th>' . get_text('Progr')  . '</th>
-	<th colspan="2">' . get_text('Content', 'BackNumbers')  . '</th>
+	<th colspan="3">' . get_text('Content', 'BackNumbers')  . '</th>
 	<th nowrap="nowrap">' . get_text('PosX', 'BackNumbers') . '
 		<br/>' . get_text('PosY', 'BackNumbers') . '</th>
 	<th>' . get_text('Width', 'BackNumbers') . '
@@ -315,7 +355,9 @@ if($CardType=='T') {
 	$Select.='<option value="Athlete">'.get_text('Athlete', 'BackNumbers').'</option>';
 }
 // Picture
-if($CardType=='A') $Select.='<option value="Picture">'.get_text('Picture', 'BackNumbers').'</option>';
+if($CardType=='A') {
+	$Select.='<option value="Picture">'.get_text('Picture', 'BackNumbers').'</option>';
+}
 // Category
 $Select.='<option value="Category">'.get_text('Category', 'BackNumbers').'</option>';
 // Event
@@ -341,18 +383,27 @@ $Select.='<option value="ImageSvg">'.get_text('ImageSvg', 'BackNumbers').'</opti
 $Select.='<option value="RandomImage">'.get_text('RandomImage', 'BackNumbers').'</option>';
 // Line
 $Select.='<option value="HLine">'.get_text('HLine', 'BackNumbers').'</option>';
+// Target sequence
+if($CardType=='I' or $CardType=='T') {
+	$Select.='<option value="TgtSequence">'.get_text('TgtSequence', 'BackNumbers').'</option>';
+}
 // Diritti di accesso
-if($CardType=='A') $Select.='<option value="Access">'.get_text('Access', 'BackNumbers').'</option>';
-// Diritti di pappa/transport/hotel
-if($CardType=='A') $Select.='<option value="Accomodation">'.get_text('Accomodation', 'BackNumbers').'</option>';
+if($CardType=='A') {
+	$Select.='<option value="Access">'.get_text('Access', 'BackNumbers').'</option>';
+	$Select .= '<option value="AccessGraphics">' . get_text('AccessGraphics', 'BackNumbers') . '</option>';
+
+	// Diritti di pappa/transport/hotel
+	$Select.='<option value="Accomodation">'.get_text('Accomodation', 'BackNumbers').'</option>';
+}
+
 // Schedule
 // $Select.='<option value="Schedule">'.get_text('Schedule', 'BackNumbers').'</option>';
 // regole di partecipazioni
 
 
 echo '<tr><th>&nbsp;</th><th><input type="text" size="3" name="NewOrder" value="'.$NewOrder.'"></th>
-	<th colspan="2"><select name="NewContent">' . $Select  . '</select></th>
-	<td colspan="5"><input type="submit" value="'.get_text('CmdUpdate').'"></td>
+	<th>&nbsp;</th>
+	<td colspan="9"><select name="NewContent">' . $Select  . '</select> <input type="submit" value="'.get_text('CmdUpdate').'"></td>
 	</tr>';
 echo '</table>';
 echo '</form>';
@@ -363,10 +414,10 @@ include('Common/Templates/tail.php');
 
 function getFieldPos($r) {
 	global $CFG, $CardType, $CardNumber, $CardFile;
-	$ret='<tr>
+	$ret='<tr icetype="'.$r->IceType.'" iceorder="'.$r->IceOrder.'">
 		<th><a href="?delete='.$r->IceOrder.'&CardType='.$CardType.'&CardNumber='.$CardNumber.'" onclick="return(confirm(\''.get_text('MsgAreYouSure').'\'))"><img src="'.$CFG->ROOT_DIR.'Common/Images/drop.png"></a></th>
-		<th><input type="hidden" name="Content['.$r->IceOrder.'][Type]" value="'.$r->IceType.'">
-			<input type="text" size="3" name="Content['.$r->IceOrder.'][Order]" value="'.$r->IceOrder.'"></th>
+		<th><input type="hidden" id="Content['.$r->IceOrder.'][Type]" value="'.$r->IceType.'">
+			<input type="text" size="3" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Order]" value="'.$r->IceOrder.'"></th>
 		<th>'.get_text($r->IceType, 'BackNumbers').'</th>';
 	if($r->IceOptions) {
 		$Options=unserialize($r->IceOptions);
@@ -396,15 +447,17 @@ function getFieldPos($r) {
 		case 'Flag':
 			if(!isset($im)) $im='Common/Images/Flag.jpg';
 
-			$ret.= '<td><img src="'.$CFG->ROOT_DIR.$im.'" height="50"></td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>';
+			$ret.= '<td colspan="2"><img src="'.$CFG->ROOT_DIR.$im.'" height="50"></td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>';
 			break;
 
 		case 'ColoredArea':
-			$txt='<textarea name="Content['.$r->IceOrder.'][Text]">'.$r->IceContent.'</textarea>';
+			$txt='<textarea onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Text]">'.$r->IceContent.'</textarea>';
+        case 'AccessGraphics':
+			if(!isset($txt)) $txt= '<img src="'.$CFG->ROOT_DIR.'Common/Images/AccessCodes.png" height="50">';
 		case 'CompName':
 			if(!isset($txt)) $txt= $_SESSION['TourName'];
 		case 'CompDetails':
@@ -413,9 +466,16 @@ function getFieldPos($r) {
 			if(!isset($txt)) $txt='Archer Code';
 		case 'TeamComponents':
 			if(!isset($txt)) {
-				$txt='<select name="Content['.$r->IceOrder.'][TeamComponents]">
+				$txt='<select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][TeamComponents]">
 					<option value="OneLine"'   .($r->IceContent=='OneLine'   ?' selected':'').'>'.get_text('OneLine',    'BackNumbers').'</option>
 					<option value="MultiLine"'  .($r->IceContent=='MultiLine'  ?' selected':'').'>'.get_text('MultiLine',   'BackNumbers').'</option>
+					</select>';
+			}
+		case 'TgtSequence':
+			if(!isset($txt)) {
+				$txt='<select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][TgtSequence]">
+					<option value="BlackWhite"'  .($r->IceContent=='BlackWhite'  ?' selected':'').'>'.get_text('BlackWhite',   'BackNumbers').'</option>
+					<option value="Coloured"'   .($r->IceContent=='Coloured'   ?' selected':'').'>'.get_text('Coloured',    'BackNumbers').'</option>
 					</select>';
 			}
 		case 'Access':
@@ -428,7 +488,7 @@ function getFieldPos($r) {
 			if(!isset($txt)) $txt=get_text('SessionTarget','BackNumbers');
 		case 'Event':
 			if(!isset($txt)) {
-				$txt='<select name="Content['.$r->IceOrder.'][Event]">
+				$txt='<select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Event]">
 					<option value="">--</option>
 					<option value="EvCode"'   .($r->IceContent=='EvCode'   ?' selected':'').'>'.get_text('EvCode',    'BackNumbers').'</option>
 					<option value="EvCode-EvDescr"'  .($r->IceContent=='EvCode-EvDescr'  ?' selected':'').'>'.get_text('EvCode-EvDescr',   'BackNumbers').'</option>
@@ -440,17 +500,18 @@ function getFieldPos($r) {
 			if(!isset($txt)) $txt=get_text('Rank');
 		case 'Category':
 			if(!isset($txt)) {
-				$txt='<select name="Content['.$r->IceOrder.'][Category]">
+				$txt='<select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Category]">
 					<option value="">--</option>
 					<option value="CatCode"'   .($r->IceContent=='CatCode'   ?' selected':'').'>'.get_text('EvCode',    'BackNumbers').'</option>
-					<option value="CatCode-EvDescr"'  .($r->IceContent=='CatCode-CatDescr'  ?' selected':'').'>'.get_text('EvCode-EvDescr',   'BackNumbers').'</option>
+					<option value="CatCode-EvDescr"'  .($r->IceContent=='CatCode-EvDescr' ? ' selected':'').'>'.get_text('EvCode-EvDescr',   'BackNumbers').'</option>
 					<option value="CatDescr"'  .($r->IceContent=='CatDescr'  ?' selected':'').'>'.get_text('EvDescr',   'BackNumbers').'</option>
+					<option value="CatDescrUpper"' . ($r->IceContent == 'CatDescrUpper' ? ' selected' : '') . '>' . get_text('EvDescrUpper', 'BackNumbers') . '</option>
 					</select>';
 				if(!$r->IceOptions) $Options['BackCat']=1;
 			}
 		case 'Athlete':
 			if(!isset($txt)) {
-				$txt='<select name="Content['.$r->IceOrder.'][Athlete]">
+				$txt='<select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Athlete]">
 					<option value="">--</option>
 					<option value="FamCaps"'   .($r->IceContent=='FamCaps'   ?' selected':'').'>'.get_text('FamCaps',    'BackNumbers').'</option>
 					<option value="FamCaps-GAlone"'  .($r->IceContent=='FamCaps-GAlone'  ?' selected':'').'>'.get_text('FamCaps-GAlone',   'BackNumbers').'</option>
@@ -470,7 +531,7 @@ function getFieldPos($r) {
 			}
 		case 'Club':
 			if(!isset($txt)) {
-				$txt='<select name="Content['.$r->IceOrder.'][Club]">
+				$txt='<select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Club]">
 					<option value="">--</option>
 					<option value="NocCaps-ClubCamel"'.($r->IceContent=='NocCaps-ClubCamel'?' selected':'').'>'.get_text('NocCaps-ClubCamel','BackNumbers').'</option>
 					<option value="NocCaps-ClubCaps"'.($r->IceContent=='NocCaps-ClubCaps'?' selected':'').'>'.get_text('NocCaps-ClubCaps','BackNumbers').'</option>
@@ -479,23 +540,27 @@ function getFieldPos($r) {
 					<option value="ClubCaps"'   .($r->IceContent=='ClubCaps'   ?' selected':'').'>'.get_text('ClubCaps',   'BackNumbers').'</option>
 					</select>';
 			}
-			$ret.= '<td>'.$txt.'</td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>
-				<td nowrap="nowrap"><input size="6" type="text" id="Content['.$r->IceOrder.'][Options][Col]" name="Content['.$r->IceOrder.'][Options][Col]" value="' . $Options['Col'] . '">'
-					.'&nbsp;<input type="text" id="Ex_'.$r->IceOrder.'_Col" size="1" style="background-color:' . $Options['Col'] . '" readonly>'
-					.'&nbsp;<img src="../Common/Images/sel.gif" onclick="javascript:pickerPopup302(\'Content['.$r->IceOrder.'][Options][Col]\',\'Ex_'.$r->IceOrder.'_Col\');">
-					<br/><input size="6" type="text" id="Content['.$r->IceOrder.'][Options][BackCol]" name="Content['.$r->IceOrder.'][Options][BackCol]" value="' . $Options['BackCol'] . '">'
-					.'&nbsp;<input type="text" id="Ex_'.$r->IceOrder.'_BackCol" size="1" style="background-color:' . $Options['BackCol'] . '" readonly>'
-					.'&nbsp;<img src="../Common/Images/sel.gif" onclick="javascript:pickerPopup302(\'Content['.$r->IceOrder.'][Options][BackCol]\',\'Ex_'.$r->IceOrder.'_BackCol\');"></td>
-				<td><br/><input type="checkbox" name="Content['.$r->IceOrder.'][Options][BackCat]"'.(empty($Options['BackCat']) ? '' : ' checked="checked"').'></td>
-				<td><select name="Content['.$r->IceOrder.'][Options][Font]">
+			$ret.= '<td colspan="2">'.$txt.'</td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>
+				<td nowrap="nowrap"><input size="6" type="text" class="jscolor {hash:true,required:false} jscolor-active" id="Content['.$r->IceOrder.'][Options][Col]" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Col]" value="' . $Options['Col'] . '">
+					<br/><input size="6" type="text" class="jscolor {hash:true,required:false} jscolor-active" id="Content['.$r->IceOrder.'][Options][BackCol]" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][BackCol]" value="' . $Options['BackCol'] . '"></td>
+				<td><br/><input type="checkbox" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][BackCat]"'.(empty($Options['BackCat']) ? '' : ' checked="checked"').'></td>
+				<td><select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Font]">
 					<option value="arial"' . ($Options['Font']=='arial' ? ' selected' : '') . '>Arial</option>
 					<option value="arialbd"' . ($Options['Font']=='arialbd' ? ' selected' : '') . '>Arial Bold</option>
 					<option value="ariali"' . ($Options['Font']=='ariali' ? ' selected' : '') . '>Arial Italic</option>
 					<option value="arialbi"' . ($Options['Font']=='arialbi' ? ' selected' : '') . '>Arial Bold Italic</option>
+					<option value="helveticaneueltpro"' . ($Options['Font'] == 'helveticaneueltpro' ? ' selected' : '') . '>Helvetica Neue LT Pro</option>
+					<option value="helveticaneueltprob"' . ($Options['Font'] == 'helveticaneueltprob' ? ' selected' : '') . '>Helvetica Neue LT Pro Bold</option>
+					<option value="helveticaneueltproi"' . ($Options['Font'] == 'helveticaneueltproi' ? ' selected' : '') . '>Helvetica Neue LT Pro Italic</option>
+					<option value="helveticaneueltprobi"' . ($Options['Font'] == 'helveticaneueltprobi' ? ' selected' : '') . '>Helvetica Neue LT Pro Bold Italic</option>
+					<option value="helveticaneueltprocn"' . ($Options['Font'] == 'helveticaneueltprocn' ? ' selected' : '') . '>Helvetica Neue LT Pro Condensed</option>
+					<option value="helveticaneueltprocnb"' . ($Options['Font'] == 'helveticaneueltprocnb' ? ' selected' : '') . '>Helvetica Neue LT Pro Condensed Bold</option>
+					<option value="helveticaneueltprocni"' . ($Options['Font'] == 'helveticaneueltprocni' ? ' selected' : '') . '>Helvetica Neue LT Pro Condensed Italic</option>
+					<option value="helveticaneueltprocnbi"' . ($Options['Font'] == 'helveticaneueltprocnbi' ? ' selected' : '') . '>Helvetica Neue LT Pro Condensed Bold Italic</option>
 					<option value="helveticacondensed"' . ($Options['Font']=='helveticacondensed' ? ' selected' : '') . '>Helvetica Condensed</option>
 					<option value="helveticacondensedbold"' . ($Options['Font']=='helveticacondensedbold' ? ' selected' : '') . '>Helvetica Condensed Bold</option>
 					<option value="times"' . ($Options['Font']=='times' ? ' selected' : '') . '>Times</option>
@@ -506,9 +571,11 @@ function getFieldPos($r) {
 					<option value="courbd"' . ($Options['Font']=='courbd' ? ' selected' : '') . '>Courier Bold</option>
 					<option value="couri"' . ($Options['Font']=='couri' ? ' selected' : '') . '>Courier Italic</option>
 					<option value="courbi"' . ($Options['Font']=='courbi' ? ' selected' : '') . '>Courier Bold Italic</option>
+					<option value="FreeSans"' . ($Options['Font']=='FreeSans' ? ' selected' : '') . '>'.get_text('PrintCyrillic', 'Tournament').'</option>
+					<option value="DroidSansFallback"' . ($Options['Font']=='DroidSansFallback' ? ' selected' : '') . '>'.get_text('PrintChinese', 'Tournament').'</option>
 					</select></td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][Size]" value="' . $Options['Size'] . '"></td>
-				<td><select name="Content['.$r->IceOrder.'][Options][Just]">
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Size]" value="' . $Options['Size'] . '"></td>
+				<td><select onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Just]">
 					<option value="0"' . ($Options['Just'] == 0 ? ' selected' : '') . '>' . get_text('AlignL', 'BackNumbers') . '</option>
 					<option value="1"' . ($Options['Just'] == 1 ? ' selected' : '') . '>' . get_text('AlignC', 'BackNumbers') . '</option>
 					<option value="2"' . ($Options['Just'] == 2 ? ' selected' : '') . '>' . get_text('AlignR', 'BackNumbers') . '</option>
@@ -517,29 +584,33 @@ function getFieldPos($r) {
 			break;
 		case 'HLine':
 			if(!isset($txt)) $txt=get_text('HLine', 'BackNumbers');
-			$ret.='<td>'.$txt.'</td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>
-				<td nowrap="nowrap"><input size="6" type="text" id="Content['.$r->IceOrder.'][Options][Col]" name="Content['.$r->IceOrder.'][Options][Col]" value="' . $Options['Col'] . '">'
-					.'&nbsp;<input type="text" id="Ex_'.$r->IceOrder.'_Col" size="1" style="background-color:' . $Options['Col'] . '" readonly>'
-					.'&nbsp;<img src="../Common/Images/sel.gif" onclick="javascript:pickerPopup302(\'Content['.$r->IceOrder.'][Options][Col]\',\'Ex_'.$r->IceOrder.'_Col\');">
-					<br/><input size="6" type="text" id="Content['.$r->IceOrder.'][Options][BackCol]" name="Content['.$r->IceOrder.'][Options][BackCol]" value="' . $Options['BackCol'] . '">'
-					.'&nbsp;<input type="text" id="Ex_'.$r->IceOrder.'_BackCol" size="1" style="background-color:' . $Options['BackCol'] . '" readonly>'
-					.'&nbsp;<img src="../Common/Images/sel.gif" onclick="javascript:pickerPopup302(\'Content['.$r->IceOrder.'][Options][BackCol]\',\'Ex_'.$r->IceOrder.'_BackCol\');"></td>
-				<td><br/><input type="checkbox" name="Content['.$r->IceOrder.'][Options][BackCat]"'.(empty($Options['BackCat']) ? '' : ' checked="checked"').'></td>
+			$ret.='<td colspan="2">'.$txt.'</td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>
+				<td nowrap="nowrap"><input size="6" type="text" class="jscolor {hash:true,required:false} jscolor-active" id="Content['.$r->IceOrder.'][Options][Col]" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Col]" value="' . $Options['Col'] . '">
+					<br/><input size="6" type="text" class="jscolor {hash:true,required:false} jscolor-active" id="Content['.$r->IceOrder.'][Options][BackCol]" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][BackCol]" value="' . $Options['BackCol'] . '"></td>
+				<td><br/><input type="checkbox" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][BackCat]"'.(empty($Options['BackCat']) ? '' : ' checked="checked"').'></td>
 				<td></td>
 				<td></td>
 				<td></td>';
 			break;
 		case 'AthBarCode':
+			if(!isset($txt)) {
+				$txt='<div style="float:Right;"><input type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][AthBarCode]" value="'.$r->IceContent.'" style="width:100%"><br/>'.get_text('BarCodeFields', 'BackNumbers').'</div>';
+			}
 			$im='Common/Images/edit-barcode.png';
 		case 'AthQrCode':
 			if(!isset($im)) $im='Common/Images/qrcode.jpg';
+			if(!isset($txt)) {
+				$txt='<div style="float:Right;"><input type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][AthQrCode]" value="'.$r->IceContent.'" style="width:100%"><br/>'.get_text('QrCodeFields', 'BackNumbers').'</div>';
+			}
 		case 'Accomodation':
+			if(!isset($txt)) $txt="";
 			if(!isset($im)) $im='Common/Images/Accomodations.png';
 		case 'ImageSvg':
+			if(!isset($txt)) $txt="";
 			if(!isset($im)) {
 				$im='';
 				$imInput= '<input type="file" name="Content['.$r->IceOrder.'][ImageSvg]">';
@@ -554,6 +625,7 @@ function getFieldPos($r) {
 			}
 		case 'Image':
 		case 'RandomImage':
+			if(!isset($txt)) $txt="";
 			if(!isset($im)) {
 				$im='';
 				if(file_exists($CFG->DOCUMENT_PATH."TV/Photos/{$_SESSION['TourCodeSafe']}-{$r->IceType}-".$CardFile.'-'.$r->IceOrder.".jpg")) {
@@ -567,20 +639,20 @@ function getFieldPos($r) {
 			}
 
 			if(empty($imInput)) {
-				$imInput= '<input type="file" name="Content['.$r->IceOrder.'][Image]">';
+				$imInput='';
+				if(empty($txt)) {
+					$imInput = '<input type="file" name="Content[' . $r->IceOrder . '][Image]"> <input type="submit" value="'.get_text('CmdUpdate').'">';
+				}
 			}
-			$ret.= '<td>'.(empty($im) ? $imInput : '<img src="'.$CFG->ROOT_DIR.$im.'" height="50">').'</td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
-				<td><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
-					<br/><input size="3" type="text" name="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>
-				<td nowrap="nowrap"><input size="6" type="text" id="Content['.$r->IceOrder.'][Options][Col]" name="Content['.$r->IceOrder.'][Options][Col]" value="' . $Options['Col'] . '">'
-					.'&nbsp;<input type="text" id="Ex_'.$r->IceOrder.'_Col" size="1" style="background-color:' . $Options['Col'] . '" readonly>'
-					.'&nbsp;<img src="../Common/Images/sel.gif" onclick="javascript:pickerPopup302(\'Content['.$r->IceOrder.'][Options][Col]\',\'Ex_'.$r->IceOrder.'_Col\');">
-					<br/><input size="6" type="text" id="Content['.$r->IceOrder.'][Options][BackCol]" name="Content['.$r->IceOrder.'][Options][BackCol]" value="' . $Options['BackCol'] . '">'
-					.'&nbsp;<input type="text" id="Ex_'.$r->IceOrder.'_BackCol" size="1" style="background-color:' . $Options['BackCol'] . '" readonly>'
-					.'&nbsp;<img src="../Common/Images/sel.gif" onclick="javascript:pickerPopup302(\'Content['.$r->IceOrder.'][Options][BackCol]\',\'Ex_'.$r->IceOrder.'_BackCol\');"></td>
-				<td><br/><input type="checkbox" name="Content['.$r->IceOrder.'][Options][BackCat]"'.(empty($Options['BackCat']) ? '' : ' checked="checked"').'></td>
+			$ret.= '<td>'.(empty($im) ? '' : '<img src="'.$CFG->ROOT_DIR.$im.'" height="50">').$txt.'</td>
+				<td>'.$imInput.'</td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][X]" value="'.$Options['X'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Y]" value="'.$Options['Y'].'"></td>
+				<td><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][W]" value="'.$Options['W'].'">
+					<br/><input size="3" type="text" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][H]" value="'.$Options['H'].'"></td>
+				<td nowrap="nowrap"><input size="6" type="text" class="jscolor {hash:true,required:false} jscolor-active" id="Content['.$r->IceOrder.'][Options][Col]" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][Col]" value="' . $Options['Col'] . '">
+					<br/><input size="6" type="text" class="jscolor {hash:true,required:false} jscolor-active" id="Content['.$r->IceOrder.'][Options][BackCol]" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][BackCol]" value="' . $Options['BackCol'] . '"></td>
+				<td><br/><input type="checkbox" onchange="UpdateRowContent(this)" id="Content['.$r->IceOrder.'][Options][BackCat]"'.(empty($Options['BackCat']) ? '' : ' checked="checked"').'></td>
 				<td></td>
 				<td></td>
 				<td></td>';
@@ -592,16 +664,3 @@ function getFieldPos($r) {
 	return $ret;
 }
 
-function switchOrder($Old, $New) {
-	if($New==$Old or !$New) return;
-	$min=min($New, $Old);
-	$max=max($New, $Old);
-	safe_w_sql("update IdCardElements set IceNewOrder=IceOrder where IceTournament={$_SESSION['TourId']}");
-	if($New<$Old) {
-		safe_w_sql("update IdCardElements set IceNewOrder=IceOrder+1 where IceTournament={$_SESSION['TourId']} and IceOrder between $min and $max");
-	} else {
-		safe_w_sql("update IdCardElements set IceNewOrder=IceOrder-1 where IceTournament={$_SESSION['TourId']} and IceOrder between $min and $max");
-	}
-	safe_w_sql("update IdCardElements set IceNewOrder=$New where IceTournament={$_SESSION['TourId']} and IceOrder=$Old");
-	safe_w_sql("update IdCardElements set IceOrder=IceNewOrder where IceTournament={$_SESSION['TourId']}");
-}

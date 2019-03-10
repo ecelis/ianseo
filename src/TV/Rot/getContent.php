@@ -1,5 +1,9 @@
 <?php
 require_once(dirname(__FILE__).'/config.php');
+checkACL(AclOutput,AclReadOnly,false, $TourId);
+
+require_once('Common/Lib/Fun_FormatText.inc.php');
+
 
 $Block=max(1, (empty($_REQUEST['block']) ? 1 : intval($_REQUEST['block'])));
 $OrgBlock=$Block;
@@ -49,7 +53,9 @@ switch($r->TVSTable) {
 		break;
 }
 
-if($tmp) {
+if($tmp=='NOTHING TO FOLLOW') {
+	echo '';
+} elseif($tmp and $tmp['Html']) {
 	$CSS=$tmp['CSS'];
 
 	if(isset($_REQUEST['debug'])) {
@@ -63,13 +69,16 @@ if($tmp) {
 	echo getCssPage($CSS, $tmp['Block'], $tmp['BlockCss'], $RULE->TVRSettings);
 
 	$NextBlock=$OrgBlock;
-	if(intval($tmp['NextSubBlock'])>intval($tmp['SubBlocks'])) {
+	if(intval($tmp['NextSubBlock'])>intval($tmp['SubBlocks']) or $r->TVSTable=='MM') {
 		$NextBlock++;
 		$tmp['NextSubBlock']=1;
 	}
 
 	echo '<div id="Settings" NextBlock="'.$NextBlock.'" NextSubBlock="'.$tmp['NextSubBlock'].'" StopTime="'.$tmp['StopTime'].'" ScrollTime="'.$tmp['ScrollTime'].'"></div>';
+	echo getCss($TourId, $Rule);
 	echo $tmp['Html'];
+} else {
+	echo file_get_contents('http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].go_get(array('block'=>$OrgBlock+1, 'subblock'=>1) ));
 }
 die();
 
@@ -124,7 +133,6 @@ function create_Comp_rot($TVsettings, $RULE) {
 		$ST['TV_THTitle_Color']=$TVsettings->TVP_THTitle_Color;
 	}
 
-
 	switch($TVsettings->TVPPage) {
 		case 'ALFA':
 		case 'LIST':
@@ -152,6 +160,10 @@ function create_Comp_rot($TVsettings, $RULE) {
 
 	$res=$Fun($TVsettings, $RULE);
 
+	if(!$res or $res=='NOTHING TO FOLLOW') {
+		return $res;
+	}
+
 	$ret['CSS']=$res['CSS'];
 	$ret['Html']=$res['html'];
 	$ret['Block']=$res['Block'];
@@ -160,17 +172,6 @@ function create_Comp_rot($TVsettings, $RULE) {
 	$ret['SubBlocks']=$res['SubBlocks'];
 
 
-// 		case 'ABST':
-// 			include('Rot_abs_t.php');
-// 			break;
-// 		case 'ELIM':
-// 			include('Rot_elim.php');
-// 			$RotMatches=true;
-// 			break;
-// 		case 'FINT':
-// 			include('Rot_fin_t.php');
-// 			$RotMatches=true;
-// 			break;
 // 		case 'RAND':
 // 			include('Rot_athl_sch.php');
 // 			break;
@@ -204,75 +205,3 @@ function create_Comp_rot($TVsettings, $RULE) {
 
 	return $ret;
 }
-
-/*
-
-function rotQuals($TVsettings, $RULE) {
-	global $CFG, $IsCode, $TourId, $SubBlock;
-	$Return=array(
-		'html' => '',
-		'Block' => 'QualRow',
-		'BlockCss' => 'height:2em; width:100%; padding-right:0.5rem; overflow:hidden; font-size:2em; display:flex; flex-direction:row; justify-content:space-between; align-items:center; box-sizing:border-box;',
-		'NextSubBlock' => 1);
-	$ret=array();
-
-	$Return['html']=implode('', $ret);
-	return$Return;
-}
-
-function rotQualsSettings($Settings) {
-	global $CFG;
-	$ret='<br/>';
-	$ret.= '<table class="Tabella Css3">';
-	$ret.= '<tr><th colspan="3">'.get_text('TVCss3SpecificSettings','Tournament').'</th></tr>';
-
-	// defaults for fonts, colors, size
-	$RMain=array();
-	if(!empty($Settings)) {
-		$RMain=unserialize($Settings);
-	}
-
-	$PageDefaults=getPageDefaults($RMain);
-
-	foreach($PageDefaults as $key => $Value) {
-		$ret.= '<tr>
-			<th nowrap="nowrap" class="Right">'.get_text('TVCss3'.$key,'Tournament').' <input type="button" value="reset" onclick="document.getElementById(\'P-Main['.$key.']\').value=\''.$Value.'\'"></th>
-			<td width="100%"><input type="text" name="P-Main['.$key.']" id="P-Main['.$key.']" value="'.$RMain[$key].'"></td>
-			</tr>';
-	}
-	return $ret;
-}
-
-function getPageDefaults(&$RMain) {
-	global $CFG;
-	$ret=array(
-		'Title' => '',
-		'RankOld' => 'background-repeat:no-repeat; background-size: contain; background-position:center;color:#FFFFFF; font-weight:bold; font-size:60%;',
-		'RankNone' => '',
-		'RankUp' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Up.png\');',
-		'RankDown' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Down.png\');',
-		'RankMinus' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Minus.png\');',
-		'Rank' => 'flex: 0 0 4rem; text-align:right;',
-		'CountryCode' => 'flex: 1 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-		'FlagDiv' => 'flex: 0 0 3.95rem;',
-		'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-		'Target' => 'flex: 0 0 4rem; font-size:75%; text-align:right;',
-		'Athlete' => 'flex: 1 1 3rem;',
-		'CountryDescr' => 'flex: 1 1 1rem;',
-		'DistScore' => 'flex: 0 0 5rem; text-align:right; font-size:0.8em;',
-		'DistPos' => 'flex: 0 0 3rem; text-align:left; font-size:0.7em;',
-		'Score' => 'flex: 0 0 6rem; text-align:right; font-size:1.25em;margin-right:0.5rem;',
-		'Gold' => 'flex: 0 0 3rem; text-align:right; font-size:1em;',
-		'XNine' => 'flex: 0 0 3rem; text-align:right; font-size:1em;',
-	);
-	foreach($ret as $k=>$v) {
-		if(!isset($RMain[$k])) $RMain[$k]=$v;
-	}
-	return $ret;
-}
-
-function b() {
-
-
-
- * */

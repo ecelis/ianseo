@@ -1,6 +1,7 @@
 <?php
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclParticipants, AclReadOnly, false);
 
 $CardType=(empty($_REQUEST['CardType']) ? 'A' : $_REQUEST['CardType']);
 $CardNumber=(empty($_REQUEST['CardNumber']) ? 0 : intval($_REQUEST['CardNumber']));
@@ -9,6 +10,7 @@ $RemoteIP=($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1
 $Operation=($CardType=='A' ? 1 : (ord($CardType)*100)+$CardNumber);
 
 $Now=date('Y-m-d H:i:s');
+$TourId=$_SESSION['TourId'];
 
 switch($CardType) {
 	case 'A':
@@ -20,10 +22,11 @@ switch($CardType) {
 			}
 			$WHERE='('.implode(',', $tmp).')';
 		}
-		$SQL="update Entries set EnBadgePrinted='$Now', EnTimestamp=EnTimestamp where EnId in ".($WHERE ? $WHERE : "(select AEId from AccEntries where AEOperation=-{$Operation} and AETournament={$_SESSION['TourId']} and AEFromIp=INET_ATON('$RemoteIP'))");
+		if($_SESSION['AccreditationTourIds']) $TourId=$_SESSION['AccreditationTourIds'];
+		$SQL="update Entries set EnBadgePrinted='$Now', EnTimestamp=EnTimestamp where EnId in ".($WHERE ? $WHERE : "(select AEId from AccEntries where AEOperation=-{$Operation} and AETournament in ($TourId) and AEFromIp=INET_ATON('$RemoteIP'))");
 		if($_SESSION['AccBooth']) {
 			// we need to log every single Entry...
-			$q=safe_r_sql("select EnCode, EnIocCode, EnDivision, ToCode from Entries inner join Tournament on EnTournament=ToId where EnId in ".($WHERE ? $WHERE : "(select AEId from AccEntries where AEOperation=-{$Operation} and AETournament={$_SESSION['TourId']} and AEFromIp=INET_ATON('$RemoteIP'))"));
+			$q=safe_r_sql("select EnCode, EnIocCode, EnDivision, ToCode from Entries inner join Tournament on EnTournament=ToId where EnId in ".($WHERE ? $WHERE : "(select AEId from AccEntries where AEOperation=-{$Operation} and AETournament in ($TourId) and AEFromIp=INET_ATON('$RemoteIP'))"));
 			while($r=safe_fetch($q)) {
 				LogAccBoothQuerry("update Entries
 						set EnBadgePrinted='$Now', EnTimestamp=EnTimestamp

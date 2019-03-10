@@ -3,6 +3,7 @@
 	require_once('Common/Lib/ArrTargets.inc.php');
 	require_once('Common/Lib/Fun_Phases.inc.php');
 
+	$Device = (!empty($_GET['devid']) ? $_GET['devid'] : '');
 	$DistanceNum = (!empty($_GET['distnum']) ? $_GET['distnum'] : 1);
 	$EndNum = (!empty($_GET['endnum']) ? $_GET['endnum'] : 1);
 	$TargetNo= (!empty($_GET['qutarget']) ? $_GET['qutarget'] : 0);
@@ -21,12 +22,15 @@
 		'locked' => false
 		);
 
+	$StickyEnds=getModuleParameter('ISK', 'StickyEnds', array('SeqCode'=>'', 'Distance'=>'', 'Ends'=>array()), $CompId);
+
+
 	if($TargetNo) {
 		$tmp=explode('|', $TargetNo);
 		$json_array['qutarget']= $TargetNo;
 		if(count($tmp)==3) {
 			// ELIMINATION
-			$Select	= "SELECT ElArrowString AS ArrowString, EvElimArrows DiArrows
+			$Select	= "SELECT ElArrowString AS ArrowString, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) DiArrows
 				FROM Eliminations
 				INNER JOIN Events on ElEventCode=EvCode and ElTournament=EvTournament and EvTeamEvent=0
 				WHERE ElTargetNo=" . StrSafe_DB($tmp[2]) . "
@@ -55,6 +59,14 @@
 						($EndNum==1 and ($DistanceNum==1 or trim(substr($ScoreRow->PrevArrowString, ($ScoreRow->PrevEnds-1)*$ScoreRow->PrevArrows, $ScoreRow->PrevArrows)))
 							 or (trim(substr($ScoreRow->ArrowString, $StartPos-$ScoreRow->DiArrows, $ScoreRow->DiArrows)))));
 			}
+			// check sticky ends
+			// get the sequence this match belongs to
+			if($StickyEnds['SeqCode'][0]=='Q' and $StickyEnds['SeqCode'][2]==$TargetNo[0]) {
+				$json_array['locked']=true;
+				if(in_array($EndNum, $StickyEnds['Ends']) and $DistanceNum==$StickyEnds['Distance']) {
+					$json_array['locked']=false;
+				}
+			}
 		} else {
 			// Qualification
 			$SQL="SELECT QuId, QuTargetNo, DIDistance, DIEnds, DIArrows, ToGoldsChars, ToXNineChars from Qualifications
@@ -73,8 +85,18 @@
 				for($i=0; $i<$ArrowSearch->DIArrows; $i++)
 					$json_array["arrowvalues"][] = DecodeFromLetter($tmp['curendarrstr'][$i]);
 			}
+
+			// check sticky ends
+			// get the sequence this match belongs to
+			if($StickyEnds['SeqCode'] and $StickyEnds['SeqCode'][0]=='Q' and $StickyEnds['SeqCode'][2]==$TargetNo[0]) {
+				$json_array['locked']=true;
+				if(in_array($EndNum, $StickyEnds['Ends']) and $DistanceNum==$StickyEnds['Distance']) {
+					$json_array['locked']=false;
+				}
+			}
 		}
 	} else {
+
 		$json_array['matchid']= $Event."|".($EventType==0 ? 'I':'T')."|".$MatchNo;
 
 		$obj=getEventArrowsParams($Event,getPhase($MatchNo),$EventType,$CompId);
@@ -83,8 +105,19 @@
 		$json_array['curscoreatend'] = $tmp['curscoreatend'];
 		$json_array['scoreatend']    = $tmp['scoreatend'];
 		$json_array['prevendscored'] = ($EndNum==1 || $EndNum==$obj->ends+1 || (trim(substr($tmp['tilendarrstr'],-2*$obj->arrows)) !=''));
-		for($i=0; $i<($EndNum==$obj->ends+1 ? $obj->so:$obj->arrows); $i++)
+		for($i=0; $i<($EndNum==$obj->ends+1 ? $obj->so:$obj->arrows); $i++) {
 			$json_array["arrowvalues"][] = DecodeFromLetter($tmp['curendarrstr'][$i]);
+		}
+
+		// check sticky ends
+		// get the sequence this match belongs to
+		$q=safe_r_sql("select concat('".($EventType==0 ? 'I':'T')."', FsScheduledDate, FsScheduledTime) as EventKey from FinSchedule where FsTournament=$CompId and FsTeamEvent=$EventType and FsEvent='$Event' and FsMatchNo=$MatchNo");
+		if($r=safe_fetch($q) and $r->EventKey==$StickyEnds['SeqCode']) {
+			$json_array['locked']=true;
+			if(in_array($EndNum, $StickyEnds['Ends'])) {
+				$json_array['locked']=false;
+			}
+		}
 	}
 
 

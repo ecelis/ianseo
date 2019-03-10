@@ -112,6 +112,11 @@ function CheckPictures($TourCode='', $open=false, $all=false, $force=false) {
 			if($force or !file_exists($ImName) or filemtime($ImName) < $r->PictureTime) {
 				if($im=@imagecreatefromstring(base64_decode($r->Picture))) {
 					Imagejpeg($im, $ImName,95);
+					if(class_exists('Imagick')) {
+						$im=new Imagick($ImName);
+						$im->opaquePaintImage('#000000', '#151515', 14, false);
+						$im->writeImage($ImName);
+					}
 				} elseif($r->PictureType=='En') {
 					safe_w_SQL("delete from Photos where PhEnId=$r->PictureCode");
 				}
@@ -357,13 +362,22 @@ function RedrawPictures($TourCode='', $Force=false) {
 			@unlink($ImName);
 		}
 	}
-	$q=safe_r_sql("select IceContent, IceType, IceOrder, IceCardType, IceCardNumber from IdCardElements where IceTournament = $TourId and IceType in ('Image', 'RandomImage')");
+	$q=safe_r_sql("select IceContent, IceType, IceOrder, IceCardType, IceCardNumber from IdCardElements where IceContent>'' and IceTournament = $TourId and IceType in ('Image', 'ImageSvg', 'RandomImage')");
 	while($r=safe_fetch($q)) {
-		$ImName=$CFG->DOCUMENT_PATH.'TV/Photos/'.$TourCodeSafe.'-'.$r->IceType.'-'.$r->IceCardType.'-'.$r->IceCardNumber.'-'.$r->IceOrder.'.jpg';
-		if($r->IceContent and $im=@imagecreatefromstring($r->IceContent)) {
-			if($Force or !file_exists($ImName)) imagejpeg($im, $ImName, 90);
+		if($r->IceType=='ImageSvg') {
+			$ImName=$CFG->DOCUMENT_PATH.'TV/Photos/'.$TourCodeSafe.'-'.$r->IceType.'-'.$r->IceCardType.'-'.$r->IceCardNumber.'-'.$r->IceOrder.'.svg';
+			if($im=@gzinflate($r->IceContent)) {
+				if($Force or !file_exists($ImName)) file_put_contents($ImName, $im);
+			} else {
+				@unlink($ImName);
+			}
 		} else {
-			@unlink($ImName);
+			$ImName=$CFG->DOCUMENT_PATH.'TV/Photos/'.$TourCodeSafe.'-'.$r->IceType.'-'.$r->IceCardType.'-'.$r->IceCardNumber.'-'.$r->IceOrder.'.jpg';
+			if($im=@imagecreatefromstring($r->IceContent)) {
+				if($Force or !file_exists($ImName)) imagejpeg($im, $ImName, 90);
+			} else {
+				@unlink($ImName);
+			}
 		}
 	}
 
@@ -548,6 +562,8 @@ function updateFlag($FlCode, $Type='JPG', $q='') {
 	$ret=(safe_num_rows($q) ? true : false);
 	$Type=strtoupper($Type);
 
+	$Delete=0;
+
 	while($r=safe_fetch($q)) {
 		if(empty($SafeToCode)) $SafeToCode=preg_replace('/[^a-z0-9_.-]/sim', '', $r->ToCode);
 
@@ -560,6 +576,7 @@ function updateFlag($FlCode, $Type='JPG', $q='') {
 				safe_w_SQL("update Flags set FlJPG='' where FlCode='$r->FlCode' and FlTournament=$r->ToId");
 				@unlink($ImName);
 				$ret=false;
+				$Delete+=safe_w_affected_rows();
 			}
 		}
 		if($Type=='SVG' or $Type=='ALL') {
@@ -573,11 +590,14 @@ function updateFlag($FlCode, $Type='JPG', $q='') {
 				safe_w_SQL("update Flags set FlSVG='' where FlCode='$r->FlCode' and FlTournament=$r->ToId");
 				@unlink($ImName);
 				$ret=false;
+				$Delete+=safe_w_affected_rows();
 			}
 		}
 	}
 	// deletes the empty records!
-	safe_w_sql("delete from Flags where FlSVG='' and FlJPG=''");
+	if($Delete) {
+		safe_w_sql("delete from Flags where FlSVG='' and FlJPG=''");
+	}
 	return $ret;
 }
 
@@ -596,13 +616,16 @@ function RemoveMedia($TourCode='') {
  * @param string $Photo the escaped, base64 encoded stringified image
  * @return boolean true on success, false otherwise
  */
-function InsertPhoto($EnId, $Photo, $Booth=false, $Date='', $EnBadgePrinted=0) {
+function InsertPhoto($EnId, $Photo, $Booth=false, $Date='', $EnBadgePrinted=0, $ToRetake=false) {
 	if(!$Date) $Date=date('Y-m-d H:i:s');
-	$sql = "PhEnId=" . Strsafe_DB($EnId) . ", PhPhoto='" . $Photo ."'";
+	$ToRetake=intval($ToRetake);
+	$sql = "PhEnId=" . Strsafe_DB($EnId) . ", PhPhoto='" . $Photo ."', PhToRetake=$ToRetake";
 	safe_w_sql("insert into Photos set $sql, PhPhotoEntered='$Date' on duplicate key update $sql");
 	if(safe_w_affected_rows()) {
 		safe_w_sql("update Photos set PhPhotoEntered='$Date' where PhEnId=" . Strsafe_DB($EnId));
-		safe_w_sql("update Entries set EnBadgePrinted=".($EnBadgePrinted ? Strsafe_DB($EnBadgePrinted) : 0)." where EnId=".Strsafe_DB($EnId));
+		if(!$ToRetake) {
+			safe_w_sql("update Entries set EnBadgePrinted=".($EnBadgePrinted ? Strsafe_DB($EnBadgePrinted) : 0)." where EnId=".Strsafe_DB($EnId));
+		}
 	}
 	if($Booth) {
 		safe_w_sql("insert into ianseo_Accreditation.Photos

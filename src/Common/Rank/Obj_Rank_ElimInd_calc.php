@@ -95,13 +95,11 @@
 			$f=$this->safeFilterC();
 			$filter=($f!==false ? $f : "");
 
-			//IF(ElElimPhase=0,EvElim2,IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))))
-
 			$q="
 				SELECT
 					ElId,EnFirstName,ElEventCode,ElElimPhase,
 					ElScore,ElGold, ElXnine, ElRank as actualRank,
-					IF(ElElimPhase=0,EvElim2,IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2)))) AS QualifiedNo
+					IF(ElElimPhase=0,EvElim2,EvNumQualified) AS QualifiedNo
 				FROM
 					Eliminations
 					INNER JOIN
@@ -113,7 +111,7 @@
 					ElTournament={$this->tournament} {$filter}
 				ORDER BY
 					EvProgr, ElEventCode, ElElimPhase ASC, ElScore DESC, ElGold DESC, ElXnine DESC, ElTargetNo
-			"; 
+			";
 			$r=safe_r_sql($q);
 
 			if (!$r)
@@ -136,10 +134,10 @@
 				$currentRow=-1;
 
 				while($myRow=safe_fetch($r))
-				{					
+				{
 					++$currentRow;
 					if ($curGroup != $myRow->ElEventCode.$myRow->ElElimPhase)
-					{		
+					{
 						$curGroup = $myRow->ElEventCode.$myRow->ElElimPhase;
 						//print $curGroup.'<br>';
 						$myRank = 1;

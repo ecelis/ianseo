@@ -34,33 +34,45 @@ function CreateStandardFieldClasses($TourId, $SubRule) {
 }
 
 function CreateStandardFieldEvents($TourId, $SubRule) {
+	$Elim1=array(
+		'Archers' => 16,
+		'Ends' => 12,
+		'Arrows' => 3,
+		'SO' => 1
+	);
+	$Elim2=array(
+		'Archers' => 8,
+		'Ends' => 8,
+		'Arrows' => 3,
+		'SO' => 1
+	);
 	switch($SubRule) {
 		case '1':
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  get_text('CA-Ev-RM',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  get_text('CA-Ev-RW',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', get_text('CA-Ev-RJM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', get_text('CA-Ev-RJW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCM', get_text('CA-Ev-RCM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCW', get_text('CA-Ev-RCW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMM', get_text('CA-Ev-RMM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMW', get_text('CA-Ev-RMW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  get_text('CA-Ev-CM',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  get_text('CA-Ev-CW',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', get_text('CA-Ev-CJM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', get_text('CA-Ev-CJW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCM', get_text('CA-Ev-CCM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCW', get_text('CA-Ev-CCW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMM', get_text('CA-Ev-CMM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMW', get_text('CA-Ev-CMW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  get_text('CA-Ev-BM',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  get_text('CA-Ev-BW',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', get_text('CA-Ev-BJM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', get_text('CA-Ev-BJW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCM', get_text('CA-Ev-BCM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCW', get_text('CA-Ev-BCW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMM', get_text('CA-Ev-BMM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMW', get_text('CA-Ev-BMW', 'Languages'), 0, 0, 0, 16, 8);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  get_text('CA-Ev-RM',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  get_text('CA-Ev-RW',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', get_text('CA-Ev-RJM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', get_text('CA-Ev-RJW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCM', get_text('CA-Ev-RCM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RCW', get_text('CA-Ev-RCW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMM', get_text('CA-Ev-RMM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RMW', get_text('CA-Ev-RMW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  get_text('CA-Ev-CM',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  get_text('CA-Ev-CW',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', get_text('CA-Ev-CJM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', get_text('CA-Ev-CJW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCM', get_text('CA-Ev-CCM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CCW', get_text('CA-Ev-CCW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMM', get_text('CA-Ev-CMM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CMW', get_text('CA-Ev-CMW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  get_text('CA-Ev-BM',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  get_text('CA-Ev-BW',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', get_text('CA-Ev-BJM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', get_text('CA-Ev-BJW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCM', get_text('CA-Ev-BCM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BCW', get_text('CA-Ev-BCW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMM', get_text('CA-Ev-BMM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BMW', get_text('CA-Ev-BMW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
 			$i=1;
 			CreateEvent($TourId, $i++, 1, 0, 4, 6, 8, 3, 3, 4, 3, 3, 'MT',  get_text('CA-Ev-MT',  'Languages'),0,248,15);
 			CreateEvent($TourId, $i++, 1, 0, 4, 6, 8, 3, 3, 4, 3, 3, 'WT',  get_text('CA-Ev-WT',  'Languages'),0,248,15);
@@ -73,18 +85,18 @@ function CreateStandardFieldEvents($TourId, $SubRule) {
 			break;
 		case '2':
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  get_text('CA-Ev-RM',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  get_text('CA-Ev-RW',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', get_text('CA-Ev-RJM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', get_text('CA-Ev-RJW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  get_text('CA-Ev-CM',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  get_text('CA-Ev-CW',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', get_text('CA-Ev-CJM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', get_text('CA-Ev-CJW', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  get_text('CA-Ev-BM',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  get_text('CA-Ev-BW',  'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', get_text('CA-Ev-BJM', 'Languages'), 0, 0, 0, 16, 8);
-			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', get_text('CA-Ev-BJW', 'Languages'), 0, 0, 0, 16, 8);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RM',  get_text('CA-Ev-RM',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RW',  get_text('CA-Ev-RW',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJM', get_text('CA-Ev-RJM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'RJW', get_text('CA-Ev-RJW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CM',  get_text('CA-Ev-CM',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CW',  get_text('CA-Ev-CW',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJM', get_text('CA-Ev-CJM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'CJW', get_text('CA-Ev-CJW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BM',  get_text('CA-Ev-BM',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BW',  get_text('CA-Ev-BW',  'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJM', get_text('CA-Ev-BJM', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
+			CreateEvent($TourId, $i++, 0, 0, 2, 6, 12, 3, 3, 4, 3, 3, 'BJW', get_text('CA-Ev-BJW', 'Languages'), 0, 0, 0, $Elim1, $Elim2);
 			$i=1;
 			CreateEvent($TourId, $i++, 1, 0, 4, 6,  8, 3, 3, 4, 3, 3, 'MT',  get_text('CA-Ev-MT',  'Languages'),0,248,15);
 			CreateEvent($TourId, $i++, 1, 0, 4, 6,  8, 3, 3, 4, 3, 3, 'WT',  get_text('CA-Ev-WT',  'Languages'),0,248,15);

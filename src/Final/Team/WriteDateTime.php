@@ -9,9 +9,9 @@
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/Fun_DateTime.inc.php');
+    checkACL(AclCompetition, AclReadWrite, false);
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
@@ -20,12 +20,9 @@
 
 	$Which = '';
 	$vv = '';	// valore trattato
-	if (!IsBlocked(BIT_BLOCK_TOURDATA))
-	{
-		foreach ($_REQUEST as $Key => $Value)
-		{
-			if (substr($Key,0,2)=='d_')
-			{
+	if (!IsBlocked(BIT_BLOCK_TOURDATA)) {
+		foreach ($_REQUEST as $Key => $Value) {
+			if (substr($Key,0,2)=='d_') {
 				$Which = $Key;
 				$vv = $Value;
 

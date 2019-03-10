@@ -9,11 +9,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$xml = '';
 	$Errore=0;
@@ -72,10 +72,10 @@
 			while ($MyRow=safe_fetch($Rs))
 			{
 				$xml
-					.= '<target>' . "\n"
-					 . '<id>' . $MyRow->QuId . '</id>' . "\n"
-					 . '<num>' . (!$MyRow->ValidTarget ? '0' : $MyRow->Quanti) . '</num>' . "\n"
-					 . '</target>' . "\n";
+					.= '<target>'
+					 . '<id>' . $MyRow->QuId . '</id>'
+					 . '<num>' . (!$MyRow->ValidTarget ? '0' : $MyRow->Quanti) . '</num>'
+					 . '</target>';
 			}
 		}
 	}
@@ -83,8 +83,8 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print $xml;
-	print '</response>' . "\n";
+	print '</response>';
 ?>

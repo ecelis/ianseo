@@ -1,117 +1,53 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
+define('debug',false);	// settare a true per l'output di debug
 
-	require_once(dirname(dirname(__FILE__)) . '/config.php');
-	require_once('Common/Fun_FormatText.inc.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once('Common/Fun_FormatText.inc.php');
+require_once('Common/Lib/ArrTargets.inc.php');
 
-	if (!CheckTourSession())
-	{
-		print get_text('CrackError');
-		exit;
-	}
+CheckTourSession(true);
+checkACL(AclQualification, AclReadOnly);
 
-	$ToCode = '';
+$Sql = "SELECT ToCode, ToNumDist, ToGolds, ToXNine FROM Tournament WHERE ToId=" . StrSafe_DB($_SESSION['TourId']);
+$q = safe_r_sql($Sql);
+$tourData = null;
+if (safe_num_rows($q)==1) {
+    $tourData=safe_fetch($q);
+} else {
+    exit;
+}
 
-	$Select
-		= "SELECT ToCode "
-		. "FROM Tournament "
-		. "WHERE ToId=" . StrSafe_DB($_SESSION['TourId']) . " ";
-	$Rs=safe_r_sql($Select);
-
-	if (safe_num_rows($Rs)==1)
-	{
-		$row=safe_fetch($Rs);
-		$ToCode=$row->ToCode;
-	}
-
-	$MyQuery = "SELECT EnCode as Bib, EnName AS Name, EnFirstName AS FirstName, EnDob,SUBSTRING(AtTargetNo,1,1) AS Session, SUBSTRING(AtTargetNo,2) AS TargetNo,";
-	$MyQuery.= " CoCode AS NationCode, CoName AS Nation, EnClass, EnDivision AS DivCode, EnAgeClass, EnSubClass as SubClass,  ";
-	for ($i=1;$i<=8;++$i)
-		$MyQuery.= "QuD" . $i . "Score, QuD" . $i . "Hits,QuD" . $i . "Gold,QuD" . $i . "Xnine, ";
-	$MyQuery.= "QuScore,QuHits,QuGold,QuXnine ";
-	$MyQuery.= "FROM AvailableTarget at ";
-	$MyQuery.= "LEFT JOIN ";
-	$MyQuery.= "(SELECT QuTargetNo, EnCode, EnName, EnFirstName,EnDob, CoCode, CoName, EnClass, EnDivision, EnAgeClass, EnSubClass, EnStatus, ";
-	for ($i=1;$i<=8;++$i)
-		$MyQuery.= "QuD" . $i . "Score, QuD" . $i . "Hits,QuD" . $i . "Gold,QuD" . $i . "Xnine, ";
-	$MyQuery.= "QuScore,QuHits,QuGold,QuXnine ";
-	$MyQuery.= "FROM Qualifications AS q  ";
-	$MyQuery.= "INNER JOIN Entries AS e ON q.QuId=e.EnId AND e.EnTournament= " . StrSafe_DB($_SESSION['TourId']) . " ";
-	$MyQuery.= "INNER JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament) as Sq ON at.AtTargetNo=Sq.QuTargetNo ";
-	$MyQuery.= "WHERE AtTournament = " . StrSafe_DB($_SESSION['TourId']) . " ";
-	$MyQuery.= "ORDER BY AtTargetNo, CoCode, Name, CoName, FirstName ";
-	$Rs=safe_r_sql($MyQuery);
+$Sql = "SELECT EnCode as Bib, EnFirstName AS FamilyName, EnName AS GivenName, EnDob as DoB, EnSex as Gender, QuSession AS Session, CONCAT(QuTarget,QuLetter) AS TargetNo, " .
+    "CoCode AS NOC, CoName AS Country, EnDivision AS Division, EnClass as Class, ";
+for ($i=1;$i<=$tourData->ToNumDist;++$i) {
+    $Sql .= "QuD{$i}Score as D{$i}Score, QuD{$i}Gold as D{$i}Golds, QuD{$i}Xnine as D{$i}Xnine, QuD{$i}Arrowstring, ";
+}
+$Sql .= "QuScore,QuHits,QuGold,QuXnine " .
+	"FROM Qualifications " .
+	"INNER JOIN Entries ON QuId=EnId " .
+	"INNER JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament " .
+	"WHERE EnTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND EnAthlete=1 ".
+	"ORDER BY QuTargetNo, CoCode, EnName ";
+$q=safe_r_sql($Sql);
 	//echo $MyQuery;exit;
-	$StrData = '';
 
-	if (safe_num_rows($Rs)>0)
-	{
-		header('Cache-Control: no-store, no-cache, must-revalidate');
-		header('Content-Disposition: attachment; filename=' . ($ToCode!='' ? $ToCode : 'export') . '.txt');
-		header('Content-type: text/tab-separated-values; charset=' . PageEncode);
-
-		$MyHeader
-			= get_text('Session') . "\t"
-			. get_text('Target') . "\t"
-			. get_text('Country') . "\t"
-			. get_text('FamilyName','Tournament') . "\t"
-			. get_text('Name','Tournament') . "\t"
-			. get_text('CtrlCodeShort','Tournament') . "\t"
-			. get_text('SubCl','Tournament') . "\t"
-			. get_text('Div') . "\t"
-			. get_text('AgeCl') . "\t"
-			. get_text('Cl') . "\t"
-			. get_text('Code','Tournament') . "\t"
-			. get_text('Nation') . "\t";
-		for ($i=1;$i<=8;++$i)
-			$MyHeader
-				.=get_text('TotaleScore') . '-' . $i . "\t"
-				. ("Golds") . '-' . $i . "\t"
-				. ("Hits") . '-' . $i . "\t"
-				. ("X-9") . '-' . $i . "\t";
-
-
-		$MyHeader
-			.=get_text('TotaleScore') . "\t"
-			. ("Golds")  . "\t"
-			. ("Hits") . "\t"
-			. ("X-9") . "\t";
-
-		$MyHeader.="\n";
-
-		print $MyHeader;
-
-		while ($MyRow=safe_fetch($Rs))
-		{
-			$StrData
-				.=$MyRow->Session . "\t"
-				. $MyRow->TargetNo . "\t"
-				. (!is_null($MyRow->Bib) ? $MyRow->NationCode : '') . "\t"
-				. $MyRow->FirstName . "\t"
-				. $MyRow->Name . "\t"
-				. $MyRow->EnDob. "\t"
-				. $MyRow->SubClass . "\t"
-				. $MyRow->DivCode . "\t"
-				. $MyRow->EnAgeClass . "\t"
-				. $MyRow->EnClass . "\t"
-				. $MyRow->Bib . "\t"
-				. $MyRow->Nation . "\t";
-			for ($i=1;$i<=8;++$i)
-				$StrData
-					.=$MyRow->{'QuD' . $i . 'Score'} . "\t"
-					. $MyRow->{'QuD' . $i . 'Gold'} . "\t"
-					. $MyRow->{'QuD' . $i . 'Hits'} . "\t"
-					. $MyRow->{'QuD' . $i . 'Xnine'} . "\t";
-
-			$StrData
-					.=$MyRow->QuScore . "\t"
-					. $MyRow->QuGold . "\t"
-					. $MyRow->QuHits . "\t"
-					. $MyRow->QuXnine . "\t";
-
-			$StrData.="\n";
-		}
-
-		print $StrData;
-	}
+$header = array('WaID','FamilyName','GivenName','DoB','Gender','Session','Target','Noc','Country', 'Division', 'Class');
+for ($i=1;$i<=$tourData->ToNumDist;++$i) {
+    $header =array_merge($header, array("D{$i} Score","D{$i} ".$tourData->ToGolds,"D{$i} ". $tourData->ToXNine, "D{$i} Arrows"));
+}
+$header =array_merge($header, array("Score", "Hits", $tourData->ToGolds, $tourData->ToXNine));
+$data = array();
+$data[] = $header;
+while ($r=safe_fetch_assoc($q)) {
+    for ($i=1;$i<=$tourData->ToNumDist;++$i) {
+        $r["QuD{$i}Arrowstring"] = implode(',', DecodeFromString(rtrim($r["QuD{$i}Arrowstring"]), false, true));
+    }
+    $data[] = $r;
+}
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Content-Disposition: attachment; filename=' . $tourData->ToCode . '.txt');
+header('Content-type: text/tab-separated-values; charset=' . PageEncode);
+foreach ($data as $row) {
+    echo implode(';',$row) . "\r\n";
+}
 ?>

@@ -22,9 +22,8 @@ $OpDetails = "Accreditation";
 if(isset($_REQUEST["OperationType"]))
 	$OpDetails = $_REQUEST["OperationType"];
 
-if(CheckTourSession())
-{
-
+if(CheckTourSession()) {
+    checkACL(AclTeams, AclReadOnly);
 	$pdf = new LabelPDF();
 	//Predefinita per etichette A4
 	$lblW= $pdf->GetPageWidth()/3;
@@ -63,16 +62,19 @@ if(CheckTourSession())
         . " CoCode, upper(CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),''))) AS FirstName, '' NationCode, '' Name, "
 		. ' NULLIF(s8.FSTarget,\'\') s8, NULLIF(s4.FSTarget,\'\') s4, NULLIF(s2.FSTarget,\'\') s2, NULLIF(sb.FSTarget,\'\') sBr, NULLIF(sg.FSTarget,\'\') sGo '
         . ' FROM Events '
+        . ' INNER JOIN Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2,EvTeamEvent))>0 '
         . ' INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament '
         . ' INNER JOIN Teams ON TeCoID=TfTeam AND TeEvent=TfEvent AND TeTournament=TfTournament '
-        . ' INNER JOIN Grids ON TfMatchNo=GrMAtchNo AND GrPhase=EvFinalFirstPhase '
+        . ' INNER JOIN Grids ON TfMatchNo=GrMatchNo AND GrPhase=greatest(PhId, PhLevel) '
         . ' INNER JOIN Countries on TfTeam=CoId AND TfTournament=CoTournament '
-		. ' LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(EvFinalFirstPhase=8,TfMatchNo,-256)=s8.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(EvFinalFirstPhase=4,TfMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(EvFinalFirstPhase=2,TfMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo'
+        . ' LEFT JOIN FinSchedule s16 ON EvCode=s16.FSEvent AND EvTeamEvent=s16.FSTeamEvent AND EvTournament=s16.FSTournament AND IF(GrPhase=16,TfMatchNo,-256)=s16.FSMatchNo'
+        . ' LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(GrPhase=8,TfMatchNo,FLOOR(s16.FSMatchNo/2))=s8.FSMatchNo'
+		. ' LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(GrPhase=4,TfMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo'
+		. ' LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(GrPhase=2,TfMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo'
 		. ' LEFT JOIN FinSchedule sb ON EvCode=sb.FSEvent AND EvTeamEvent=sb.FSTeamEvent AND EvTournament=sb.FSTournament AND FLOOR(s2.FSMatchNo/2)=sb.FSMatchNo'
 		. ' LEFT JOIN FinSchedule sg ON EvCode=sg.FSEvent AND EvTeamEvent=sg.FSTeamEvent AND EvTournament=sg.FSTournament AND FLOOR(s2.FSMatchNo/2)-2=sg.FSMatchNo'
-        . ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 ';
+
+		. ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 ';
 		if (isset($_REQUEST['Event'])) {
 			$events=array();
 			if(!is_array($_REQUEST['Event'])) $_REQUEST['Event']= array($_REQUEST['Event']);

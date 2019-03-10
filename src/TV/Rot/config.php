@@ -50,7 +50,7 @@ function getCss($TourId, $Rule) {
 	$q=safe_r_SQL("select TVRSettings from TVRules WHERE TVRId=$Rule AND TVRTournament=$TourId");
 	if($r=safe_fetch($q) and $Settings=unserialize($r->TVRSettings)) {
 		$ret.="
-		#body {font-family:{$Settings['name']};font-size:{$Settings['size']};{$Settings['content']}}
+		#body {".($Settings['name'] ? "font-family:{$Settings['name']};" : "" )."font-size:{$Settings['size']};{$Settings['content']}}
 		#content {position:relative; box-sizing:border-box;height:100%;}
 		.Font1e { color:{$Settings['col1e']}; }
 		.Font1o { color:{$Settings['col1o']}; }
@@ -66,6 +66,8 @@ function getCss($TourId, $Rule) {
 		.Back2o { background:{$Settings['bck2o']}; }
 		.Title { {$Settings['title']}; }
 		.Headers { {$Settings['Headers']}; }
+		.TitleImg {display:inline-block;margin:-0.5vw;padding:0.1vw;background-color:white;}
+		.TitleImg img {height:3.5vw; width:auto;}
 		";
 	}
 	return '<style>'.$ret.'</style>';

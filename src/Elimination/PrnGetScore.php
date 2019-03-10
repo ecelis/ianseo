@@ -5,9 +5,8 @@ require_once('Common/Fun_Sessions.inc.php');
 
 $Indices=array('bis','ter','quat', 'quin', 'sex', 'sept', 'oct');
 
-if(CheckTourSession())
-{
-
+if(CheckTourSession()) {
+    checkACL(AclEliminations, AclReadOnly);
 	$pdf = new LabelPDF();
 
 	$ath4target=0;

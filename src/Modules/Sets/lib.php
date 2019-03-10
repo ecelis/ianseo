@@ -47,6 +47,42 @@ TtId TtType               TtDistance
 
 */
 
+
+define('TGT_IND_1_big10', 1);
+define('TGT_IND_6_big10', 2);
+define('TGT_IND_1_small10', 3);
+define('TGT_IND_6_small10', 4);
+define('TGT_OUT_FULL', 5);
+define('TGT_FIELD', 6);
+define('TGT_HITMISS', 7);
+define('TGT_3D', 8);
+define('TGT_OUT_5_big10', 9);
+define('TGT_OUT_6_big10', 10);
+define('TGT_NOR_HUN', 11);
+define('TGT_SWE_FORREST', 12);
+define('TGT_IND_NFAA', 13);
+
+define('MATCH_ALL_SEP', 0);
+define('MATCH_SEP_FROM_32', 128);
+define('MATCH_SEP_FROM_16', 192);
+define('MATCH_SEP_FROM_8', 224);
+define('MATCH_SEP_FROM_4', 240);
+define('MATCH_SEP_FROM_2', 248);
+define('MATCH_SEP_MEDALS', 252);
+define('MATCH_SEP_GOLD', 254);
+define('MATCH_NO_SEP', 255);
+
+define('FINAL_NO_ELIM', 0);
+define('FINAL_FROM_32', 128);
+define('FINAL_FROM_16', 192);
+define('FINAL_FROM_8', 224);
+define('FINAL_FROM_4', 240);
+define('FINAL_FROM_2', 248);
+define('FINAL_MEDALS', 252);
+define('FINAL_GOLD', 254);
+define('FINAL_ALL', 255);
+
+
 function CreateDivision($TourId, $Order, $Id, $Description, $Athlete='1', $RecDiv='', $WaDiv='') {
 	if(!$RecDiv) $RecDiv=$Id;
 	if(!$WaDiv) $WaDiv=$Id;
@@ -105,9 +141,20 @@ function CreateDistance($TourId, $Type, $Classes, $D1='', $D2='', $D3='', $D4=''
 		);
 }
 
-function CreateEvent($TourId, $Order, $Team, $MixTeam, $FirstPhase, $TargetType, $ElimEnds, $ElimArrows, $ElimSO, $FinEnds, $FinArrows, $FinSO, $Code, $Description, $SetMode=0, $MatchArrows=0, $AthTarget=0, $Elim1=0, $Elim2=0, $RecCategory='', $WaCategory='', $tgtSize=0, $shootingDist=0, $parentEvent='', $MultipleTeam=0) {
+function CreateEvent($TourId, $Order, $Team, $MixTeam, $FirstPhase, $TargetType, $ElimEnds, $ElimArrows, $ElimSO, $FinEnds, $FinArrows, $FinSO, $Code, $Description, $SetMode=0, $MatchArrows=0, $AthTarget=0, $ElimRound1=array(), $ElimRound2=array(), $RecCategory='', $WaCategory='', $tgtSize=0, $shootingDist=0, $parentEvent='', $MultipleTeam=0, $Selected=0, $EvWinnerFinalRank=1) {
 	if(!$RecCategory) $RecCategory=$Code;
 	if(!$WaCategory) $WaCategory=$Code;
+	$Elim1=(empty($ElimRound1) ? 0 : $ElimRound1['Archers']);
+	$Elim2=(empty($ElimRound2) ? 0 : $ElimRound2['Archers']);
+	$ElEnd1=(empty($ElimRound1) ? $ElimEnds : $ElimRound1['Ends']);
+	$ElEnd2=(empty($ElimRound2) ? $Elim2 : $ElimRound2['Ends']);
+	$ElArr1=(empty($ElimRound1) ? $ElimArrows : $ElimRound1['Arrows']);
+	$ElArr2=(empty($ElimRound2) ? $ElimArrows : $ElimRound2['Arrows']);
+	$ElSO1=(empty($ElimRound1) ? $ElimSO : $ElimRound1['SO']);
+	$ElSO2=(empty($ElimRound2) ? $ElimSO : $ElimRound2['SO']);
+	$ElimType=0;
+	if(!empty($ElimRound2)) $ElimType=1;
+	if(!empty($ElimRound1)) $ElimType=2;
 	safe_w_sql("INSERT INTO Events set "
 		. " EvTournament=$TourId"
 		. ", EvProgr=$Order"
@@ -115,6 +162,8 @@ function CreateEvent($TourId, $Order, $Team, $MixTeam, $FirstPhase, $TargetType,
 		. ", EvMultiTeam=$MultipleTeam"
 		. ", EvMixedTeam=$MixTeam"
 		. ", EvFinalFirstPhase=$FirstPhase"
+		. ", EvWinnerFinalRank=$EvWinnerFinalRank"
+		. ", EvNumQualified=".($Selected ? $Selected : numQualifiedByPhase($FirstPhase))
 		. ", EvFinalTargetType=$TargetType"
 		. ", EvTargetSize=$tgtSize"
 		. ", EvDistance=$shootingDist"
@@ -130,14 +179,85 @@ function CreateEvent($TourId, $Order, $Team, $MixTeam, $FirstPhase, $TargetType,
 		. ", EvMatchArrowsNo=$MatchArrows"
 		. ", EvFinalAthTarget=$AthTarget"
 		. ", EvElim1=$Elim1"
+		. ", EvE1Ends=$ElEnd1"
+		. ", EvE1Arrows=$ElArr1"
+		. ", EvE1SO=$ElSO1"
 		. ", EvElim2=$Elim2"
+		. ", EvE2Ends=$ElEnd2"
+		. ", EvE2Arrows=$ElArr2"
+		. ", EvE2SO=$ElSO2"
 		. ", EvRecCategory=" . StrSafe_DB($RecCategory)
 		. ", EvWaCategory=".StrSafe_DB($WaCategory)
 		. ", EvCodeParent=".StrSafe_DB($parentEvent)
+		. ", EvElimType=".StrSafe_DB($ElimType)
 		);
 }
 
-function InsertClassEvent($TourId, $Team, $Number, $Code, $Division, $Class) {
+function CreateEventNew($TourId, $Code, $Description, $Order, $Options) {
+	global 	$tourDetGolds, $tourDetXNine, $tourDetGoldsChars, $tourDetXNineChars;
+
+	$Defaults=array(
+		'EvTeamEvent' => 0,
+		'EvFinalFirstPhase' => 2,
+		'EvWinnerFinalRank' => 1,
+		'EvNumQualified'=>4,
+		'EvFirstQualified'=>1,
+		'EvFinalTargetType'=>0,
+		'EvTargetSize'=>40,
+		'EvDistance'=>0,
+		'EvFinalAthTarget'=>0,
+		'EvElimType'=>0,
+		'EvElim1'=>0,
+		'EvE1Ends'=>0,
+		'EvE1Arrows'=>0,
+		'EvE1SO'=>0,
+		'EvElim2'=>0,
+		'EvE2Ends'=>0,
+		'EvE2Arrows'=>0,
+		'EvE2SO'=>0,
+		'EvPartialTeam'=>0,
+		'EvMultiTeam'=>0,
+		'EvMixedTeam'=>0,
+		'EvTeamCreationMode'=>0,
+		'EvMaxTeamPerson'=>1,
+		'EvMatchMode'=>0,
+		'EvMatchArrowsNo'=>0,
+		'EvElimEnds'=>0,
+		'EvElimArrows'=>0,
+		'EvElimSO'=>0,
+		'EvFinEnds'=>0,
+		'EvFinArrows'=>0,
+		'EvFinSO'=>0,
+		'EvRecCategory'=>$Code,
+		'EvWaCategory'=>$Code,
+		'EvMedals'=>1,
+		'EvTourRules'=>'',
+		'EvCodeParent'=>'',
+		'EvGolds' => $tourDetGolds,
+		'EvXNine' => $tourDetXNine,
+		'EvGoldsChars' => $tourDetGoldsChars,
+		'EvXNineChars' => $tourDetXNineChars,
+	);
+	foreach($Defaults as $def => $val) {
+		if(!isset($Options[$def])) {
+			$Options[$def]=$val;
+		} elseif($def=='EvFinalFirstPhase' and !isset($Options['EvNumQualified'])) {
+			$Options['EvNumQualified']=numQualifiedByPhase($Options['EvFinalFirstPhase']);
+		}
+	}
+	$Query=array();
+	$Query[]="EvTournament=$TourId";
+	$Query[]="EvCode=" . StrSafe_DB($Code);
+	$Query[]="EvEventName=".StrSafe_DB($Description);
+	$Query[]="EvProgr=$Order";
+	foreach($Options as $k=>$v) {
+		$Query[]="$k=".StrSafe_DB($v);
+	}
+
+	safe_w_sql("INSERT INTO Events set ". implode(',', $Query));
+}
+
+function InsertClassEvent($TourId, $Team, $Number, $Code, $Division, $Class, $SubClass='') {
 	safe_w_sql("INSERT INTO EventClass set "
 		. " EcTournament=$TourId"
 		. ", EcTeamEvent=$Team"
@@ -145,12 +265,23 @@ function InsertClassEvent($TourId, $Team, $Number, $Code, $Division, $Class) {
 		. ", EcCode=" . StrSafe_DB($Code)
 		. ", EcDivision=".StrSafe_DB($Division)
 		. ", EcClass=".StrSafe_DB($Class)
+		. ", EcSubClass=".StrSafe_DB($SubClass)
 		);
 }
 
 function CreateFinals($TourId) {
-	safe_w_sql("INSERT INTO Finals (FinEvent,FinMatchNo,FinTournament) SELECT EvCode,GrMatchNo,EvTournament FROM Events INNER JOIN Grids ON GrPhase<=IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase) WHERE EvTournament=$TourId AND EvTeamEvent='0'");
-	safe_w_sql("INSERT INTO TeamFinals (TfEvent,TfMatchNo,TfTournament) SELECT EvCode,GrMatchNo,EvTournament FROM Events INNER JOIN Grids ON GrPhase<=IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase) WHERE EvTournament=$TourId AND EvTeamEvent='1'");
+	safe_w_sql("INSERT INTO Finals (FinEvent,FinMatchNo,FinTournament) 
+		SELECT EvCode,GrMatchNo,EvTournament 
+		FROM Events 
+		INNER JOIN Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2,EvTeamEvent))>0
+		INNER JOIN Grids ON GrPhase<=greatest(PhId, PhLevel) 
+		WHERE EvTournament=$TourId AND EvTeamEvent='0'");
+	safe_w_sql("INSERT INTO TeamFinals (TfEvent,TfMatchNo,TfTournament) 
+		SELECT EvCode,GrMatchNo,EvTournament 
+		FROM Events 
+		INNER JOIN Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2,EvTeamEvent))>0
+		INNER JOIN Grids ON GrPhase<=greatest(PhId, PhLevel) 
+		WHERE EvTournament=$TourId AND EvTeamEvent='1'");
 }
 
 function CreateTargetFace($TourId, $Id, $Name, $Classes, $Default, $T1, $W1, $T2=0, $W2=0, $T3=0, $W3=0, $T4=0, $W4=0, $T5=0, $W5=0, $T6=0, $W6=0, $T7=0, $W7=0, $T8=0, $W8=0) {
@@ -184,10 +315,10 @@ function CreateTargetFace($TourId, $Id, $Name, $Classes, $Default, $T1, $W1, $T2
 		);
 }
 
-function CreateDistanceInformation($TourId, $Distances, $Targets=0, $Athletes=4, $Session=1) {
+function CreateDistanceInformation($TourId, $Distances, $Targets=0, $Athletes=4, $Session=1, $SesName='') {
 	require_once('Tournament/Fun_ManSessions.inc.php');
 	if($Targets) {
-		insertSession($TourId, 1, 'Q', '', $Targets, $Athletes, 1, 0);
+		insertSession($TourId, $Session, 'Q', $SesName, $Targets, $Athletes, 1, 0);
 	}
 	foreach($Distances as $Dist => $Infos) {
 		safe_w_sql("insert into DistanceInformation set DiTournament=$TourId, DiType='Q', DiSession=$Session, DiDistance=$Dist+1, DiEnds={$Infos[0]}, DiArrows={$Infos[1]} ON DUPLICATE KEY UPDATE DiEnds={$Infos[0]}, DiArrows={$Infos[1]} ");

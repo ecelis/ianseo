@@ -35,7 +35,6 @@ function JackRunUpdate_MatchUpdate($Event, $Team, $MatchNo, $TourId) {
 
 function JackRunUpdate_RankUpdate($Event, $Team, $TourId) {
 	$Targets = getModuleParameter('Jack', "HandShake", array(), $TourId);
-	$MatchNo = ($MatchNo % 2 == 0 ? $MatchNo : $MatchNo-1);
 	if(!empty($Targets["API-JSON"])) {
 		if(!empty($Targets["API-JSON"]["extraparams"])) {
 			foreach ($Targets["API-JSON"]["extraparams"] as $k=>$v) {

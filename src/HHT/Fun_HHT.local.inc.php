@@ -1,6 +1,7 @@
 <?php
 	require_once('Common/Fun_Sessions.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
+	require_once('Common/Lib/CommonLib.php');
 
 	$Base62=array
 	(
@@ -651,20 +652,21 @@
 		return $ComboHHT;
 	}
 
-	function ComboSes($RowTour, $AllHHT=false,&$ComboSesArray=null)
+	function ComboSes($RowTour, $AllHHT=false, &$ComboSesArray=null)
 	{
 		$ComboArr=array();
 		$ComboSes='';
 		$numOptions=0;
 
-		if((isset($_REQUEST["x_Hht"]) && $_REQUEST["x_Hht"]!=-1) or $AllHHT)
-		{
+		$MatchNames=getPoolMatchesPhases();
+		$MatchNamesWA=getPoolMatchesPhasesWA();
+
+		if((isset($_REQUEST["x_Hht"]) && $_REQUEST["x_Hht"]!=-1) or $AllHHT) {
 			if(!$AllHHT) {
 				$Select='SELECT HeEventCode FROM HhtEvents WHERE HeTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND HeHhtId=' . StrSafe_DB($_REQUEST["x_Hht"]);
 				$Rs=safe_r_sql($Select);
 			}
-			if($AllHHT or (numHHT()==1 && safe_num_rows($Rs)==0 ))
-			{
+			if($AllHHT or (numHHT()==1 && safe_num_rows($Rs)==0 )) {
 
 				if(!$AllHHT) {
 					$sessions=GetSessions('Q');
@@ -676,10 +678,8 @@
 						$ComboSes.= '<option value="' . $i . '"' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$i ? ' selected' : '') . '>' . get_text('QualSession','HTT') . ' ' . $i . '</option>' . "\n";
 						$numOptions++;
 					}*/
-					foreach ($sessions as $s)
-					{
-						if ($ComboSesArray!==null)
-						{
+					foreach ($sessions as $s) {
+						if ($ComboSesArray!==null) {
 							$ComboArr[]=$s->SesOrder;
 						}
 						$ComboSes.= '<option value="' . $s->SesOrder . '"' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$s->SesOrder ? ' selected' : '') . '>' . get_text('QualSession','HTT') . ' ' . $s->Descr . '</option>' . "\n";
@@ -689,11 +689,6 @@
 
 				//Tutte le finali individuali
 				if($AllHHT!='Teams') {
-//					$Select
-//						= "SELECT DISTINCT CONCAT(FSScheduledDate,' ',FSScheduledTime) AS MyDate,FSTeamEvent "
-//						. "FROM Tournament INNER JOIN FinSchedule ON ToId=FSTournament "
-//						. "WHERE ToId=" . StrSafe_DB($_SESSION['TourId']) . " and FSScheduledDate>0 and FSTeamEvent=0 "
-//						. "ORDER BY CONCAT(FSScheduledDate,FSScheduledTime) ASC ";
 					$Select='SELECT'
 						. ' @Phase:=ifnull(2*pow(2,truncate(log2(fsmatchno/2),0)),1) Phase'
 						. ' , @RealPhase:=truncate(@Phase/2, 0) RealPhase'
@@ -704,9 +699,10 @@
 						. ' , FSEvent '
 						. ' , FSScheduledTime '
 						. ' , EvFinalFirstPhase '
+						. ' , EvElimType '
 						. 'FROM'
 						. ' `FinSchedule` fs '
-						. " inner join Events on FSEvent=EvCode and FSTeamEvent=EvTeamEvent and FsTournament=EvTournament "
+						. ' inner join Events on FSEvent=EvCode and FSTeamEvent=EvTeamEvent and FsTournament=EvTournament '
 						. 'where'
 						. ' FsTournament=' . $_SESSION['TourId']
 						. ' and FsTeamEvent=0'
@@ -716,25 +712,20 @@
 						. ' FsScheduledTime, '
 						. ' FsEvent, '
 						. ' Phase';
-//					$Rs=safe_r_sql($Select);
-//					if (safe_num_rows($Rs)>0)
-//					{
-//						while ($MyRow=safe_fetch($Rs))
-//						{
-//							$val=$MyRow->FSTeamEvent . $MyRow->MyDate;
-//							$text= get_text('FinInd','HTT') . ': ' . $MyRow->MyDate ;
-//							$ComboSes.='<option value="' . $val . '" ' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '') . '>' . $text . '</option>' . "\n";
-//							$numOptions++;
-//						}
-//					}
 					$tmp=array();
 					$Rs=safe_r_sql($Select);
 					while ($MyRow=safe_fetch($Rs))
 					{
 						$val=$MyRow->FSTeamEvent . $MyRow->MyDate;
 						$text=get_text('FinInd','HTT') . ': ' . $MyRow->MyDate ;
-						//$ComboSes.='<option value="' . $val . '" ' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '') . '>' . $text . '</option>' . "\n";
-						$tmp[$val]['events'][get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->RealPhase) . '_Phase')][]= $MyRow->FSEvent;
+						if($MyRow->EvElimType==3 and isset($MatchNames[$MyRow->RealPhase])) {
+							$idx=$MatchNames[$MyRow->RealPhase];
+						} elseif($MyRow->EvElimType==4 and isset($MatchNamesWA[$MyRow->RealPhase])) {
+							$idx=$MatchNamesWA[$MyRow->RealPhase];
+						} else {
+							$idx=get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->RealPhase) . '_Phase');
+						}
+						$tmp[$val]['events'][$idx][]= $MyRow->FSEvent;
 						$tmp[$val]['date']= $MyRow->Dt . ' '. substr($MyRow->FSScheduledTime,0,5) . ' ' . get_text('FinInd','HTT') ;
 						$tmp[$val]['selected']= isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '';
 						$numOptions++;
@@ -752,41 +743,20 @@
 
 				//Tutte le finali a squadre
 				if($AllHHT!='Individuals') {
-					$Select
-						= "SELECT DISTINCT CONCAT(FSScheduledDate,' ',FSScheduledTime) AS MyDate,FSTeamEvent "
-						. "FROM Tournament INNER JOIN FinSchedule ON ToId=FSTournament "
-						. "WHERE ToId=" . StrSafe_DB($_SESSION['TourId']) . " and FSScheduledDate>0 and FSTeamEvent!=0 "
-						. "ORDER BY CONCAT(FSScheduledDate,FSScheduledTime) ASC ";
-					$Select='SELECT'
-						. ' @Phase:=ifnull(2*pow(2,truncate(log2(fsmatchno/2),0)),1) Phase'
-						. ' , @RealPhase:=truncate(@Phase/2, 0) RealPhase'
-						. ' , CONCAT(FSScheduledDate,\' \',FSScheduledTime) AS MyDate'
-						. ' , DATE_FORMAT(FSScheduledDate,"' . get_text('DateFmtDBshort') . '") AS Dt '
-						. ' , DATE_FORMAT(FSScheduledDate,"' . get_text('DateFmtDB') . '") AS Dat '
-						. ' , FSTeamEvent '
-						. ' , FSEvent '
-						. ' , FSScheduledTime '
-						. 'FROM'
-						. ' `FinSchedule` fs '
-						. 'where'
-						. ' FsTournament=' . $_SESSION['TourId']
-						. ' and fsscheduleddate >0 '
-						. ' AND FSTeamEvent!=0 '
-						. 'group by '
-						. ' FsScheduledDate, '
-						. ' FsScheduledTime, '
-						. ' FsEvent, '
-						. ' Phase';
+					$Select='SELECT  @Phase:=ifnull(2*pow(2,truncate(log2(fsmatchno/2),0)),1) Phase, @RealPhase:=truncate(@Phase/2, 0) RealPhase, 
+						CONCAT(FSScheduledDate,\' \',FSScheduledTime) AS MyDate, DATE_FORMAT(FSScheduledDate,"' . get_text('DateFmtDBshort') . '") AS Dt, DATE_FORMAT(FSScheduledDate,"' . get_text('DateFmtDB') . '") AS Dat,
+						FSTeamEvent, FSEvent, FSScheduledTime, EvFinalFirstPhase 
+						FROM `FinSchedule` fs 
+                        INNER JOIN Events on FSEvent=EvCode and FSTeamEvent=EvTeamEvent and FsTournament=EvTournament 
+						WHERE FsTournament=' . $_SESSION['TourId'] . ' and fsscheduleddate >0 AND FSTeamEvent!=0 
+						GROUP BY FsScheduledDate, FsScheduledTime, FsEvent, Phase';
 					$tmp=array();
 					$Rs=safe_r_sql($Select);
-					if (safe_num_rows($Rs)>0)
-					{
-						while ($MyRow=safe_fetch($Rs))
-						{
+					if (safe_num_rows($Rs)>0) {
+						while ($MyRow=safe_fetch($Rs)) {
 							$val=$MyRow->FSTeamEvent . $MyRow->MyDate;
-							$text= get_text('FinTeam','HTT') . ': ' . $MyRow->MyDate;
-							//$ComboSes.='<option value="' . $val . '" ' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '') . '>' . $text . '</option>' . "\n";
-							$tmp[$val]['events'][get_text($MyRow->RealPhase . '_Phase')][]= $MyRow->FSEvent;
+							$text=get_text('FinTeam','HTT') . ': ' . $MyRow->MyDate;
+                            $tmp[$val]['events'][get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->RealPhase) . '_Phase')][]= $MyRow->FSEvent;
 							$tmp[$val]['date']= get_text('FinTeam','HTT') . ': ' . $MyRow->Dt.' '. substr($MyRow->FSScheduledTime,0,5);
 							$tmp[$val]['selected']= isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '';
 							$numOptions++;
@@ -802,19 +772,15 @@
 						}
 					}
 				}
-			}
-			else
-			{
+			} else {
 				//Solo le fasi di qualifica associate alla catena HHT
 				$Select='SELECT HeSession FROM HhtEvents WHERE HeTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND HeHhtId=' . StrSafe_DB($_REQUEST["x_Hht"]) . " AND HeSession!=0 ORDER BY HeSession";
 				$Rs=safe_r_sql($Select);
-				while ($MyRow=safe_fetch($Rs))
-				{
-					if ($ComboSesArray!==null)
-					{
+				while ($MyRow=safe_fetch($Rs)) {
+					if ($ComboSesArray!==null) {
 						$ComboArr[]=$MyRow->HeSession;
 					}
-					$ComboSes.= '<option value="' . $MyRow->HeSession . '"' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$MyRow->HeSession ? ' selected' : '') . '>' . get_text('QualSession','HTT') . ' ' . $MyRow->HeSession . '</option>' . "\n";
+					$ComboSes.= '<option value="' . $MyRow->HeSession . '"' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$MyRow->HeSession ? ' selected' : '') . '>' . get_text('QualSession','HTT') . ' ' . $MyRow->HeSession . '</option>';
 					$numOptions++;
 				}
 
@@ -850,7 +816,6 @@
 					{
 						$val=$MyRow->FSTeamEvent . $MyRow->MyDate;
 						$text=($MyRow->FSTeamEvent==0 ? get_text('FinInd','HTT') . ': ' . $MyRow->MyDate : get_text('FinTeam','HTT') . ': ' . $MyRow->MyDate);
-						//$ComboSes.='<option value="' . $val . '" ' . (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '') . '>' . $text . '</option>' . "\n";
 						$tmp[$val]['events'][get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->RealPhase) . '_Phase')][]= $MyRow->FSEvent;
 						$tmp[$val]['date']= $MyRow->Dt . ' '. substr($MyRow->FSScheduledTime,0,5) . ' ' . ($MyRow->FSTeamEvent==0 ? get_text('FinInd','HTT') : get_text('FinTeam','HTT'));
 						$tmp[$val]['selected']= isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']==$val ? ' selected' : '';
@@ -867,14 +832,13 @@
 					}
 				}
 			}
-			$ComboSes = '<select name="x_Session" id="x_Session">' . "\n"
-				. ($numOptions>1 ? '<option value="-1">---</option>' . "\n" : '')
+			$ComboSes = '<select name="x_Session" id="x_Session">'
+				. ($numOptions>1 ? '<option value="-1">---</option>' : '')
 				. $ComboSes
-				. '</select>' . "\n";
+				. '</select>';
 		}
 
-		if ($ComboSesArray!==null)
-		{
+		if ($ComboSesArray!==null) {
 			$ComboSesArray=$ComboArr;
 		}
 		return $ComboSes;

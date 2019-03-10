@@ -9,11 +9,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!isset($_REQUEST['IdEntry']) || !is_numeric($_REQUEST['IdEntry']) || !isset($_REQUEST['Code'])||  !CheckTourSession())
-	{
+	if (!isset($_REQUEST['IdEntry']) || !is_numeric($_REQUEST['IdEntry']) || !isset($_REQUEST['Code'])||  !CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore = 0;
 	$CoName='';
@@ -87,10 +87,10 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<name>' . ($CoName!='' ? $CoName : '#') . '</name>' . "\n";
-	print '<id>' . $CoId . '</id>' . "\n";
-	print '<id_ret>' . $_REQUEST['IdEntry'] . '</id_ret>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<name>' . ($CoName!='' ? $CoName : '#') . '</name>';
+	print '<id>' . $CoId . '</id>';
+	print '<id_ret>' . $_REQUEST['IdEntry'] . '</id_ret>';
+	print '</response>';
 ?>

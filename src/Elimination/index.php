@@ -3,6 +3,7 @@ if(!defined('debug')) define('debug',false);	// settare a true per l'output di d
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
+checkACL(AclEliminations, AclReadWrite);
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
 require_once('Common/Lib/CommonLib.php');
@@ -164,7 +165,7 @@ if (safe_num_rows($Rs)>0) {
 
 ?>
 
-<tr <?php echo 'class="' . ($MyRow->EnValid ? '' : 'NoShoot') . '"'; ?> id="Row_<?php echo $MyRow->EnId . '_' . $MyRow->ElEventCode . '_' . $MyRow->ElElimPhase ;?>">
+<tr <?php echo 'class="rowHover ' . ($MyRow->EnValid ? '' : 'NoShoot') . '"'; ?> id="Row_<?php echo $MyRow->EnId . '_' . $MyRow->ElEventCode . '_' . $MyRow->ElElimPhase ;?>">
 <td><?php print get_text('Eliminations_' . ($MyRow->ElElimPhase+1)); ?></td>
 <td><?php print $MyRow->ElEventCode; ?></td>
 <td><?php print $MyRow->Target; ?></td>

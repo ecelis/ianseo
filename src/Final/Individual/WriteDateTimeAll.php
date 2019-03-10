@@ -9,7 +9,6 @@
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/Fun_DateTime.inc.php');
-
 	if (!CheckTourSession() ||
 		!isset($_REQUEST['d_Event']) ||
 		!isset($_REQUEST['d_Phase']) ||
@@ -19,6 +18,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	$Errore=0;
 	$xml = '';
@@ -75,19 +75,19 @@
 		else
 			$PhaseFilter = "(GrPhase='0' OR GrPhase='1') ";
 
-		$Insert
-			= "INSERT INTO FinSchedule (FSEvent,FSTeamEvent,FSMatchNo,FSTournament,FSScheduledDate,FSScheduledTime,FSScheduledLen) "
-			. "(SELECT " . StrSafe_DB($_REQUEST['d_Event']) . ", '0', GrMatchNo,"
+		$Insert = "INSERT INTO FinSchedule (FSEvent,FSTeamEvent,FSMatchNo,FSTournament,FSScheduledDate,FSScheduledTime,FSScheduledLen) 
+			(SELECT " . StrSafe_DB($_REQUEST['d_Event']) . ", '0', GrMatchNo,"
 			. StrSafe_DB($_SESSION['TourId']) . "," . StrSafe_DB($date) . ","
 			. ($time ? StrSafe_DB($time) : 'null') . ", "
-			. $matchLen . " "
-			. "FROM Grids "
-			. "WHERE " . $PhaseFilter . ") "
-			. "ON DUPLICATE KEY UPDATE "
-			. "FSTarget=FSTarget,FSGroup=FSGroup, "
-			. "FSScheduledDate=" . StrSafe_DB($date) . ","
-			. "FSScheduledTime=" . ($time ? StrSafe_DB($time) : 'null') . ","
-			. "FSScheduledLen=" . $matchLen;
+			. $matchLen . " 
+			FROM Grids 
+			inner join Finals on GrMatchNo=FinMatchNo and FinTournament=".StrSafe_DB($_SESSION['TourId'])." and FinEvent=" . StrSafe_DB($_REQUEST['d_Event']) . "
+			WHERE " . $PhaseFilter . ") 
+			ON DUPLICATE KEY UPDATE 
+			FSTarget=FSTarget,FSGroup=FSGroup, 
+			FSScheduledDate=" . StrSafe_DB($date) . ",
+			FSScheduledTime=" . ($time ? StrSafe_DB($time) : 'null') . ",
+			FSScheduledLen=" . $matchLen;
 		$Rs=safe_w_sql($Insert);
 		if (debug) print $Insert . '<br>';
 		if (!$Rs)

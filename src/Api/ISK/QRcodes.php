@@ -5,6 +5,9 @@ require_once('Common/Lib/Fun_Modules.php');
 // Include the main TCPDF library (search for installation path).
 require_once('Common/pdf/ResultPDF.inc.php');
 
+CheckTourSession(true);
+checkACL(AclISKServer, AclReadWrite);
+
 // create new PDF document
 $pdf = new ResultPDF('QrCode');//TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 

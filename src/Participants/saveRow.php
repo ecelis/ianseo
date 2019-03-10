@@ -10,9 +10,7 @@ if(IsBlocked(BIT_BLOCK_PARTICIPANT) or !$ToId or !$Field) {
 	if(IsBlocked(BIT_BLOCK_PARTICIPANT)) {
 		$JSON['msg']=get_text('Blocked');
 	}
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
 
 require_once('./lib.php');
@@ -27,9 +25,7 @@ if($_SESSION['AccreditationTourIds']) {
 }
 
 if(!$ToId) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
 
 debug_svela($_REQUEST);

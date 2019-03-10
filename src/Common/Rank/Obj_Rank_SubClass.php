@@ -106,16 +106,19 @@
 		protected function safeOrder()
 		{
 			$order=array();
-
-			if (empty($this->opts['joinDivs'])) {
-				$order[]='DivViewOrder, EnDivision';
-			}
-			if (empty($this->opts['joinCls'])) {
-				$order[]='ClViewOrder, EnClass';
-			}
+            if (!empty($this->opts['joinGender']) and $this->opts['joinGender']) {
+                $order[] = 'DivViewOrder, EnDivision, ClSex';
+            } else {
+                if (empty($this->opts['joinDivs'])) {
+                    $order[] = 'DivViewOrder, EnDivision';
+                }
+                if (empty($this->opts['joinCls'])) {
+                    $order[] = 'ClViewOrder, EnClass';
+                }
+            }
 			$order[]='EnSubClass';
-
 			return implode(',', $order);
+
 		}
 
 	/**
@@ -173,7 +176,8 @@
 					SUBSTRING(QuTargetNo,2) AS TargetNo,
 					concat($safeOrder) as MyEvent,
 					concat(EnDivision, EnClass) MyTrueEvent,
-					CoCode, CoName, EnClass, EnDivision,EnAgeClass, EnSubClass, ClDescription, DivDescription, ScDescription,
+					CoCode, CoName, EnClass, EnDivision,EnAgeClass, EnSubClass, ClDescription, DivDescription, ScDescription, 
+					(CASE WHEN ClSex=0 THEN 'M' WHEN ClSex=1 THEN 'F' ELSE 'U' END) as GenderDescription, 
 					IFNULL(Td1,'.1.') as Td1, IFNULL(Td2,'.2.') as Td2, IFNULL(Td3,'.3.') as Td3, IFNULL(Td4,'.4.') as Td4, IFNULL(Td5,'.5.') as Td5, IFNULL(Td6,'.6.') as Td6, IFNULL(Td7,'.7.') as Td7, IFNULL(Td8,'.8.') as Td8,
 					QuD1Score, QuD1Rank, QuD2Score, QuD2Rank, QuD3Score, QuD3Rank, QuD4Score, QuD4Rank,
 					QuD5Score, QuD5Rank, QuD6Score, QuD6Rank, QuD7Score, QuD7Rank, QuD8Score, QuD8Rank,
@@ -201,8 +205,7 @@
 					ORDER BY
 						$orderBy, FirstName, Name
 			";
-
-			//print $q.'<br>';
+			//print $q.'<br>';exit;
 
 			$r=safe_r_sql($q);
 			//print '<pre>';
@@ -223,17 +226,14 @@
 			$goldOld=0;
 			$xNineOld=0;
 
-			if (safe_num_rows($r)>0)
-			{
+			if (safe_num_rows($r)>0) {
 				$curEvent='';
 
 				$section=null;
 
-				while ($myRow=safe_fetch($r))
-				{
+				while ($myRow=safe_fetch($r)) {
 
-					if ($curEvent!=$myRow->MyEvent)
-					{
+					if ($curEvent!=$myRow->MyEvent) {
 					/*
 					 *  se non sono all'inizio, prima di iniziare una sezione devo prendere quella appena fatta
 					 *  e accodarla alle altre
@@ -255,8 +255,7 @@
 						$curEvent=$myRow->MyEvent;
 
 					// inizializzo i meta che son comuni a tutta la classifica
-						if ($this->data['meta']['numDist']==-1)
-						{
+						if ($this->data['meta']['numDist']==-1)	{
 							$this->data['meta']['numDist']=$myRow->ToNumDist;
 							$this->data['meta']['double']=$myRow->ToDouble;
 						}
@@ -305,18 +304,19 @@
 								'descr' => sprintf($Description,
 									get_text($myRow->DivDescription,'','',true),
 									get_text($myRow->ClDescription,'','',true),
+                                    get_text($myRow->GenderDescription),
 									$myRow->ScDescription ),
 								'sesArrows'=> array(),
 								'fields' => $fields,
 								'subClass' => $myRow->EnSubClass,
+								'lastUpdate' => '0000-00-00 00:00:00',
 							)
 						);
 					}
 
 					++$pos;
 
-					if (!($myRow->Score==$scoreOld && $myRow->Gold==$goldOld  && $myRow->XNine==$xNineOld))
-					{
+					if (!($myRow->Score==$scoreOld && $myRow->Gold==$goldOld  && $myRow->XNine==$xNineOld)) {
 						$rank = $pos;
 					}
 
@@ -324,6 +324,16 @@
 					$scoreOld=$myRow->Score;
 					$goldOld=$myRow->Gold;
 					$xNineOld=$myRow->XNine;
+					// creo un elemento per la sezione
+					if($myRow->Rank==9999) {
+						$tmpRank = 'DSQ';
+					} else if ($myRow->Rank==9998) {
+						$tmpRank = 'DNS';
+					} else {
+						// this line has not much sense as being a subclass it is recalculated each time!
+						// $tmpRank= (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $rank : $myRow->Rank);
+						$tmpRank= $rank;
+					}
 
 				// creo un elemento per la sezione
 					$item=array(
@@ -342,7 +352,7 @@
 						'subclass' => $myRow->EnSubClass,
 						'countryCode' => $myRow->CoCode,
 						'countryName' => $myRow->CoName,
-						'rank' => $rank,
+						'rank' => $tmpRank,
 						'oldRank' => $myRow->OldRank,
 						'score' => $myRow->Score,
 						'gold' => $myRow->Gold,
@@ -362,8 +372,12 @@
 					//print_r($item);
 					$section['items'][]=$item;
 
-					if ($myRow->QuTimestamp>$this->data['meta']['lastUpdate'])
+					if ($myRow->QuTimestamp>$this->data['meta']['lastUpdate']) {
 						$this->data['meta']['lastUpdate']=$myRow->QuTimestamp;
+					}
+					if ($myRow->QuTimestamp>$section['meta']['lastUpdate']) {
+						$section['meta']['lastUpdate']=$myRow->QuTimestamp;
+					}
 
 				}
 
@@ -419,6 +433,21 @@
 				}
 			}
 
+			if (!empty($this->opts['encode'])) {
+				if (is_array($this->opts['encode'])) {
+					$tmp=array();
+					foreach ($this->opts['encode'] as $e) $tmp[]=StrSafe_DB($e);
+					sort($tmp);
+					$filter="AND EnCode IN (" . implode(',',$tmp) . ")";
+				} else {
+					$filter="AND EnCode = " . StrSafe_DB($this->opts['encode']) . " ";
+				}
+			}
+
+			if (!empty($this->opts['sessions'])) {
+				$filter.=" AND QuSession in (" . implode($this->opts['sessions'])  . ") " ;
+			}
+
 			return $filter;
 		}
 	/**
@@ -428,9 +457,13 @@
 	 */
 		protected function setDescription() {
 			$str='';
-			if(empty($this->opts['joinDivs'])) $str.='%1$s - ';
-			if(empty($this->opts['joinCls'])) $str.='%2$s - ';
-			$str.='%3$s';
+            if (!empty($this->opts['joinGender']) and $this->opts['joinGender']) {
+                $str .= '%1$s %3$s - ';
+            } else {
+                if (empty($this->opts['joinDivs'])) $str .= '%1$s - ';
+                if (empty($this->opts['joinCls'])) $str .= '%2$s - ';
+            }
+			$str.='%4$s';
 
 			return $str;
 		}

@@ -1,5 +1,4 @@
 <?php
-	define ('debug',false);
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
@@ -26,6 +25,8 @@
 	$Match1=-1;
 	$Match2=-1;
 	$IsFinished=0;
+
+    checkACL(($TeamEvent ? AclTeams : AclIndividuals), AclReadWrite, false);
 
 
 	$OrgMatch=$match;
@@ -67,18 +68,18 @@
 		$CurrentTarget=array();
 		$validData=GetMaxScores($event, $match, $TeamEvent);
 		//Se ho la posizione, salvo la posizione e ri-setto per i punti
-		if(!(is_null($size) || is_null($xpos) || is_null($ypos))) {
-			$target = new Obj_Target($validData["Arrows"],$validData["Size"]);
-			$arrowHit = $target->getHitValue($size, $xpos, $ypos);
-			$arrUpdate = UpdateArrowPosition($match2edit, $event, $TeamEvent, $arrowHit["X"], $arrowHit["Y"], 0);
-			if(!is_null($arrUpdate))
-			{
-				list($what,$index)=preg_split("/[|]/",$arrUpdate);
-				$what = ($what == 1 ? 't' : 's');
-				$arrow = DecodeFromLetter($arrowHit["V"]);
-			}
-
-		}
+		//if(!(is_null($size) || is_null($xpos) || is_null($ypos))) {
+		//	$target = new Obj_Target($validData["Arrows"],$validData["Size"]);
+		//	$arrowHit = $target->getHitValue($size, $xpos, $ypos);
+		//	$arrUpdate = UpdateArrowPosition($match2edit, $event, $TeamEvent, $arrowHit["X"], $arrowHit["Y"], 0);
+		//	if(!is_null($arrUpdate))
+		//	{
+		//		list($what,$index)=preg_split("/[|]/",$arrUpdate);
+		//		$what = ($what == 1 ? 't' : 's');
+		//		$arrow = DecodeFromLetter($arrowHit["V"]);
+		//	}
+		//
+		//}
 // 		if($arrow==='0') $arrow='M';
 // 		elseif($arrow==='0*') $arrow='M*';
 		//Se ho i valori di freccia, indice della textbox e tipo textbox (std o so) procedo con il salvataggio dei punti
@@ -104,9 +105,9 @@
 				$ArrowStart=($rows*$cols)+1+$index;
 			}
 			$IsFinished=UpdateArrowString($match2edit,$event,$TeamEvent,$arrow,$ArrowStart,$ArrowStart);
-			if($arrow == ' ') {
-				$IsFinished=UpdateArrowPosition($match2edit, $event, $TeamEvent, '', '', 0, ($what == 's' ? '0':'1') . "|" . $index);
-			}
+//TEO x FE			if($arrow == ' ') {
+//TEO				$IsFinished=UpdateArrowPosition($match2edit, $event, $TeamEvent, '', '', 0, ($what == 's' ? '0':'1') . "|" . $index);
+//TEO			}
 
 			$spotLimit[0]=($what == 's' ? 0:1);
 		}
@@ -155,20 +156,20 @@
 			$Match2=$MyRow->OppMatchNo;
 
 			// winner status
-			$xml.='<winner arc1="'.$MyRow->Winner.'" arc2="'.$MyRow->OppWinner.'" />' . "\n";
+			$xml.='<winner arc1="'.$MyRow->Winner.'" arc2="'.$MyRow->OppWinner.'" />';
 
 
 			$obj=getEventArrowsParams($MyRow->EvCode,$MyRow->GrPhase,$TeamEvent);
 		// tiro fuori subito i vari totali visto che sono calcolati nel db
 		// scores
-			$xml.='<tot_' . $queryMatch . '>' . $MyRow->Score . '</tot_' . ($queryMatch) . '>' . "\n";
-			$xml.='<tot_' . ($queryMatch+1) . '>' . $MyRow->OppScore . '</tot_' . ($queryMatch+1) . '>' . "\n";
+			$xml.='<tot_' . $queryMatch . '>' . $MyRow->Score . '</tot_' . ($queryMatch) . '>';
+			$xml.='<tot_' . ($queryMatch+1) . '>' . $MyRow->OppScore . '</tot_' . ($queryMatch+1) . '>';
 
 
 		// setscores
 			if($MyRow->EvMatchMode==1) {
-				$xml.='<totsets_' . $queryMatch . '>' . $MyRow->SetScore . '</totsets_' . $queryMatch . '>' . "\n";
-				$xml.='<totsets_' . ($queryMatch+1) . '>' . $MyRow->OppSetScore . '</totsets_' . ($queryMatch+1) . '>' . "\n";
+				$xml.='<totsets_' . $queryMatch . '>' . $MyRow->SetScore . '</totsets_' . $queryMatch . '>';
+				$xml.='<totsets_' . ($queryMatch+1) . '>' . $MyRow->OppSetScore . '</totsets_' . ($queryMatch+1) . '>';
 			}
 
 			// i progressivi
@@ -188,8 +189,9 @@
 						$spotLimit[2] = $i+$stepArrow-1;
 					}
 				} elseif ($spotLimit[0]==1) {
-					$spotLimit[1] = 0;
-					$spotLimit[2] = $obj->so-1;
+					$SOi=intval($index/$obj->so)*$obj->so;
+					$spotLimit[1] = $SOi;
+					$spotLimit[2] = $SOi+$obj->so-1;
 				}
 
 				$SetAth=0;
@@ -199,13 +201,13 @@
 				$SetPointsOpp[] = ValutaArrowString(substr($MyRow->OppArString,$i,$stepArrow));
 
 			// i progressivi
-				$xml.='<pr_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsAth[$i/$stepArrow] . '</pr_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
-				$xml.='<pr_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsOpp[$i/$stepArrow] . '</pr_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
+				$xml.='<pr_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsAth[$i/$stepArrow] . '</pr_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
+				$xml.='<pr_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsOpp[$i/$stepArrow] . '</pr_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
 
 			// i set progressivi dei set
 				if($MyRow->EvMatchMode==1) {
-					$xml.='<sp_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . (isset($SetAthArr[$i/$stepArrow]) ? $SetAthArr[$i/$stepArrow] : '') . ']]></sp_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
-					$xml.='<sp_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . (isset($SetOppArr[$i/$stepArrow]) ? $SetOppArr[$i/$stepArrow] : '') . ']]></sp_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
+					$xml.='<sp_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . (isset($SetAthArr[$i/$stepArrow]) ? $SetAthArr[$i/$stepArrow] : '') . ']]></sp_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
+					$xml.='<sp_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . (isset($SetOppArr[$i/$stepArrow]) ? $SetOppArr[$i/$stepArrow] : '') . ']]></sp_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
 				}
 			}
 
@@ -222,8 +224,8 @@
 				$bv=DecodeFromLetter($b);
 				$tota.=trim($a);
 				$totb.=trim($b);
-				$xmlArrows .= '<s_' . $MyRow->MatchNo . '_' . $i . '>'  . $av . '</s_' . $MyRow->MatchNo . '_' . $i . '>' . "\n";
-				$xmlArrows .= '<s_' . $MyRow->OppMatchNo . '_' . $i . '>'  . $bv . '</s_' . $MyRow->OppMatchNo . '_' . $i . '>' . "\n";
+				$xmlArrows .= '<s_' . $MyRow->MatchNo . '_' . $i . '>'  . $av . '</s_' . $MyRow->MatchNo . '_' . $i . '>';
+				$xmlArrows .= '<s_' . $MyRow->OppMatchNo . '_' . $i . '>'  . $bv . '</s_' . $MyRow->OppMatchNo . '_' . $i . '>';
 				$Arrows++;
 				if($Arrows==$MyRow->EvMaxTeamPerson) {
 					$Arrows=0;
@@ -235,7 +237,7 @@
 			$Arrows=0;
 			$tota='';
 			$totb='';
-			for($i=0; $i<$obj->so; $i++)		//Cicla per tutte le frecce
+			for($i=0; $i<max(strlen(trim($MyRow->TbString)), strlen(trim($MyRow->OppTbString))); $i++)		//Cicla per tutte le frecce
 			{
 				$a=substr($MyRow->TbString,$i,1);
 				$b=substr($MyRow->OppTbString,$i,1);
@@ -243,8 +245,8 @@
 				$bv=DecodeFromLetter($b);
 				$tota.=trim($a);
 				$totb.=trim($b);
-				$xmlArrows .= '<t_' . $MyRow->MatchNo . '_' . $i . '>'  . $av . '</t_' . $MyRow->MatchNo . '_' . $i . '>' . "\n";
-				$xmlArrows .= '<t_' . $MyRow->OppMatchNo . '_' . $i . '>'  . $bv . '</t_' . $MyRow->OppMatchNo . '_' . $i . '>' . "\n";
+				$xmlArrows .= '<t_' . $MyRow->MatchNo . '_' . $i . '>'  . $av . '</t_' . $MyRow->MatchNo . '_' . $i . '>';
+				$xmlArrows .= '<t_' . $MyRow->OppMatchNo . '_' . $i . '>'  . $bv . '</t_' . $MyRow->OppMatchNo . '_' . $i . '>';
 				$Arrows++;
 				if($Arrows==$MyRow->EvMaxTeamPerson) {
 					$Arrows=0;
@@ -262,8 +264,8 @@
 				if($MyRow->EvMatchMode==1) {
 					if(empty($SetAthArr[$i])) $SetAthArr[$i]=0;
 					if(empty($SetOppArr[$i])) $SetOppArr[$i]=0;
-					$SetAthArr[$i]+=$SetAthArr[$i-1];
-					$SetOppArr[$i]+=$SetOppArr[$i-1];
+					$SetAthArr[$i]+=intval($SetAthArr[$i-1]);
+					$SetOppArr[$i]+=intval($SetOppArr[$i-1]);
 				}
 			}
 
@@ -272,12 +274,12 @@
 
 			for($i=0,$k=0; $i<$maxArrows; $i=$i+$stepArrow,++$k)		//Cicla per tutte le volee dell'incontro
 			{
-				$xml.='<totcum_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsAth[$k] . '</totcum_' .  $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
-				$xml.='<totcum_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsOpp[$k] . '</totcum_' .  ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
+				$xml.='<totcum_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsAth[$k] . '</totcum_' .  $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
+				$xml.='<totcum_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . $SetPointsOpp[$k] . '</totcum_' .  ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
 
 				if($MyRow->EvMatchMode==1) {
-					$xml.='<st_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . $SetAthArr[$k] . ']]></st_' .  $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
-					$xml.='<st_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . $SetOppArr[$k] . ']]></st_' .  ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>' . "\n";
+					$xml.='<st_' . $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . $SetAthArr[$k] . ']]></st_' .  $queryMatch . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
+					$xml.='<st_' . ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '><![CDATA[' . $SetOppArr[$k] . ']]></st_' .  ($queryMatch+1) . '_' . $i . '_' . ($i+$stepArrow-1) . '>';
 				}
 			}
 		}
@@ -298,25 +300,24 @@
 		updateMatchFiles($_REQUEST['event'], $_REQUEST['team'], $_REQUEST['match'], $_SESSION['TourId']);
 	}*/
 
-	if (!debug)
-		header('Content-Type: text/xml');
+	header('Content-Type: text/xml');
 
-	print '<response final="'.($IsFinished ? 1 : 0).'" match1="'.$Match1.'" match2="'.$Match2.'" stat1="'.$Stat1.'" stat2="'.$Stat2.'" arrow="'.trim(DecodeFromLetter($arrow)).'">' . "\n";
-		print '<error>' . $Errore . '</error>' . "\n";
-		print '<msg>' . $msg . '</msg>' . "\n";
+	print '<response final="'.($IsFinished ? 1 : 0).'" match1="'.$Match1.'" match2="'.$Match2.'" stat1="'.$Stat1.'" stat2="'.$Stat2.'" arrow="'.trim(DecodeFromLetter($arrow)).'">';
+		print '<error>' . $Errore . '</error>';
+		print '<msg>' . $msg . '</msg>';
 
-		print '<spot_enable>' . $spotLimit[0] . '</spot_enable>' . "\n";
-		print '<spot_start>' . $spotLimit[1] . '</spot_start>' . "\n";
-		print '<spot_end>' . $spotLimit[2] . '</spot_end>' . "\n";
+		print '<spot_enable>' . $spotLimit[0] . '</spot_enable>';
+		print '<spot_start>' . $spotLimit[1] . '</spot_start>';
+		print '<spot_end>' . $spotLimit[2] . '</spot_end>';
 
 
 		print '<arrows>';
 			print $xmlArrows;
 		print '</arrows>';
 
-		print '<results>' . "\n";
+		print '<results>';
 			print $xml;
-		print '</results>' . "\n";
+		print '</results>';
 
-	print '</response>' . "\n";
+	print '</response>';
 ?>

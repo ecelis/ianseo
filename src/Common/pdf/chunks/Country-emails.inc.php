@@ -38,7 +38,6 @@ $LastCellW=$pdf->getPageWidth()-20-$NatAtlCell*2-$TgtCell;
 				$OldTeam = $MyRow->NationCode;
 			}
 
-// 			debug_svela($MyRow);
 			$pdf->SetFont($pdf->FontStd,'',7);
 			$pdf->Cell($TgtCell, $CellH,  $MyRow->Bib, 1, 0, 'R', 0);
 			$pdf->Cell($NatAtlCell, $CellH,  $MyRow->Athlete, 1, 0, 'L', 0);

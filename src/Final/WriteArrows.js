@@ -87,7 +87,7 @@ function updateScore(obj) {
 			}
 
 			// puts the arrow value returned by the script
-			if(obj.value==$(XMLRoot).attr('arrow')) {
+			if(obj.value.toUpperCase()==$(XMLRoot).attr('arrow')) {
 				$(obj).css('backgroundColor', '');
 			}
 			obj.value=$(XMLRoot).attr('arrow');
@@ -109,6 +109,8 @@ function SendToServer(obj, value) {
 		break;
 	case 'tie':
 		qs='d_t_';
+		value='';
+        $('[id^="tie_'+split[1]+'_'+split[2]+'_'+split[3]+'_"').each(function() {value += (this.value+'|')});
 		break;
 	}
 
@@ -143,11 +145,6 @@ function SendToServer(obj, value) {
 				// sets/removes the bye class to the correct line
 				$(obj).closest('tr').toggleClass('Bye', true);
 				$('#tot_'+k2).closest('tr').toggleClass('Bye', false);
-
-				// empty tgt, nam and cty of opponent
-//				$('#tgt_'+k2).each(function() {$(this).html('')});
-//				$('#nam_'+k2).each(function() {$(this).html('')});
-//				$('#cty_'+k2).each(function() {$(this).html('')});
 			}
 
 			$(obj).css('backgroundColor', '');

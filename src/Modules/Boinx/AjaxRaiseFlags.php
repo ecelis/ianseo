@@ -1,5 +1,6 @@
 <?php
 require_once('../../config.php');
+checkACL(AclOutput,AclReadWrite, false);
 
 $State=0;
 safe_w_sql("update BoinxSchedule set BsExtra=3-BsExtra where BsTournament='{$_SESSION['TourId']}' and BsType like 'Awa_%'");

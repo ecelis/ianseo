@@ -15,6 +15,7 @@ if(!CheckTourSession()) {
 		CreateTourSession($TourId);
 	}
 }
+checkACL(AclSpeaker, AclReadOnly);
 
 $PAGE_TITLE=get_text('MenuLM_Speaker');
 $JS_SCRIPT=array(

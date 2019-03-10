@@ -113,19 +113,18 @@ if($Ind) {
 	$rank=Obj_RankFactory::create($family,$options);
 	$rank->read();
 	$rankData=$rank->getData();
-	//debug_svela($rankData);
 
 	$Title=$rankData['meta']['title'];
 	$OnOff="ON";
 	foreach($rankData['sections'] as $Event => $data) {
 		$FeedItems['AI-'.$Event]['title']=$data['meta']['descr'];
 		$txt=array();
-		foreach($data['items'] as $item) { 
+		foreach($data['items'] as $item) {
 			$txt[]=sprintf("%s,%s,%s,%s,%s,%s,%s" , /*$item['rank']*/ $OnOff, $item['athlete'], "https://www.ianseo.net/TourData/2015/1362/img/" . $item["countryCode"]. ".gif", explode('|',$item['dist_1'])[1], explode('|',$item['dist_2'])[1],explode('|',$item['dist_3'])[1],$item['score']);
 			$OnOff = "OFF";
 		}
 		$FeedItems['AI-'.$Event]['text']=implode("\n", $txt);
-		
+
 	}
 }
 

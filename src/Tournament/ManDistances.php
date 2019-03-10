@@ -2,6 +2,7 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 
+    checkACL(AclCompetition, AclReadWrite);
 	CheckTourSession(true); // will print the crack error string if not inside a tournament!
 
 	$numDist=0;
@@ -37,7 +38,7 @@
 			. "FROM Divisions INNER JOIN Classes ON DivTournament=ClTournament AND DivTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
 			. "INNER JOIN TournamentDistances AS t ON TdType=" . $tourType . " and TdTournament=DivTournament AND CONCAT(TRIM(DivId),TRIM(ClId)) LIKE TdClasses "
 			. "WHERE DivTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
-		//print $select;exit;
+
 		$rsDist=safe_r_sql($select);
 	}
 
@@ -98,6 +99,7 @@
 					</tr>
 					<tr class="Spacer"><td colspan="<?php print $colspan+1; ?>"></td></tr>
 				<?php
+                    $ToSave=array();
 					if ($rsDist!=null)
 					{
 						$k=0;
@@ -110,8 +112,16 @@
 							}
 							echo '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/Images/drop.png" border="0" alt="#" title="#" onclick="deleteRow('.$k.', \''.$myRow->TdClasses.'\', '.$tourType.');"></td></tr>';
 							++$k;
+							$ToSave[]=StrSafe_DB($myRow->TdClasses);
 						}
 					}
+
+                    // removes the unfit matches...
+                if($ToSave) {
+                    safe_w_sql("delete from TournamentDistances where TdType=" . $tourType . " and TdTournament={$_SESSION['TourId']} AND TdClasses not in (".implode(',', $ToSave).")");
+                } else {
+                    safe_w_sql("delete from TournamentDistances where TdType=" . $tourType . " and TdTournament={$_SESSION['TourId']}");
+                }
 				?>
 				</tbody>
 			</table>

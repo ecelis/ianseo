@@ -16,6 +16,7 @@ if (!isset($_SESSION['TourId']) && isset($_REQUEST['TourId']))
 	//$_SESSION['TourId']=$_REQUEST['TourId'];
 	CreateTourSession($_REQUEST['TourId']);
 }
+checkACL(AclQualification, AclReadOnly);
 
 if(!isset($isCompleteResultBook))
 	$pdf = new ResultPDF($PdfData->Description);

@@ -7,7 +7,7 @@
 	function dateRenderer($date,$format='d-m-Y H:i')
 	{
 	// if date is 0000-00-00 00:00:00 will be convert to empty string
-		if (preg_match('/0000-00-00 00:00:00/',$date))
+		if (preg_match('/0000-00-00( 00:00:00)*/',$date))
 			return '';
 
 		if (!(preg_match('/^[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}$/',$date) || preg_match('/^[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2} [0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$/',$date)))
@@ -178,23 +178,23 @@
 */
 	function Convert24Time($TheTime)
 	{
-		if (!preg_match('/[0-9]{1,2}:[0-9]{1,2}/',$TheTime))
-		{
+		if (!preg_match('/^[0-9]{1,2}(:[0-9]{1,2}){0,1}$/',$TheTime)) {
 			return false;
 		}
 
-		$hh=""; $mm="";
-		list($hh,$mm)=explode(':',$TheTime);
+		$tmp = explode(':',$TheTime);
+		$hh=$tmp[0];
+		if(count($tmp)==1) {
+			$mm=0;
+		} else {
+			$mm=$tmp[1];
+		}
 
-		if (!($hh>=0 && $hh<=23 && $mm>=0 && $mm<=59))
-		{
+		if ($hh<0 or $hh>23 or $mm<0 or $mm>59) {
 			return false;
 		}
 
-		if (strlen($hh)<2) $hh='0'.$hh;
-		if (strlen($mm)<2) $mm='0'.$mm;
-
-		return $hh . ':' . $mm;
+		return sprintf('%02d:%02d', $hh, $mm);
 	}
 
 
@@ -278,7 +278,6 @@ function formatTextDate($date, $AddWeekDay=false) {
 
 // date DEVE essere in formato Y-m-d
 function formatWeekDayLong($date) {
-	//debug_svela(date("w", $date));
 	return get_text("DayOfWeekLong_".date("w", strtotime($date)));
 }
 
@@ -308,3 +307,91 @@ function CleanDate($Date) {
 	return ConvertDate(implode('-', $bits));
 }
 
+/*
+  170122 Ken
+  Converts a DateTime value from one timezone to another
+  Params:
+  $source: a DateTime object containing our source date
+  $source_timezone: an integer that refers to the timezone of our source data. For example, if the
+                    timezone of our source data is ‘Asia/Ho_Chi_Minh’ (UTC+7), $source_timezone is 7.
+  $dest_timezone: an integer that refers to the timezone of our target data
+*/
+function convertToOtherTz($source, $source_timezone, $dest_timezone){
+    $offset = $dest_timezone - $source_timezone;
+    $offsetMins = $offset * 60;
+    if($offset == 0)
+        return $source->format('Y-m-d H:i:s');
+    $source->modify($offsetMins.' minutes');
+    return $source->format('Y-m-d H:i:s');
+}
+
+/*
+  180511 Ken
+  Formats the competition date(s) for display
+*/
+function formatCompDate($startDate, $endDate, $IncludeYear = false) {
+	$compDates = '';
+	$Y = ($IncludeYear ? ' Y' : '');
+
+	$dtStart = DateTime::createFromFormat('d-m-Y', $startDate);
+	$dtEnd = DateTime::createFromFormat('d-m-Y', $endDate);
+
+	if($startDate == $endDate) {
+		$compDates = $dtEnd->format('j M'.$Y);
+
+	} else {
+		$d1=explode('-', $startDate);
+		$d2=explode('-', $endDate);
+
+		if($d1[2] != $d2[2]) {  // years different
+			$compDates = $dtStart->format('j M Y').' - '.$dtEnd->format('j M Y');
+
+		} elseif($d1[1] != $d2[1]) {  // months different
+			$compDates = $dtStart->format('j M').' - '.$dtEnd->format('j M'.$Y);
+
+		} elseif($d1[0] != $d2[0]) {  // days different
+			$compDates = $dtStart->format('j').'-'.$dtEnd->format('j M'.$Y);
+
+		} else {
+			$compDates = $dtStart->format('j M'.$Y);
+		}
+	}
+	return $compDates;
+}
+
+/*
+  180520 Ken
+  Formats the last update datetime for display
+  $timestamp should be a string in the format YYYY-MM-DD HH:MM:SS
+  $showYear should be a boolean
+*/
+function formatUpdateDatetime($timestamp, $showYear) {
+	$displayLastUp = new DateTime($timestamp);
+
+	$lastUp = clone $displayLastUp;
+	$lastUp->setTime( 0, 0, 0 ); // reset time part, to prevent partial comparison
+
+	$today = new DateTime(); // This object represents current date/time
+	$today->setTime( 0, 0, 0 ); // reset time part, to prevent partial comparison
+
+	$diff = $today->diff( $lastUp );
+	$diffDays = (integer)$diff->format( "%R%a" ); // Extract days count in interval
+
+	if ($today->format('Y') == $displayLastUp->format('Y')) {
+		// Special format for updates that recently occurred
+		$outputLastUp = '';
+		switch( $diffDays ) {
+			case 0:
+				$outputLastUp = "Today".$displayLastUp->format(' H:i');
+				break;
+			case -1:
+				$outputLastUp = "Yesterday".$displayLastUp->format(' H:i');
+				break;
+			default:
+				$outputLastUp = $displayLastUp->format('j M H:i');
+		}
+	} else {
+		$outputLastUp = $showYear ? $displayLastUp->format('j M Y H:i') : $displayLastUp->format('j M H:i');;
+	}
+	return $outputLastUp;
+}

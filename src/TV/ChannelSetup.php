@@ -46,9 +46,10 @@ $q=safe_r_sql("SELECT TVOId , TVOName, TVOUrl, TVOMessage, TVORuleId, TVOTourCod
 	FROM TVOut
 	ORDER BY TVOId ASC");
 $maxId=0;
+$SCHEME=getMyScheme();
 while($r=safe_fetch($q)) {
 	echo '<tr>
-		<td></td>
+		<td class="Center"><a href="'. $SCHEME.'://'.$_SERVER['SERVER_NAME'].$CFG->ROOT_DIR.'tv.php?id='.$r->TVOId.'" target="_blank">'.get_text('Open').'</a></td>
 		<td class="Center Bold">'.$r->TVOId.'</td>
 		<td><input type="text" id="Name['.$r->TVOId.']" onchange="update(this)" size="40" maxlength="50" value="'.htmlspecialchars($r->TVOName).'"></td>
 		<td><textarea id="Message['.$r->TVOId.']" onchange="update(this)" rows="5" cols="40">'.nl2br($r->TVOMessage).'</textarea></td>

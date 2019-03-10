@@ -37,8 +37,10 @@ function tour_delete($TourId) {
 	"FinTraining" => 'FtTournament',
 	"FinTrainingEvent" => 'FteTournament',
 	"Flags" => 'FlTournament',
+	"GateLog" => "GLTournament",
 	"GuessWho" => 'GwTournament',
 	"GuessWhoData" => 'GwdTournament',
+    "HeartBeat"=>"HbTournament",
 	"HhtData" => "HdTournament",
 	"HhtEvents" => "HeTournament",
 	"HhtSetup" => "HsTournament",
@@ -98,6 +100,15 @@ function tour_delete($TourId) {
 	RemoveMedia($TourCode);
 }
 
+function tour_getCode($filename, $isString=false) {
+    if($isString) {
+        $Gara=unserialize(gzuncompress($filename));
+    } else {
+        $Gara=unserialize(gzuncompress(file_get_contents($filename)));
+    }
+    return $Gara['Tournament']['ToCode'];
+}
+
 function tour_import($filename, $isString=false) {
 	require_once('Common/CheckPictures.php');
 	// Tabelle che hanno il codice Tournament
@@ -135,11 +146,14 @@ function tour_import($filename, $isString=false) {
 		//"F2FTargetElim" => "F2F",
 		'FinalReportA' => 'Fra',
 		'Finals' => 'Fin',
+		'FinOdfTiming' => 'FinOdf',
 		'FinSchedule' => 'FS',
 		'FinTraining' => 'Ft',
 		'FinTrainingEvent' => 'Fte',
 		'FinWarmup' => 'Fw',
 		//'Flags' => 'Fl',
+        'GateLog' => 'GL',
+        'HeartBeat'=>'Hb',
 		'HhtData' => 'Hd',
 		'HhtEvents' => 'He',
 		'HhtSetup' => 'Hs',
@@ -194,6 +208,7 @@ function tour_import($filename, $isString=false) {
 		"F2FEntries" => "F2FEnId",
 		"F2FFinal" => "F2FEnId",
 		'Finals' => 'FinAthlete',
+        'GateLog' => 'GLEntry',
 		'HhtData' => 'HdEnId',
 		'Photos' => 'PhEnId',
 		'Qualifications' => 'QuId',
@@ -227,11 +242,13 @@ function tour_import($filename, $isString=false) {
 		//"F2FTarget",
 		//"F2FTargetElim",
 		'FinalReportA',
+		'FinOdfTiming',
 		'FinSchedule',
 		'FinTraining',
 		'FinTrainingEvent',
 		'FinWarmup',
 		//'Flags',
+        'HeartBeat',
 		'HhtEvents',
 		'HhtSetup',
 		'IdCardElements',
@@ -358,7 +375,7 @@ function tour_import($filename, $isString=false) {
 							$Gara[$tab][$key][$ff]=$Countries[$record[$ff]];
 					}
 				} else {
-					if($record[$field] && array_key_exists($record[$field],$Countries))
+				    if(array_key_exists($field,$record) AND $record[$field] AND array_key_exists($record[$field],$Countries))
 						$Gara[$tab][$key][$field]=$Countries[$record[$field]];
 				}
 			}

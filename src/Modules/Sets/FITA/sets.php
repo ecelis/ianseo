@@ -2,7 +2,7 @@
 require_once('Common/Fun_Modules.php');
 $version='2011-05-13 08:13:00';
 
-$AllowedTypes=array(1,2,3,4,5,6,7,8,9,10,11,12,13,18);
+$AllowedTypes=array(1,2,3,4,5,6,7,8,9,10,11,12,13,18,37);
 
 $SetType['default']['descr']=get_text('Setup-Default', 'Install');
 $SetType['default']['types']=array();
@@ -13,7 +13,7 @@ foreach($AllowedTypes as $val) {
 }
 
 // FITA, 2x FITA, 1/2 FITA, 70m Round, 18m
-foreach(array(1, 2, 3, 4, 6, 18) as $val) {
+foreach(array(1, 2, 3, 4, 6, 18, 37) as $val) {
 	$SetType['default']['rules']["$val"]=array(
 		'SetAllClass',
 		'SetOneClass',
@@ -24,11 +24,13 @@ foreach(array(1, 2, 3, 4, 6, 18) as $val) {
 		$SetType['default']['rules']["$val"][]='QuotaTournm';
 }
 
-// HD (all 3 types)
+// HF (all 3 types)
 foreach(array(9, 10, 12) as $val) {
 	$SetType['default']['rules']["$val"]=array(
 		'SetAllClass',
 		'SetJ-SClass',
+		'SetWAPools-All',
+		'SetWAPools-JS',
 		);
 }
 
@@ -37,6 +39,8 @@ foreach(array(11, 13) as $val) {
 	$SetType['default']['rules']["$val"]=array(
 		'SetAllClass',
 		'SetOneClass',
+		'SetWAPools-All',
+		'SetWAPools-One',
 		);
 }
 

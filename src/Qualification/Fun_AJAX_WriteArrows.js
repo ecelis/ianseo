@@ -145,7 +145,8 @@ function UpdateArrow_Response()
 	var Score = XMLRoot.getElementsByTagName('score').item(0).firstChild.data;
 	var Gold = XMLRoot.getElementsByTagName('gold').item(0).firstChild.data;
 	var Xnine = XMLRoot.getElementsByTagName('xnine').item(0).firstChild.data;
-	
+	var Xvalue = XMLRoot.getElementsByTagName('xvalue').item(0).firstChild.data;
+
 	var Which = 'arr_' + Dist + '_' + Index + '_' + Id;
 	
 	var idCurScore = 'idScore_' + Dist + '_' + Id;
@@ -165,7 +166,7 @@ function UpdateArrow_Response()
 			document.getElementById('idXNine_' + Id).innerHTML=Xnine;
 		
 		if(document.getElementById("ScoreCard"))
-			recalcScoreCard(Id, Dist);
+			recalcScoreCard(Id, Dist, Xvalue);
 	}
 	else
 	{
@@ -176,7 +177,7 @@ function UpdateArrow_Response()
 	setTimeout("UpdateArrow()",250);
 }
 
-function recalcScoreCard (AthleteId, Distance)
+function recalcScoreCard (AthleteId, Distance, Xvalue)
 {
 	var NumEnds = document.getElementById("NumEnds").value;
 	var MaxArrows = document.getElementById("MaxArrows").value;
@@ -190,7 +191,7 @@ function recalcScoreCard (AthleteId, Distance)
 	{
 		tmpValue = document.getElementById('arr_' + Distance + '_' + i + '_' + AthleteId).value;
 		if(tmpValue=='X' || tmpValue=='x')
-			tmpValue = 10;
+			tmpValue = Xvalue;
 		if(tmpValue=='M' || tmpValue=='m')
 			tmpValue = 0;
 		totEnd += (tmpValue*1.0);

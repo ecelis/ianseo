@@ -4,6 +4,7 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_Various.inc.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Fun_Partecipants.local.inc.php');
 	require_once('Common/Fun_Sessions.inc.php');
@@ -78,7 +79,7 @@
 			$GroupType=GROUP_TYPE_NOGROUP;
 			break;
 		case 'ordCtrl':
-			$OrderBy = "EnCtrlCode collate {$_SESSION['COLLATION']} {$OrderDir}, EnFirstName collate {$_SESSION['COLLATION']} ASC,EnName collate {$_SESSION['COLLATION']} ASC ";
+			$OrderBy = "EnDob {$OrderDir}, EnFirstName collate {$_SESSION['COLLATION']} ASC,EnName collate {$_SESSION['COLLATION']} ASC ";
 			$GroupType=GROUP_TYPE_NOGROUP;
 			break;
 		case 'ordSex':
@@ -209,7 +210,7 @@
 			. '<td class="Title"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?AllTargets=' . $AllTargets. '&ord=ordSubCl&dir=' .  $OrderCol['ordSubCl'] . '">' . get_text('SubCl','Tournament') . '</a></td>'
 			. '<td class="Title">' . get_text('TargetType') . '</td>'
 			. '<td class="Title">&nbsp;</td>'
-		. '</tr>' . "\n";
+		. '</tr>';
 
 	$Rows=GetRows(null,$OrderBy,$AllTargets);
 
@@ -217,7 +218,8 @@
 		phpVars2js(array(
 			'StrAreYouSure'=>get_text('MsgAreYouSure')
 		)),
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
+		//'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
+		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-3.2.1.min.js"></script>',
 		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>',
 		'<script type="text/javascript" src="Fun_index_edit.js"></script>',
 		'<script type="text/javascript">
@@ -268,14 +270,14 @@
 <form name="frm" method="post" action="">
 	<table class="Tabella" id="idAthList">
 		<tbody>
-			<tr><th class="Title" colspan="19"><?php echo get_text('TourPartecipants','Tournament') ?></th></tr>
-			<tr class="Divider"><td colspan="19"></td></tr>
-			<tr><td colspan="19"><input onclick="chkAllTargets('<?php print $OrderCrit;?>','<?php print $OrderDir;?>');" type="checkbox" id="AllTargets" value="1" <?php print ($AllTargets==1 ? ' checked="checked"' : '');?>/><?php print get_text('AllTargets','Tournament');?></td></tr>
-			<tr class="Divider"><td colspan="19"></td></tr>
+			<tr><th class="Title" colspan="20"><?php echo get_text('TourPartecipants','Tournament') ?></th></tr>
+			<tr class="Divider"><td colspan="20"></td></tr>
+			<tr><td colspan="20"><input onclick="chkAllTargets('<?php print $OrderCrit;?>','<?php print $OrderDir;?>');" type="checkbox" id="AllTargets" value="1" <?php print ($AllTargets==1 ? ' checked="checked"' : '');?>/><?php print get_text('AllTargets','Tournament');?></td></tr>
+			<tr class="Divider"><td colspan="20"></td></tr>
 			<tr>
-				<td colspan="19"><a class="Link" href="#" onclick="add(); return false;">:<?php print get_text('CmdAdd','Tournament');?>:</a></td>
+				<td colspan="20"><a class="Link" href="#" onclick="add(); return false;">:<?php print get_text('CmdAdd','Tournament');?>:</a></td>
 			</tr>
-			<tr class="Divider"><td colspan="19"></td></tr>
+			<tr class="Divider"><td colspan="20"></td></tr>
 <?php
 print $MyHeader;
 
@@ -286,7 +288,7 @@ if (count($Rows)>0) {
 		if(isset($_REQUEST['diffs']) and $r['code']!=$r['locCode']) continue;
 		eval($eval4ref); // <-- Vedi commento "Occhio qui!"
 
-		echo '<tr id="row_'.$IDrow.'_'.$r['id'].'" ondblclick="PopEdit('.($r['id']!==null ? $r['id'] : 0).',\''.($AllTargets==1 ? 'ses=' . $r['session'] . '&tar='.$r['targetno']:'').'\');" class="'.$style.'">';
+		echo '<tr id="row_'.$IDrow.'_'.$r['id'].'" ondblclick="PopEdit('.($r['id']!==null ? $r['id'] : 0).',\''.($AllTargets==1 ? 'ses=' . $r['session'] . '&tar='.$r['targetno']:'').'\');" class="'.$style.' rowHover">';
 		echo '<td class="Center">';
 		$img='';
 		switch ($r['status'])
@@ -340,9 +342,9 @@ if (count($Rows)>0) {
 		echo '</td>';
 		echo '<td>'.$r['country_name'].'</td>';
 		echo '<td class="Center">'.($r['wc'] ? 'x' : '').'</td>';
-		echo '<td>'.$r['division'].'</td>';
-		echo '<td>'.$r['ageclass'].'</td>';
-		echo '<td>'.$r['class'].'</td>';
+		echo '<td onclick="insertInput(this,\'division\')">'.$r['division'].'</td>';
+		echo '<td onclick="insertInput(this,\'ageclass\')">'.$r['ageclass'].'</td>';
+		echo '<td onclick="insertInput(this,\'class\')">'.$r['class'].'</td>';
 		echo '<td onclick="insertInput(this,\'subclass\')">'.$r['subclass'].'</td>';
 		echo '<td>'.get_text($r['targetface_name'], 'Tournament', '', true).'</td>';
 		echo '<td class="Center">'.($r['id']!==null?'<img src="'.$CFG->ROOT_DIR.'Common/Images/drop.png" onclick="deleteRow('.$r['id'] . ',\''.$OrderCrit.'\',\''.$OrderDir.'\');"/>':'').'</td>';

@@ -56,3 +56,22 @@ function ChangeLocalSubRule(who) {
 		document.getElementById('rowSubRule').style.display='table-row';
 	}
 }
+
+function ChangeIskConfig() {
+    $.getJSON('index-getIskConfig.php?api='+$('#IskSelect').val(), function (data) {
+        $('#IskConfig').html(data.html);
+    });
+}
+
+function ChangeLookUpCombo() {
+	if($('#d_ToIocCode').val()==$('#oldToIocCode').val()) {
+		$('#cmdAssignLookup').show();
+	} else {
+        $('#cmdAssignLookup').hide();
+	}
+}
+
+function assignCurrentLookUp() {
+	$('#Command').val('AssignLookupEntry');
+	$('#Frm').submit();
+}

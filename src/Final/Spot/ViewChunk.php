@@ -20,6 +20,8 @@
 	$TourId=(isset($_REQUEST['TourId']) ? intval($_REQUEST['TourId']) : $_SESSION['TourId']);
 	$LiveExists=false;
 
+    checkACL(AclOutput,AclReadOnly, false, $TourId);
+
 	$fotodir='http://' . $_SERVER['HTTP_HOST'] . $CFG->ROOT_DIR . 'TV/Photos/' . getCodeFromId($TourId) . '-%s-%s-%s.jpg';
 
 	$Live=false;
@@ -98,7 +100,6 @@
 		$rank=Obj_RankFactory::create('GridInd',$options);
 		$rank->read();
 		$rankData=$rank->getData();
-//debug_svela($rankData);
 		$ArrSx = '';
 		$ArrDx = '';
 
@@ -117,21 +118,16 @@
 		$StorySx = '';
 		$StoryDx = '';
 
-		if($tmpSection=each($rankData['sections']) and $tmpPhase=each($tmpSection[1]['phases']) and $MyRow=current($tmpPhase[1]['items'])) {
-			$Phase=$tmpPhase['key'];
-			$PhaseName=$tmpPhase[1]['meta']['phaseName'];
-			$MatchMode=$tmpSection[1]['meta']['matchMode'];
+		if($tmpSection=current($rankData['sections']) and $tmpPhase=current($tmpSection['phases']) and $MyRow=current($tmpPhase['items'])) {
+			$Phase=key($tmpSection['phases']);
+			$PhaseName=$tmpPhase['meta']['phaseName'];
+			$MatchMode=$tmpSection['meta']['matchMode'];
 
+			$objParam=getEventArrowsParams($Event, $Phase, $Team, $TourId);
 			//Sistemiamo i numeri di  frecce
-			if($Phase < 8) {
-				$nEND=$tmpSection[1]['meta']['finEnds']; // Numero di Volee
-				$nARR=$tmpSection[1]['meta']['finArrows'];				// Numero di frecce
-				$nTieBreak=$tmpSection[1]['meta']['finSO'];
-			} else {
-				$nEND=$tmpSection[1]['meta']['elimEnds']; // Numero di Volee
-				$nARR=$tmpSection[1]['meta']['elimArrows'];				// Numero di frecce
-				$nTieBreak=$tmpSection[1]['meta']['elimSO'];
-			}
+            $nEND=$objParam->ends; // Numero di Volee
+            $nARR=$objParam->arrows;				// Numero di frecce
+            $nTieBreak=$objParam->so;
 
 			$maxArrows=$nEND*$nARR;
 /**********
@@ -146,13 +142,10 @@
 			$ArrDx=str_pad($MyRow['oppArrowstring'],$maxArrows);
 			$TieDx=str_pad($MyRow['oppTiebreak'],$nTieBreak);
 
-			if($MyRow['arrowPosition'] or $MyRow['oppArrowPosition']) {
-// 				debug_svela($MyRow);
-				if($MyRow['arrowPosition']) $PosArrSx = unserialize($MyRow['arrowPosition']);
-				if($MyRow['tiePosition']) $PosTieSx = unserialize($MyRow['tiePosition']);
-				if($MyRow['oppArrowPosition']) $PosArrDx = unserialize($MyRow['oppArrowPosition']);
-				if($MyRow['oppTiePosition']) $PosTieDx = unserialize($MyRow['oppTiePosition']);
-			}
+			if($MyRow['arrowPosition']) $PosArrSx = ($MyRow['arrowPosition']);
+			if($MyRow['tiePosition']) $PosTieSx = ($MyRow['tiePosition']);
+			if($MyRow['oppArrowPosition']) $PosArrDx = ($MyRow['oppArrowPosition']);
+			if($MyRow['oppTiePosition']) $PosTieDx = ($MyRow['oppTiePosition']);
 
 			$ReviewLang1 = $MyRow['review1'];
 			$ReviewLang2 = $MyRow['review2'];
@@ -200,7 +193,7 @@ Conteggio i punti di Set
   Storico dei match precedenti
 ********************************/
 			//Carico la storia dei Matches precedenti
-			$StoryQuery = "SELECT IF(f.FinAthlete=" . StrSafe_DB($MyRow['id']) . ", 0, 1) AS SxDx, f.FinMatchNo, GrPhase as Phase, "
+			$StoryQuery = "SELECT IF(f.FinAthlete=" . StrSafe_DB($MyRow['id']) . ", 0, 1) AS SxDx, f.FinMatchNo, GrPhase as Phase, EvFinalFirstPhase, "
 				. "IF(EvMatchMode=0,f.FinScore,f.FinSetScore) AS Score, f.FinTie, "
 				. "EnFirstName as OppFirstName, EnName as OppName, CoCode as Country, IF(EvMatchMode=0,f2.FinScore,f2.FinSetScore) as OppScore, f2.FinTie as OppTie "
 			. "FROM Finals AS f "
@@ -220,12 +213,12 @@ Conteggio i punti di Set
 				while($MyRowStory=safe_fetch($RsStory))
 				{
 					if($MyRowStory->SxDx==0)
-						$StorySx .= '<b>' . get_text($MyRowStory->Phase . '_Phase') . "</b>: "
+						$StorySx .= '<b>' . get_text(namePhase($MyRowStory->EvFinalFirstPhase, $MyRowStory->Phase) . '_Phase') . "</b>: "
 							. '<em>' . ($MyRowStory->Score==0 && $MyRowStory->FinTie==2 ?  '' :  ' ' .$MyRowStory->Score) . ($MyRowStory->FinTie==1 ? '*' : '')
 							. "</em> - "
 							. ($MyRowStory->FinTie==2 ? 'Bye -' : ($MyRowStory->OppScore==0 && $MyRowStory->FinTie==2 ? '' : ' ' . $MyRowStory->OppScore) . ($MyRowStory->OppTie==1 ? '*' : '')) . " " . $MyRowStory->OppFirstName . " " . $MyRowStory->OppName . "\n";
 					if($MyRowStory->SxDx==1)
-						$StoryDx .= '<b>' . get_text($MyRowStory->Phase . '_Phase') . "</b>: "
+						$StoryDx .= '<b>' . get_text(namePhase($MyRowStory->EvFinalFirstPhase, $MyRowStory->Phase) . '_Phase') . "</b>: "
 							. '<em>' . ($MyRowStory->Score==0 && $MyRowStory->FinTie==2 ? '' : ' ' .$MyRowStory->Score) . ($MyRowStory->FinTie==1 ? '*' : '')
 							. "</em> - "
 							. ($MyRowStory->FinTie==2 ? 'Bye -' : ($MyRowStory->OppScore==0 && $MyRowStory->FinTie==2 ? '' : ' ' . $MyRowStory->OppScore) . ($MyRowStory->OppTie==1 ? '*' : '')) . " " . $MyRowStory->OppFirstName . " " . $MyRowStory->OppName . "\n";
@@ -295,10 +288,13 @@ Conteggio i punti di Set
 				$ScoreSx.='<th style="font-size:180%; font-weight:bold; text-align:center;">T.B</th>';
 				$ScoreSx.='<td colspan="' . $nARR . '">';
 				$ScoreSx.='<table class="Tabella">' . "\n";
-				$ScoreSx.='<tr>';
-				for ($i=0;$i<$nTieBreak;++$i)
-					$ScoreSx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . DecodeFromLetter($TieSx[$i]) . '&nbsp</td>';
-				$ScoreSx.='</tr>' . "\n";
+                for($endSo=0; $endSo<ceil(max(strlen(trim($TieDx)),strlen(trim($TieSx)))/$nTieBreak); $endSo++) {
+                    $ScoreSx.='<tr>';
+                    for ($i = 0; $i < $nTieBreak; ++$i) {
+                        $ScoreSx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . (!empty($TieSx[($endSo*$nTieBreak)+$i]) ? DecodeFromLetter($TieSx[($endSo*$nTieBreak)+$i]) : '') . '&nbsp</td>';
+                    }
+                    $ScoreSx.='</tr>';
+                }
 				$ScoreSx.='</table>' . "\n";
 				$ScoreSx.='</td>';
 				$ScoreSx.='<td>&nbsp;</td>';
@@ -315,7 +311,6 @@ Conteggio i punti di Set
 ***********************/
 				if(count($PosArrSx) || count($PosArrDx)) {
 				// semaforo sx
-// 					debug_svela(count($PosArrDx));
 					$SemaforoSx
 						= '<table class="Tabella">' . "\n";
 				// bersagli delle volee
@@ -323,12 +318,13 @@ Conteggio i punti di Set
 					{
 						$Tmp = '';
 
+/*@Doc, to fix with new target
 						for ($j=0;$j<$nARR;++$j)
 						{
 							if(@array_key_exists (($i*$nARR+$j), $PosArrSx))
 								$Tmp .= "&amp;Arrows[]=" .  $PosArrSx[$i*$nARR+$j][0] . ',' . $PosArrSx[$i*$nARR+$j][1];
 						}
-
+*/
 						if($MyTargetHitMiss)
 							$Tmp .='&amp;HMOUT=1';
 						else if($MyTargetField)
@@ -337,7 +333,7 @@ Conteggio i punti di Set
 						$SemaforoSx
 							.='<tr>'
 							. '<td class="FontMedium Bold Right">' . ($i+1) . '</td>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchSx.'&Team=0&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchSx.'&Team=0&Event='.$Event.'&End=' . ($i+1) . '" class="Target" border="0">'
 							. '</td>'
 							. '</tr>' . "\n";
 
@@ -348,12 +344,13 @@ Conteggio i punti di Set
 					{
 						$Tmp = '';
 
+/*@Doc, to fix with new target
 						for($j=0;$j<$nTieBreak;$j++)
 						{
 							if(@array_key_exists($j,$PosTieSx))
 								$Tmp .= "&amp;Arrows[]=" . $PosTieSx[$j];
 						}
-
+*/
 						if($MyTargetHitMiss)
 							$Tmp .='&amp;HMOUT=1';
 						else if($MyTargetField)
@@ -362,7 +359,7 @@ Conteggio i punti di Set
 						$SemaforoSx
 							.='<tr>'
 							. '<td class="FontMedium Bold Right">T.B.</td>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchSx.'&Team=0&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchSx.'&Team=0&Event='.$Event.'&End=-1" class="Target" border="0">'
 							. '</td>'
 							. '</tr>' . "\n";
 					}
@@ -430,10 +427,13 @@ Conteggio i punti di Set
 				$ScoreDx.='<th style="font-size:180%; font-weight:bold; text-align:center;">T.B.</th>';
 				$ScoreDx.='<td colspan="' . $nARR . '">';
 				$ScoreDx.='<table class="Tabella">' . "\n";
-				$ScoreDx.='<tr>';
-				for ($i=0;$i<$nTieBreak;++$i)
-					$ScoreDx.='<td style="font-size:180%; font-weight:bold; text-align:center;">' . DecodeFromLetter($TieDx[$i]) . '&nbsp</td>';
-				$ScoreDx.='</tr>' . "\n";
+                for($endSo=0; $endSo<ceil(max(strlen(trim($TieDx)),strlen(trim($TieSx)))/$nTieBreak); $endSo++) {
+                    $ScoreDx.='<tr>';
+                    for ($i = 0; $i < $nTieBreak; ++$i) {
+                        $ScoreDx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . (!empty($TieDx[($endSo*$nTieBreak)+$i]) ? DecodeFromLetter($TieDx[($endSo*$nTieBreak)+$i]) : '') . '&nbsp</td>';
+                    }
+                    $ScoreDx.='</tr>';
+                }
 				$ScoreDx.='</table>' . "\n";
 				$ScoreDx.='</td>';
 				$ScoreDx.='<td>&nbsp;</td>';
@@ -456,13 +456,13 @@ Conteggio i punti di Set
 					for ($i=0;$i<$nEND;++$i)
 					{
 						$Tmp = '';
-
-						for ($j=0;$j<$nARR;++$j)
-						{
-							if(@array_key_exists (($i*$nARR+$j), $PosArrDx))
-									$Tmp .= "&amp;Arrows[]=" .  $PosArrDx[$i*$nARR+$j][0] . "," . $PosArrDx[$i*$nARR+$j][1];
-						}
-
+/*@Doc, to fix with new target
+                        for ($j=0;$j<$nARR;++$j)
+                        {
+                            if(@array_key_exists (($i*$nARR+$j), $PosArrDx))
+                                    $Tmp .= "&amp;Arrows[]=" .  $PosArrDx[$i*$nARR+$j][0] . "," . $PosArrDx[$i*$nARR+$j][1];
+                        }
+                        */
 						if($MyTargetHitMiss)
 							$Tmp .='&amp;HMOUT=1';
 						else if($MyTargetField)
@@ -470,7 +470,7 @@ Conteggio i punti di Set
 
 						$SemaforoDx
 							.='<tr>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchDx.'&Team=0&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchDx.'&Team=0&Event='.$Event.'&End=' . ($i+1) .  '" class="Target" border="0">'
 							. '<td class="FontMedium Bold">' . ($i+1) . '</td>'
 							. '</tr>' . "\n";
 
@@ -479,13 +479,13 @@ Conteggio i punti di Set
 					if (trim($TieSx . $TieDx)!='')
 					{
 						$Tmp = '';
-
+/*@Doc, to fix with new target
 						for($j=0;$j<$nTieBreak;$j++)
 						{
 							if(@array_key_exists($j,$PosTieDx))
 								$Tmp .= "&amp;Arrows[]=" . $PosTieDx[$j];
 						}
-
+*/
 						if($MyTargetHitMiss)
 							$Tmp .='&amp;HMOUT=1';
 						else if($MyTargetField)
@@ -493,7 +493,7 @@ Conteggio i punti di Set
 
 						$SemaforoDx
 							.='<tr>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchDx.'&Team=0&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchDx.'&Team=0&Event='.$Event.'&End=-1" class="Target" border="0">'
 							. '<td class="FontMedium Bold">T.B.</td>'
 							. '</tr>' . "\n";
 					}
@@ -519,7 +519,7 @@ Conteggio i punti di Set
 				. '<tr height="1%">'
 				. '<th colspan="4" class="Title" style="font-size:200%; font-weight:bold; text-align:center;">'
 				. ($Live?'<img src="'.$CFG->ROOT_DIR.'Common/Images/greendot_anim.gif" align="absmiddle"> ':'')
-				.  $tmpSection[1]['meta']['eventName']
+				.  $tmpSection['meta']['eventName']
 				. ($Live?' - '.get_text('LiveUpdate','Tournament').' <img src="'.$CFG->ROOT_DIR.'Common/Images/greendot_anim.gif" align="absmiddle">':'')
 				. ($LiveExists ? ' - <a href="./">'.get_text('GoLive','Tournament').'</a>': '')
 				. '</th>'
@@ -581,7 +581,7 @@ Conteggio i punti di Set
 			= "SELECT TfMatchNo AS MatchNo, TfWinLose as Winner, TfEvent AS Event, EvEventName AS EventName, GrPhase as Phase, CONCAT(TfTeam,'|',TfSubTeam) AS Athlete, EvMatchMode as MatchMode, "
 			. "RevLanguage1, RevLanguage2, UNIX_TIMESTAMP(RevDateTime) as ReviewUpdate, "
 			. "IF(EvMatchMode=0,TfScore,TfSetScore) AS FinalScore, TfScore AS Score, TfSetPointsByEnd as SetPointsByEnds, TfSetScore as SetScore, TfSetPoints as SetPoints, TfArrowString AS ArrowString,TfArrowPosition AS ArrPos,"
-			. "TeScore, TeRank, GROUP_CONCAT(if(EnNameOrder, CONCAT(UPPER(EnFirstName), ' ', EnName), CONCAT(EnName, ' ', UPPER(EnFirstName))) SEPARATOR ', ') as Archers, group_concat(EnId) ArcEnIds, group_concat(EnCode) ArcEnCodes, "
+			. "TeScore, TeRank, GROUP_CONCAT(if(EnNameOrder, CONCAT(UPPER(EnFirstName), ' ', EnName), CONCAT(EnName, ' ', UPPER(EnFirstName))) order by EnSex desc, EnFirstName, EnName SEPARATOR ', ' ) as Archers, group_concat(EnId order by EnSex desc, EnFirstName, EnName) ArcEnIds, group_concat(EnCode order by EnSex desc, EnFirstName, EnName) ArcEnCodes, "
 			. "TfTieBreak AS TieBreak,TfTiePosition AS TiePos, "
 			. "TfWinLose AS WinLose, "
 			. "CoCode AS NationCode,CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS Nation, @elimination:=pow(2, ceil(log2(GrPhase))+1) & EvMatchArrowsNo "
@@ -641,13 +641,9 @@ Conteggio i punti di Set
 
 			$ArrSx =str_pad($MyRowSx->ArrowString,MaxFinTeamArrows);
 			$TieSx=str_pad($MyRowSx->TieBreak,$nSO);
-			if(trim($MyRowSx->ArrPos,'|')) {
-				//foreach(explode('|',str_pad($MyRowSx->ArrPos,$nMaxArrows-substr_count($MyRowSx->ArrPos, "|"),"|")) as $pos) if($pos) $PosArrSx=$pos;
-				//foreach(explode('|',str_pad($MyRowSx->TiePos,$nSO-substr_count($MyRowSx->TiePos, "|"),"|")) as $pos) if($pos) $PosTieSx=$pos;
-				$PosArrSx = explode('|',str_pad($MyRowSx->ArrPos,$nMaxArrows-substr_count($MyRowSx->ArrPos, "|"),"|"));
-				$PosTieSx = explode('|',str_pad($MyRowSx->TiePos,$nSO-substr_count($MyRowSx->TiePos, "|"),"|"));
 
-			}
+            //if($MyRowSx->ArrPos) $PosArrSx = json_decode($MyRowSx->ArrPos);
+            //if($MyRowSx->TiePos) $PosTieSx = json_decode($MyRowSx->TiePos);
 
 			$ReviewLang1 = $MyRowSx->RevLanguage1;
 			$ReviewLang2 = $MyRowSx->RevLanguage2;
@@ -670,13 +666,9 @@ Conteggio i punti di Set
 
 				$ArrDx=str_pad($MyRowDx->ArrowString,MaxFinTeamArrows);
 				$TieDx=str_pad($MyRowDx->TieBreak,$nSO);
-				if(trim($MyRowDx->ArrPos,'|') or trim($MyRowSx->ArrPos,'|')) {
-					$PosArrDx = explode('|',str_pad($MyRowDx->ArrPos,$nMaxArrows-substr_count($MyRowDx->ArrPos, "|"),"|"));
-					$PosTieDx = explode('|',str_pad($MyRowDx->TiePos,3+$nSO-substr_count($MyRowDx->TiePos, "|"),"|"));
-				}
-			}
-			elseif($MyRowSx->MatchNo%2==1)
-			{
+                //if($MyRowDx->ArrPos) $PosArrDx = json_decode($MyRowDx->ArrPos);
+                //if($MyRowDx->TiePos) $PosTieDx = json_decode($MyRowDx->TiePos);
+            } elseif($MyRowSx->MatchNo%2==1) {
 				$MyRowDx=$MyRowSx;
 				$MyRowSx=false;
 			}
@@ -782,8 +774,7 @@ Conteggio i punti di Set
 				print '<pre>PosTie Dx --> '; print_r($PosTieDx); print  '</pre>';
 			}
 
-			if ($MyRowSx)
-			{
+			if ($MyRowSx) {
 				$HiddenArrSx = '<input type="hidden" id="ArrSx" value="' . trim($ArrSx) . '">';
 				$HiddenTieSx = '<input type="hidden" id="TieSx" value="' . trim($TieSx) . '">';
 
@@ -809,8 +800,7 @@ Conteggio i punti di Set
 				$Tot=0;
 				$TotSet=0;
 			// ArrowString
-				for ($i=0;$i<$nEND;++$i)
-				{
+				for ($i=0;$i<$nEND;++$i) {
 					$TotSerie=0;
 					$ScoreSx.='<tr>';
 					//$ScoreSx.='<th><a class="Link" href="' . $_SERVER['PHP_SELF'] . '?MatchNo=' . $_REQUEST['MatchNo'] . '&amp;Volee=' . ($i+1) . '&amp;Event=' . $_REQUEST['Event'] . '">' .  ($i+1) . '</a></th>';
@@ -836,10 +826,14 @@ Conteggio i punti di Set
 				$ScoreSx.='<th style="font-size:180%; font-weight:bold; text-align:center;">T.B</th>';
 				$ScoreSx.='<td colspan="' . $nARR . '">';
 				$ScoreSx.='<table class="Tabella">' . "\n";
-				$ScoreSx.='<tr>';
-				for ($i=0;$i<$nSO;++$i)
-					$ScoreSx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . DecodeFromLetter($TieSx[$i]) . '&nbsp</td>';
-				$ScoreSx.='</tr>' . "\n";
+                for($endSo=0; $endSo<ceil(max(strlen(trim($TieDx)),strlen(trim($TieSx)))/$nSO); $endSo++) {
+                    $ScoreSx.='<tr>';
+                    for ($i = 0; $i < $nSO; ++$i) {
+                        $ScoreSx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . (!empty($TieSx[($endSo*$nSO)+$i]) ? DecodeFromLetter($TieSx[($endSo*$nSO)+$i]):'') . '&nbsp</td>';
+                    }
+                    $ScoreSx.='</tr>';
+                }
+
 				$ScoreSx.='</table>' . "\n";
 				$ScoreSx.='</td>';
 				$ScoreSx.='<td>&nbsp;</td>';
@@ -857,16 +851,16 @@ Conteggio i punti di Set
 				// bersagli delle volee
 					for ($i=0;$i<$nEND;++$i)
 					{
-						$Tmp = '';
-						for ($j=0;$j<$nARR;++$j)
-						{
-							if(@array_key_exists (($i*$nARR+$j), $PosArrSx))
-									$Tmp .= "&amp;Arrows[]=" .  $PosArrSx[$i*$nARR+$j];
-						}
+						//$Tmp = '';
+						//for ($j=0;$j<$nARR;++$j)
+						//{
+						//	if(@array_key_exists (($i*$nARR+$j), $PosArrSx))
+						//			$Tmp .= "&amp;Arrows[]=" .  $PosArrSx[$i*$nARR+$j]["X"];
+						//}
 						$SemaforoSx
 							.='<tr>'
 							. '<td class="FontMedium Bold Right">' . ($i+1) . '</td>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchSx.'&Team=1&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchSx.'&Team=1&Event='.$Event.'&End=' . ($i+1) . '" class="Target" border="0">'
 							. '</td>'
 							. '</tr>' . "\n";
 					}
@@ -875,18 +869,18 @@ Conteggio i punti di Set
 					if (trim($TieSx . $TieDx)!='')
 					{
 
-						$Tmp = '';
-
-						for($j=0;$j<$nSO;$j++)
-						{
-							if(@array_key_exists($j,$PosTieSx) && $PosTieSx[$j]!='')
-								$Tmp .= "&amp;Arrows[]=" . $PosTieSx[$j];
-						}
+						//$Tmp = '';
+						//
+						//for($j=0;$j<$nSO;$j++)
+						//{
+						//	if(@array_key_exists($j,$PosTieSx) && $PosTieSx[$j]!='')
+						//		$Tmp .= "&amp;Arrows[]=" . $PosTieSx[$j];
+						//}
 
 						$SemaforoSx
 							.='<tr>'
 							. '<td class="FontMedium Bold Right">T.B.</td>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchSx.'&Team=1&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchSx.'&Team=1&Event='.$Event.'&End=-1" class="Target" border="0">'
 							. '</td>'
 							. '</tr>' . "\n";
 					}
@@ -920,8 +914,7 @@ Conteggio i punti di Set
 				$Tot=0;
 				$TotSet=0;
 			// ArrowString
-				for ($i=0;$i<$nEND;++$i)
-				{
+				for ($i=0;$i<$nEND;++$i) {
 					$TotSerie=0;
 					$ScoreDx.='<tr>';
 					$ScoreDx.='<th style="font-size:180%; font-weight:bold; text-align:center;">' .  ($i+1) . '</th>';
@@ -947,10 +940,14 @@ Conteggio i punti di Set
 				$ScoreDx.='<th style="font-size:180%; font-weight:bold; text-align:center;">T.B.</th>';
 				$ScoreDx.='<td colspan="' . $nARR . '">';
 				$ScoreDx.='<table class="Tabella">' . "\n";
-				$ScoreDx.='<tr>';
-				for ($i=0;$i<$nSO;++$i)
-					$ScoreDx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . DecodeFromLetter($TieDx[$i]) . '&nbsp</td>';
-				$ScoreDx.='</tr>' . "\n";
+
+                for($endSo=0; $endSo<ceil(max(strlen(trim($TieDx)),strlen(trim($TieSx)))/$nSO); $endSo++) {
+                    $ScoreDx.='<tr>';
+                    for ($i = 0; $i < $nSO; ++$i) {
+                        $ScoreDx .= '<td style="font-size:180%; font-weight:bold; text-align:center;">' . (!empty($TieDx[($endSo*$nSO)+$i]) ? DecodeFromLetter($TieDx[($endSo*$nSO)+$i]):'') . '&nbsp</td>';
+                    }
+                    $ScoreDx.='</tr>';
+                }
 				$ScoreDx.='</table>' . "\n";
 				$ScoreDx.='</td>';
 				$ScoreDx.='<td>&nbsp;</td>';
@@ -967,36 +964,19 @@ Conteggio i punti di Set
 					$SemaforoDx
 						= '<table class="Tabella">' . "\n";
 				// bersagli delle volee
-					for ($i=0;$i<$nEND;++$i)
-					{
-						$Tmp = '';
-
-						for ($j=0;$j<$nARR;++$j) {
-							if(@array_key_exists (($i*$nARR+$j), $PosArrDx))
-									$Tmp .= "&amp;Arrows[]=" .  $PosArrDx[$i*$nARR+$j];
-						}
-
+					for ($i=0;$i<$nEND;++$i) {
 						$SemaforoDx
 							.='<tr>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchDx.'&Team=1&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchDx.'&Team=1&Event='.$Event.'&End='.($i+1).'" class="Target" border="0">'
 							. '<td class="FontMedium Bold">' . ($i+1) . '</td>'
 							. '</tr>' . "\n";
 
 					}
 				// bersaglio del tiebreak (solo se ho almeno una freccia in uno dei due)
-					if (trim($TieSx . $TieDx)!='')
-					{
-						$Tmp = '';
-
-						for($j=0;$j<$nSO;$j++)
-						{
-							if(@array_key_exists($j,$PosTieDx) && $PosTieDx[$j]!='')
-								$Tmp .= "&amp;Arrows[]=" . $PosTieDx[$j];
-						}
-
+					if (trim($TieSx . $TieDx)!='') {
 						$SemaforoDx
 							.='<tr>'
-							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Match='.$MatchDx.'&Team=1&Event='.$Event.'&Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0">'
+							. '<td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Matchno='.$MatchDx.'&Team=1&Event='.$Event.'&End=-1" class="Target" border="0">'
 							. '<td class="FontMedium Bold">T.B.</td>'
 							. '</tr>' . "\n";
 					}
@@ -1035,14 +1015,14 @@ Conteggio i punti di Set
 				. '</tr>' . "\n"
 				. $WinnerRow
 				. '<tr>'
-				. (count($PosArrSx) || count($PosArrDx) ? '<td valign="top" rowspan="3">' . $SemaforoSx . '</td>' : '')
+				. (count($PosArrSx) || count($PosArrDx) ? '<td valign="top" rowspan="3"><div class="Semafori">' . $SemaforoSx . '</div></td>' : '')
 				. '<td valign="top" class="Center" nowrap>' . $ScoreSx . '<br>' . $PhotosSx . '<br>'
 				. '<div style="font-size:180%; text-align:justify; margin:10px;">' . nl2br($StorySx) . '</div>'
 				. '</td>'
 				. '<td valign="top" class="Center" nowrap>' . $ScoreDx . '<br>' . $PhotosDx . '<br>'
 				. '<div style="font-size:180%; text-align:justify; margin:10px;">' . nl2br($StoryDx) . '</div>'
 				. '</td>'
-				. (count($PosArrSx) || count($PosArrDx) ? '<td valign="top" rowspan="3">' . $SemaforoDx . '</td>' : '')
+				. (count($PosArrSx) || count($PosArrDx) ? '<td valign="top" rowspan="3"><div class="Semafori">' . $SemaforoDx . '</div></td>' : '')
 				. '</tr>' . "\n"
 				. '<tr>'
 				. '<td valign="top" colspan="2" style="font-size:150%; text-align:justify; margin:10px;">' . nl2br(htmlentities($ReviewLang1, ENT_NOQUOTES, "UTF-8"))  . '<spacer></spacer></td>'

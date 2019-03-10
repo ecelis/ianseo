@@ -119,10 +119,34 @@ function UpdatePreOpen($TournamentID) {
 		UpdateSetPointsByEnd_20150416($TournamentID);
 		to_save_version($TournamentID, '2015-04-16 18:30:02');
 	}
-	
+
 	if($version<'2016-03-22 08:30:01') {
 		UpdateSessionsFromAgileModule_20160322($TournamentID);
 		to_save_version($TournamentID, '2016-03-22 08:30:01');
+	}
+
+	if($version<'2017-06-14 17:29:01') {
+		updateEliminationEvents_20170530($TournamentID);
+		to_save_version($TournamentID, '2017-06-14 17:29:01');
+	}
+	if($version<'2018-01-14 12:29:03') {
+		updateEliminationEvents_20180114($TournamentID);
+		to_save_version($TournamentID, '2018-01-14 12:29:03');
+	}
+
+	if($version<'2018-01-31 12:29:03') {
+		safe_w_sql("update Tournament set ToLocRule='NFAA' where ToLocRule='VEGAS'");
+		to_save_version($TournamentID, '2018-01-31 12:29:03');
+	}
+
+	if($version<'2018-05-03 14:36:00') {
+		updateArrowPositions_20180503($TournamentID);
+		to_save_version($TournamentID, '2018-05-03 14:36:00');
+	}
+
+	if($version<'2018-06-24 22:07:02') {
+		updateArrowTimestamp_20180624($TournamentID);
+		to_save_version($TournamentID, '2018-06-24 22:07:02');
 	}
 
 	to_save_version($TournamentID, $DbVersion);

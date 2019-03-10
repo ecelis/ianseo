@@ -207,7 +207,7 @@
 					ToId,TeRank,CoId,CoCode,CoName,	TeSubTeam ,TeEvent, DivId, ClId, ClDescription, DivDescription,ToNumEnds,ToNumDist,FlContAssoc,
 					EnId,EnCode,EnSex,EnNameOrder,EnFirstName,upper(EnFirstName) EnFirstNameUpper,EnName,Q,EnClass,EnDivision,EnAgeClass,EnSubClass,
 					IFNULL(Td1,'.1.') as Td1, IFNULL(Td2,'.2.') as Td2, IFNULL(Td3,'.3.') as Td3, IFNULL(Td4,'.4.') as Td4, IFNULL(Td5,'.5.') as Td5, IFNULL(Td6,'.6.') as Td6, IFNULL(Td7,'.7.') as Td7, IFNULL(Td8,'.8.') as Td8,
-					(QuHits*Q) AS Arrows_Shot, QuSession AS Session, QuScore,QuGold, QuXnine, TeScore, TeGold, TeXnine, TeHits,ToGolds, ToXNine ,TeTimeStamp,
+					TeHits AS Arrows_Shot, QuSession AS Session, QuScore,QuGold, QuXnine, TeScore, TeGold, TeXnine, TeHits,ToGolds, ToXNine ,TeTimeStamp,
 					DiEnds, DiArrows
 				FROM
 					Tournament
@@ -363,6 +363,13 @@
 					}
 
 					if ($myTeam!=$row->CoId . $row->TeEvent) {
+                        if($row->TeRank==127) {
+                            $tmpRank = 'DSQ';
+                        } else if ($row->TeRank==126) {
+                            $tmpRank = 'DNS';
+                        } else {
+                            $tmpRank= $row->TeRank;
+                        }
 						$item=array(
 							'id' 			=> $row->CoId,
 							'countryCode' 	=> $row->CoCode,
@@ -370,7 +377,7 @@
 							'countryName' 	=> $row->CoName,
 							'subteam' 		=> $row->TeSubTeam,
 							'athletes'		=> array(),
-							'rank'			=> $row->TeRank,
+							'rank'			=> $tmpRank,
 							'score' 		=> $row->TeScore,
 							'gold' 			=> $row->TeGold,
 							'xnine' 		=> $row->TeXnine,

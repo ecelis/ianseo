@@ -2,10 +2,9 @@
 /*
 	Viene incluso il motore ajax di index per sfruttare UpdateField
 */
-	define('debug',false);	// settare a true per l'output di debug
-
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclCompetition, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 
 	$JS_SCRIPT=array(
@@ -42,8 +41,6 @@
 
 	$Rs=safe_r_sql($Select);
 
-	if (debug)
-		print $Select . '<br><br>';
 	if (safe_num_rows($Rs)>0)
 	{
 		print '<tr>';
@@ -54,16 +51,16 @@
 			. '<td class="Title" width="4%"><a class="Link" href="' . $_SERVER['PHP_SELF'] . '?ordDiv=' . (isset($_REQUEST['ordDiv']) ? ($_REQUEST['ordDiv']=='ASC' ? 'DESC' : 'ASC') : 'ASC') . '">' . get_text('Div') . '</a></td>'
 			. '<td class="Title" width="4%"><a class="Link" href="' . $_SERVER['PHP_SELF'] . '?ordCl=' . (isset($_REQUEST['ordCl']) ? ($_REQUEST['ordCl']=='ASC' ? 'DESC' : 'ASC') : 'ASC') . '">' . get_text('Cl') . '</a></td>'
 			. '<td class="Title" width="11%">' . get_text('Pay','Tournament') . '</td>';
-		print '</tr>' . "\n";
+		print '</tr>';
 
 		$CurRow = 0;
 		while ($MyRow=safe_fetch($Rs))
 		{
 			$ComboPay
-				= '<select name="d_e_EnPays_' . $MyRow->EnId .  '" id="d_e_EnPays_' . $MyRow->EnId .  '" onChange="UpdateField(\'d_e_EnPays_' . $MyRow->EnId . '\');">' . "\n"
-				. '<option value="1"' . ($MyRow->EnPays==1 ? ' selected' : '') . '>' . get_text('Yes') . '</option>' . "\n"
-				. '<option value="0"' . ($MyRow->EnPays==0 ? ' selected' : '') . '>' . get_text('No') . '</option>' . "\n"
-				. '</select>' . "\n";
+				= '<select name="d_e_EnPays_' . $MyRow->EnId .  '" id="d_e_EnPays_' . $MyRow->EnId .  '" onChange="UpdateField(\'d_e_EnPays_' . $MyRow->EnId . '\');">'
+				. '<option value="1"' . ($MyRow->EnPays==1 ? ' selected' : '') . '>' . get_text('Yes') . '</option>'
+				. '<option value="0"' . ($MyRow->EnPays==0 ? ' selected' : '') . '>' . get_text('No') . '</option>'
+				. '</select>';
 ?>
 <tr <?php print 'id="Row_' . $MyRow->EnId . '" ' . ($CurRow++ % 2 ? ' class="OtherColor"' : '');?>>
 <td><?php print ($MyRow->EnCode!='' ? $MyRow->EnCode : '&nbsp;'); ?></td>

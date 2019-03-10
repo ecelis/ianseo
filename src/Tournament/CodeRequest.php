@@ -213,6 +213,7 @@ function get_flags() {
 			'LIE'=>'Liechtenstein',
 			'LTU'=>'Lithuania',
 			'LUX'=>'Luxembourg',
+			'MAC'=>'Macao',
 			'MAD'=>'Madagascar',
 			'MAR'=>'Morocco',
 			'MAS'=>'Malaysia',

@@ -7,6 +7,7 @@
 	define('debug',false);
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	if (!CheckTourSession() || !isset($_REQUEST['Tab']) || !isset($_REQUEST['Id']))
 	{

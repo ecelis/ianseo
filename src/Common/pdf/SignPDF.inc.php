@@ -94,6 +94,16 @@
 						$this->Line(($this->w*2/3)-7.5*sqrt(2)/2,$this->y,($this->w*2/3)+35-7.5*sqrt(2)/2,$this->y+35);
 						$this->Line(($this->w*2/3)+7.5*sqrt(2)/2,$this->y,($this->w*2/3)-35+7.5*sqrt(2)/2,$this->y+35);
 						break;
+					case 'v':
+					case 'V':
+						$this->SetLineWidth(15);
+						$this->Line(($this->w/3),$this->y,($this->w/3),$this->y+55);
+						$this->Line(($this->w/3)-7.5*sqrt(2)/2,$this->y+60,($this->w/3)+35-7.5*sqrt(2)/2,$this->y+25);
+						$this->Line(($this->w/3)+7.5*sqrt(2)/2,$this->y+60,($this->w/3)-35+7.5*sqrt(2)/2,$this->y+25);
+						$this->Line(($this->w*2/3),$this->y,($this->w*2/3),$this->y+55);
+						$this->Line(($this->w*2/3)-7.5*sqrt(2)/2,$this->y+60,($this->w*2/3)+35-7.5*sqrt(2)/2,$this->y+25);
+						$this->Line(($this->w*2/3)+7.5*sqrt(2)/2,$this->y+60,($this->w*2/3)-35+7.5*sqrt(2)/2,$this->y+25);
+						break;
 					default:
 						$this->SetFont($this->FontStd,'B',$this->SecondSize);
 						$this->cell(0,0,$this->Second,0,1,'C');

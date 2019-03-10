@@ -8,11 +8,11 @@
 	$id=(isset($_REQUEST['id']) ? $_REQUEST['id'] : null);
 	$status=(isset($_REQUEST['status']) ? $_REQUEST['status'] : null);
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$error = 0;
 
@@ -21,7 +21,7 @@
 	if (!IsBlocked(BIT_BLOCK_PARTICIPANT))
 	{
 		$recalc=false;
-		$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+		$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 		// se cambio status ricalcolo gli spareggi
 		$query= "SELECT EnClass FROM Entries WHERE EnId=" . StrSafe_DB($id) . " AND EnStatus<>" . StrSafe_DB($status) . " ";
@@ -33,7 +33,7 @@
 			$x=Params4Recalc($id);
 			if ($x!==false)
 			{
-				list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+				list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 			}
 		}
 
@@ -52,7 +52,7 @@
 		{
 			// ricalcolo il vecchio e il nuovo
 			if (!is_null($indFEvent))
-			RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+			RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 			// rank di classe x tutte le distanze
 			$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";

@@ -1,95 +1,99 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
+define('debug',false);	// settare a true per l'output di debug
 
-	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
-	if (!CheckTourSession() || !isset($_REQUEST['EvCode'])) printCrackError();
-	require_once('Common/Fun_FormatText.inc.php');
-	require_once('Common/Lib/ArrTargets.inc.php');
-	require_once('Qualification/Fun_Qualification.local.inc.php');
-	require_once('Common/Fun_Sessions.inc.php');
-	require_once('Common/Fun_Various.inc.php');
+require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+if (!CheckTourSession() || !isset($_REQUEST['EvCode'])) printCrackError();
+checkACL(AclCompetition, AclReadWrite);
+require_once('Common/Fun_FormatText.inc.php');
+require_once('Common/Lib/ArrTargets.inc.php');
+require_once('Qualification/Fun_Qualification.local.inc.php');
+require_once('Common/Fun_Sessions.inc.php');
+require_once('Common/Fun_Various.inc.php');
 
-	if (isset($_REQUEST['DelRow']) && !IsBlocked(BIT_BLOCK_TOURDATA))
-	{
-		list($EcClass,$EcDivision) = explode('~',$_REQUEST['DelRow']);
-		//print $EcClass . ' - ' . $EcDivision . '<br>';exit;
-		$Delete
-			= "DELETE FROM EventClass "
-			. "WHERE EcCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EcClass=" . StrSafe_DB($EcClass) . " AND EcDivision=" . StrSafe_DB($EcDivision) . " "
-			. "AND EcTeamEvent!='0' AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) .  " ";
-			//print $Delete;exit;
-		$Rs=safe_w_sql($Delete);
+if (isset($_REQUEST['DelRow']) && !IsBlocked(BIT_BLOCK_TOURDATA)) {
+    list($EcClass,$EcDivision,$EcSubClass) = explode('~',$_REQUEST['DelRow']);
+    //print $EcClass . ' - ' . $EcDivision . '<br>';exit;
+    $Delete
+        = "DELETE FROM EventClass "
+        . "WHERE EcCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EcClass=" . StrSafe_DB($EcClass) . " AND EcSubClass=" . StrSafe_DB($EcSubClass) . " AND EcDivision=" . StrSafe_DB($EcDivision) . " "
+        . "AND EcTeamEvent!='0' AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) .  " ";
+        //print $Delete;exit;
+    $Rs=safe_w_sql($Delete);
 
 	// calcolo il numero massimo di persone nel team
-		calcMaxTeamPerson(array($_REQUEST['EvCode']));
+    calcMaxTeamPerson(array($_REQUEST['EvCode']));
 
 	// cancello le righe di Team per l'evento passato
-		$queries[]
-			= "DELETE FROM Teams WHERE TeTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TeFinEvent=1 AND TeEvent=" . StrSafe_DB($_REQUEST['EvCode']) . " ";
+    $queries[] = "DELETE FROM Teams 
+        WHERE TeTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TeFinEvent=1 AND TeEvent=" . StrSafe_DB($_REQUEST['EvCode']) . " ";
 
 	// cancello i nomi
-		$queries[]
-			= "DELETE FROM TeamComponent WHERE TcTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TcFinEvent=1 AND TcEvent=". StrSafe_DB($_REQUEST['EvCode']) . " ";
+    $queries[] = "DELETE FROM TeamComponent 
+        WHERE TcTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TcFinEvent=1 AND TcEvent=". StrSafe_DB($_REQUEST['EvCode']) . " ";
 
 	// cancello i nomi fin
-		$queries[]
-			= "DELETE FROM TeamFinComponent WHERE TfcTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfcEvent=" .  StrSafe_DB($_REQUEST['EvCode']) . " ";
+    $queries[] = "DELETE FROM TeamFinComponent 
+        WHERE TfcTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfcEvent=" .  StrSafe_DB($_REQUEST['EvCode']) . " ";
 
 	// elimino le griglie
-		$queries[]
-			= "DELETE FROM TeamFinals "
-			. "WHERE TfEvent=" . StrSafe_DB($_REQUEST['EvCode']) . " AND TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
-		$Rs=safe_w_sql($Delete);
+    $queries[] = "UPDATE TeamFinals SET 
+          TfTeam=0, TfSubTeam=0, TfScore=0, TfSetScore=0, TfSetPoints='', TfSetPointsByEnd='', TfWinnerSet=0, TfTie=0, 
+          TfArrowstring='', TfTiebreak='', TfArrowPosition='', TfTiePosition='', TfWinLose=0, 
+          TfDateTime=NOW(), TfLive=0, TfStatus=0, TfShootFirst=0, TfShootingArchers='', TfConfirmed=0, TfNotes='' 
+          WHERE TfEvent=" . StrSafe_DB($_REQUEST['EvCode']) . " AND TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
 
-		safe_w_sql("UPDATE Events SET EvTourRules='' where EvCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EvTeamEvent='1' AND EvTournament = " . StrSafe_DB($_SESSION['TourId']));
-		
+    foreach ($queries as $q) {
+        safe_w_sql($q);
+    }
+
+    safe_w_sql("UPDATE Events SET EvTourRules='' where EvCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EvTeamEvent='1' AND EvTournament = " . StrSafe_DB($_SESSION['TourId']));
+
 	// reset shootoff
-		ResetShootoff($_REQUEST['EvCode'],1,0);
+    ResetShootoff($_REQUEST['EvCode'],1,0);
 
 	// teamabs
-		MakeTeamsAbs(null,null,null);
+    MakeTeamsAbs(null,null,null);
 
-		header('Location: SetEventRules.php?EvCode=' . $_REQUEST['EvCode']);
-		exit;
-	}
+    header('Location: SetEventRules.php?EvCode=' . $_REQUEST['EvCode']);
+    exit;
+}
 
-	$JS_SCRIPT=array(
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Final/Team/Fun_AJAX_SetEventRules.js"></script>',
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>',
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Final/Team/Fun_JS.js"></script>',
-		);
+$JS_SCRIPT=array(
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-3.2.1.min.js"></script>',
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Final/Team/Fun_AJAX_SetEventRules.js"></script>',
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>',
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Final/Team/Fun_JS.js"></script>',
+);
 
-	$PAGE_TITLE=get_text('TeamDefinition');
+$PAGE_TITLE=get_text('TeamDefinition');
 
-	include('Common/Templates/head.php');
+include('Common/Templates/head.php');
 ?>
 <div align="center">
 <div class="medium">
 <table class="Tabella" id="MyTable">
 <tbody id="tbody">
-<tr><th class="Title" colspan="5"><?php print get_text('TeamDefinition');?></th></tr>
-<tr class="Divider"><td colspan="5"></td></tr>
+<tr><th class="Title" colspan="6"><?php print get_text('TeamDefinition');?></th></tr>
+<tr class="Divider"><td colspan="6"></td></tr>
 <?php
-	$Select
-		= "SELECT EvCode,EvEventName,EvPartialTeam,EvMultiTeam,EvMixedTeam,EvTeamCreationMode,EvElimEnds,EvElimArrows,EvElimSO,EvFinEnds,EvFinArrows,EvFinSO "
-		. "FROM Events "
-		. "WHERE EvCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
+
+$Select = "SELECT * FROM Events WHERE EvCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
 	$RsEv = safe_r_sql($Select);
 
 	$RowEv=null;
 
-	if (safe_num_rows($RsEv)==1)
-	{
+	if (safe_num_rows($RsEv)==1) {
 		$RowEv=safe_fetch($RsEv);
 ?>
-<tr><td class="Title" colspan="5"><?php print get_text($RowEv->EvEventName,'','',true);?></td></tr>
+<tr><td class="Title" colspan="6"><?php print get_text($RowEv->EvEventName,'','',true);?></td></tr>
 <tr>
-<th width="25%"><?php print get_text('Number');?></th>
+<th width="20%"><?php print get_text('Number');?></th>
 <th width="20%"><?php print get_text('Division');?></th>
 <th width="20%"><?php print get_text('Class');?></th>
+<th width="20%"><?php print get_text('SubClass','Tournament');?></th>
 <th width="10%">&nbsp;</th>
-<th width="25%">&nbsp;</th>
+<th width="10%">&nbsp;</th>
 </tr>
 <?php
 		$Select
@@ -104,32 +108,27 @@
 			. "ORDER BY EcTeamEvent ASC,EcDivision,EcClass ";
 		$Rs=safe_r_sql($Select);
  		//print $Select;exit;
-		if (safe_num_rows($Rs)>0)
-		{
+		if (safe_num_rows($Rs)>0) {
 			$MyGroup = -1;
 
-			while ($MyRow=safe_fetch($Rs))
-			{
+			while ($MyRow=safe_fetch($Rs)) {
 				if ($MyGroup!=$MyRow->EcTeamEvent && $MyGroup!=-1)
-					print '<tr id="Div_' . $MyRow->EcCode . '_' . $MyRow->EcTeamEvent . '" class="Divider"><td colspan="5"></td></tr>' . "\n";
+					print '<tr id="Div_' . $MyRow->EcCode . '_' . $MyRow->EcTeamEvent . '" class="Divider"><td colspan="6"></td></tr>' . "\n";
 
-				print '<tr id="Row_' . $MyRow->EcCode . '_' . $MyRow->EcTeamEvent . '_' . $MyRow->EcDivision . '_' . $MyRow->EcClass . '">';
+				print '<tr id="Row_' . $MyRow->EcCode . '_' . $MyRow->EcTeamEvent . '_' . $MyRow->EcDivision . '_' . $MyRow->EcClass . '_' . $MyRow->EcSubClass . '">';
 				if ($MyGroup!=$MyRow->EcTeamEvent)
 					print '<td rowspan="' . $MyRow->Quanti . '" class="Center">' . $MyRow->EcNumber . '</td>';
 				print '<td class="Center">' . $MyRow->EcDivision . '</td>';
 				print '<td class="Center">' . $MyRow->EcClass . '</td>';
-				$Row2Del = $MyRow->EcClass . '~' . $MyRow->EcDivision; // l'altro pezzo di chiave lo ricavo con gli altri parametri e la sessione
+                print '<td class="Center">' . $MyRow->EcSubClass . '</td>';
+				$Row2Del = $MyRow->EcClass . '~' . $MyRow->EcDivision . '~' . $MyRow->EcSubClass; // l'altro pezzo di chiave lo ricavo con gli altri parametri e la sessione
 				print '<td class="Center"><a href="' . $_SERVER['PHP_SELF'] . '?EvCode=' . $MyRow->EcCode . '&amp;DelRow=' . $Row2Del . '"><img src="'.$CFG->ROOT_DIR.'Common/Images/drop.png" border="0" alt="#" title="#"></a></td>';
-				if ($MyGroup!=$MyRow->EcTeamEvent)
-				{
+				if ($MyGroup!=$MyRow->EcTeamEvent) {
 					print '<td rowspan="' . $MyRow->Quanti . '" class="Center">';
 					print '<a href="javascript:DeleteEventRule(\'' . $MyRow->EcCode .'\',\'' . $MyRow->EcTeamEvent . '\');"><img src="'.$CFG->ROOT_DIR.'Common/Images/drop.png" border="0" alt="#" title="#"></a>';
 					print '</td>';
 				}
-				print '</tr>' . "\n";
-
-
-
+				print '</tr>';
 				$MyGroup=$MyRow->EcTeamEvent;
 			}
 		}
@@ -194,75 +193,115 @@
 <br/>
 
 <table class="Tabella">
-<tr><td colspan="4" class="Center"><?php print get_text('PressCtrl2SelectAll'); ?></td></tr>
+<tr><td colspan="6" class="Center"><?php print get_text('PressCtrl2SelectAll'); ?></td></tr>
 <tr>
-<td width="25%" class="Center" valign="top">
+<td width="20%" class="Center" valign="top">
 <input type="text" name="New_EcNumber" id="New_EcNumber" size="3" maxlength="3" value="">
 </td>
-<td width="25%" class="Center" valign="top">
+<td width="20%" class="Center" valign="top">
 <?php
-	$ComboDiv
-		= '<select name="New_EcDivision" id="New_EcDivision" multiple="multiple">' . "\n";
 
-	$Select
-		= "SELECT * "
+	$Select = "SELECT * "
 		. "FROM Divisions "
 		. "WHERE DivTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND DivAthlete=1 "
 		. "ORDER BY DivViewOrder ASC ";
 	$RsSel = safe_r_sql($Select);
-
-	if (safe_num_rows($RsSel)>0)
-	{
-		while ($Row=safe_fetch($RsSel))
-		{
-			//print '<input type="checkbox" name="New_EcDivision[]" id="New_EcDivision_' . $MyRow->DivId .'" value="1">' . $MyRow->DivId . '<br>';
-			$ComboDiv.= '<option value="' . $Row->DivId . '">' . $Row->DivId . '</option>' . "\n";
+    $ComboDiv = '<select name="New_EcDivision" id="New_EcDivision" multiple="multiple" size="'.min(15,safe_num_rows($RsSel)+2).'">';
+	if (safe_num_rows($RsSel)>0) {
+		while ($Row=safe_fetch($RsSel)) {
+			$ComboDiv.= '<option value="' . $Row->DivId . '">' . $Row->DivId . ' - ' . $Row->DivDescription . '</option>';
 		}
 	}
 
-	$ComboDiv.= '</select>' . "\n";
+	$ComboDiv.= '</select>';
 	print $ComboDiv;
 	print '<br><br><a class="Link" href="javascript:SelectAllOpt(\'New_EcDivision\');">' . get_text('SelectAll') . '</a>';
 ?>
 </td>
-<td width="25%" class="Center" valign="top">
+<td width="20%" class="Center" valign="top">
 <?php
-	$ComboCl
-		= '<select name="New_EcClass" id="New_EcClass" multiple="multiple">' . "\n";
-
-	$Select
-		= "SELECT * "
+	$Select = "SELECT * "
 		. "FROM Classes "
 		. "WHERE ClTournament = " . StrSafe_DB($_SESSION['TourId']) . " AND ClAthlete=1 "
 		. "ORDER BY ClViewOrder ASC ";
 	$RsSel = safe_r_sql($Select);
-
-	if (safe_num_rows($RsSel)>0)
-	{
-		while ($Row=safe_fetch($RsSel))
-		{
-			//print '<input type="checkbox" name="New_EcClass[]" id="New_EcClass_' . $MyRow->ClId .'" value="1">' . $MyRow->ClId . '<br>';
-			$ComboCl.= '<option value="' . $Row->ClId . '">' . $Row->ClId . '</option>' . "\n";
+    $ComboCl = '<select name="New_EcClass" id="New_EcClass" multiple="multiple" size="'.min(15,safe_num_rows($RsSel)+2).'">';
+	if (safe_num_rows($RsSel)>0) {
+		while ($Row=safe_fetch($RsSel)) {
+			$ComboCl.= '<option value="' . $Row->ClId . '">' . $Row->ClId . ' - ' . $Row->ClDescription . '</option>';
 		}
 	}
 
-	$ComboCl.= '</select>' . "\n";
+	$ComboCl.= '</select>';
 	print $ComboCl;
 	print '<br><br><a class="Link" href="javascript:SelectAllOpt(\'New_EcClass\');">' . get_text('SelectAll') . '</a>';
 ?>
 </td>
-<td width="25%" class="Center" valign="top">
-<input type="button" name="Command" id="Command" value="<?php print get_text('CmdSave');?>" onclick="javascript:AddEventRule('<?php print $RowEv->EvCode;?>');">
-</td>
-</tr>
-</table>
-<table class="Tabella">
+<td width="20%" class="Center" valign="top">
+    <?php
 
-<tr><td class="Center"><a class="Link" href="ListEvents.php"><?php echo get_text('Back') ?></a></td></tr>
-</table>
-<div id="idOutput"></div>
-</div>
-</div>
-<?php
-	include('Common/Templates/tail.php');
-?>
+    $Select
+        = "SELECT  ScId, ScDescription, ScViewOrder "
+        . "FROM SubClass "
+        . "WHERE ScTournament = " . StrSafe_DB($_SESSION['TourId'])
+        . "ORDER BY ScViewOrder ASC ";
+    $RsSel = safe_r_sql($Select);
+    $ComboSubCl = '<select name="New_EcSubClass" id="New_EcSubClass" multiple="multiple" disabled="disabled" size="'.min(15,safe_num_rows($RsSel)+2).'">';
+    if (safe_num_rows($RsSel)>0) {
+        while ($Row=safe_fetch($RsSel)) {
+            $ComboSubCl.= '<option value="' . $Row->ScId . '">' . $Row->ScId . ' - ' . $Row->ScDescription . '</option>';
+        }
+    }
+
+    $ComboSubCl.= '</select>';
+    print $ComboSubCl;
+    print '<br><br><input type="checkbox" id="enableSubClass" onclick="enableSubclass(this)">'. get_text('UseSubClasses','Tournament');
+
+echo '</td>';
+echo '<td width="20%" colspan="2" class="Center" valign="top">';
+echo '<input type="button" name="Command" id="Command" value="'.get_text('CmdSave').'" onclick="javascript:AddEventRule(\''.$RowEv->EvCode.'\');">';
+echo '</td>';
+echo '</tr>';
+echo '</table>';
+
+echo '<br/>';
+echo '<table class="Tabella">';
+    echo '<tr id="AdvancedButton"><th colspan="4"><input type="button" onclick="showAdvanced()" value="'.get_text('Advanced').'"></th></tr>';
+    echo '<tbody id="Advanced" style="display: none;">';
+    echo '<tr>';
+        echo '<th>'.get_text('EventNumQualified', 'Tournament').'</th>';
+        echo '<th>'.get_text('EventStartPosition', 'Tournament').'</th>';
+        echo '<th>'.get_text('EventHasMedal', 'Tournament').'</th>';
+        echo '<th>'.get_text('EventParentCode', 'Tournament').'</th>';
+        echo '<th>'.get_text('EventWinnerFinalRank', 'Tournament').'</th>';
+        echo '</tr>';
+
+    echo '<tr>';
+        echo '<td class="Center"><input type="number" value="'.$RowEv->EvNumQualified.'" id="fld=num&team=1&event='.$_REQUEST['EvCode'].'" onchange="UpdateData(this)"></td>';
+        echo '<td class="Center"><input type="number" value="'.$RowEv->EvFirstQualified.'" id="fld=first&team=1&event='.$_REQUEST['EvCode'].'" onchange="UpdateData(this)"></td>';
+        echo '<td class="Center"><select onchange="UpdateData(this)" id="fld=medal&team=1&event='.$_REQUEST['EvCode'].'">
+                <option value="1" '.($RowEv->EvMedals ? ' selected="selected"' : '').'>'.get_text('Yes').'</option>
+                <option value="0" '.($RowEv->EvMedals ? '' : ' selected="selected"').'>'.get_text('No').'</option>
+            </select></td>';
+        echo '<td class="Center"><select name="ParentRule" onchange="UpdateData(this)" id="fld=parent&team=1&event='.$_REQUEST['EvCode'].'">';
+                echo '<option value="">'.get_text('Select', 'Tournament').'</option>';
+                $q=safe_r_sql("select EvCode, EvEventName from Events where EvTeamEvent=1 and EvFinalFirstPhase>$RowEv->EvFinalFirstPhase and EvCode!='$RowEv->EvCode' and EvTournament={$_SESSION['TourId']}");
+                while($r=safe_fetch($q)) {
+                    echo '<option value="'.$r->EvCode.'" '.($RowEv->EvCodeParent==$r->EvCode ? ' selected="selected"' : '').'>'.$r->EvCode.' - '.$r->EvEventName.'</option>';
+                }
+                echo '</select></td>';
+        echo '<td class="Center"><input type="number" value="'.$RowEv->EvWinnerFinalRank.'" id="fld=final&team=1&event='.$_REQUEST['EvCode'].'" onchange="UpdateData(this)"></td>';
+        echo '</tr>';
+    echo '</tbody>';
+    echo '</table>';
+
+echo '<br/>';
+
+echo '<table class="Tabella">';
+echo '<tr><td class="Center"><a class="Link" href="ListEvents.php">'.get_text('Back').'</a></td></tr>';
+echo '</table>';
+echo '<div id="idOutput"></div>';
+echo '</div>';
+echo '</div>';
+
+include('Common/Templates/tail.php');

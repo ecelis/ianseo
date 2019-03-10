@@ -213,7 +213,6 @@ foreach($rankData['sections'] as $EventCode => $tmp) {
 				if($SetSystem) {
 					// winner of set
 
-// 					debug_svela($r, true);
 					if(strlen(trim($End))==$NumArrows and strlen(trim($OppEnd))==$NumArrows and isset($SetDetails[$n])) {
 						$opp1S += $SetDetails[$n];
 						$opp2S += $OppSetDetails[$n];
@@ -364,7 +363,6 @@ foreach($rankData['sections'] as $EventCode => $tmp) {
 				// missing 1 arrow at the end of the current end/set
 
 				if($SetSystem) {
-// 					debug_svela($r);
 					$v1=ValutaArrowString($Arrows);
 					$v2=ValutaArrowString($OppArrows);
 					$v=max(abs($v1-$v2), end($Target));

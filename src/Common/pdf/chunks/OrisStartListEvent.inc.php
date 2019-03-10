@@ -21,7 +21,7 @@ foreach($PdfData->Data['Items'] as $Group) {
 		$TgtNo=ltrim(($PdfData->BisTarget && (intval(substr($MyRow->TargetNo,1)) > $PdfData->NumEnd) ? str_pad((substr($MyRow->TargetNo,0,-1)-$PdfData->NumEnd),3,"0",STR_PAD_LEFT) . substr($MyRow->TargetNo,-1,1) . ' bis'  : $MyRow->TargetNo), 'O');
 
 		if($OldTeam != $MyRow->NationCode) {
-			$pdf->SamePage($MyRow->cNumber + 1);
+			$pdf->SamePage($MyRow->cNumber + 1, 3.5, $pdf->lastY);
 			$pdf->lastY += 3.5;
 			$pdf->printDataRow(array(
 					$MyRow->NationCode,

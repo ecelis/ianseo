@@ -1,5 +1,6 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclParticipants, AclReadOnly);
 require_once('Common/pdf/ResultPDF.inc.php');
 
 if(!isset($isCompleteResultBook))
@@ -49,12 +50,14 @@ $SqlEmpty .= "'--' AS ClId, '' as ClDescription  "
 	. "GROUP BY EnClass ";
 $Rs=safe_r_sql($Sql);
 $RsEmpty=safe_r_sql($SqlEmpty);
+
 if($Rs && count($DivArray)>0)
 {
 	$ShowStatusLegend = false;
 	$FirstTime=true;
 	$DivSize=(($pdf->getPageWidth()-35)/count($DivArray));
 	$SesSize=min(20,($DivSize/(count($SesArray)+1)));
+	$SumSize=$SesSize * ($SesSize<5 ? 2:1);
 	$DivSize=$SesSize*(count($SesArray)+1);
 	$PageWidth=$DivSize*count($DivArray);
 	while($MyRow=safe_fetch($Rs))
@@ -165,6 +168,7 @@ if($Rs && count($DivArray)>0)
 
 //Totali per turni
 	$YORG=$pdf->GetY()+5;
+	$LEFT=$pdf->GetX();
 	if(!$pdf->SamePage(11 + count($SesArray)*5)) {
 		$pdf->AddPage();
 		$YORG=$pdf->GetY()+5;
@@ -172,9 +176,9 @@ if($Rs && count($DivArray)>0)
    	$pdf->SetFont($pdf->FontStd,'B',10);
 	$pdf->SetXY(25, $YORG);
 	foreach($DivArray as $Value => $DivDescr) {
-		$pdf->Cell($SesSize, 6,  $Value, 1, 0, 'C', 1);
+		$pdf->Cell($SumSize, 6,  $Value, 1, 0, 'C', 1);
 	}
-	$pdf->Cell($SesSize, 6,   (get_text('TotalShort','Tournament')), 1, 0, 'C', 1);
+	$pdf->Cell($SumSize, 6,   (get_text('TotalShort','Tournament')), 1, 0, 'C', 1);
 	$pdf->Cell(0.1, 6,  '', 0, 1, 'C', 0);
 //Totali
 	for($i=0; $i < count($SesArray); $i++)
@@ -186,14 +190,14 @@ if($Rs && count($DivArray)>0)
 		for($j=0; $j < count($DivArray); $j++)
 		{
 			$TmpCounter += $TotArray[$j*count($SesArray)+$i];
-			$pdf->Cell($SesSize, 5, $TotArray[$j*count($SesArray)+$i], 1, 0, 'R', 0);
+			$pdf->Cell($SumSize, 5, $TotArray[$j*count($SesArray)+$i], 1, 0, 'R', 0);
 		}
 		$pdf->SetFont($pdf->FontStd,'B',8);
-		$pdf->Cell($SesSize, 5,  $TmpCounter, 1, 0, 'R', 0);
+		$pdf->Cell($SumSize, 5,  $TmpCounter, 1, 0, 'R', 0);
 		$pdf->Cell(0.1, 5,  '', 0, 1, 'C', 0);
 	}
 	$pdf->SetFont($pdf->FontStd,'B',1);
-	$pdf->Cell($SesSize*(count($DivArray)+1)+15, 0.5, '', 1, 1, 'C', 0);
+	$pdf->Cell($SumSize*(count($DivArray)+1)+15, 0.5, '', 1, 1, 'C', 0);
 	$pdf->SetFont($pdf->FontStd,'B',8);
 	$pdf->Cell(15, 5, (get_text('Total')), 1, 0, 'C', 1);
 	$GrandTotal=0;
@@ -203,11 +207,11 @@ if($Rs && count($DivArray)>0)
 		$TmpCounter=0;
 		for($j=0; $j < count($SesArray); $j++)
 			$TmpCounter += $TotArray[$i*count($SesArray)+$j];
-		$pdf->Cell($SesSize, 5,  $TmpCounter, 1, 0, 'R', 0);
+		$pdf->Cell($SumSize, 5,  $TmpCounter, 1, 0, 'R', 0);
 		$GrandTotal+=$TmpCounter;
 	}
 	$pdf->SetFont($pdf->FontStd,'B',8);
-	$pdf->Cell($SesSize, 5,  $GrandTotal, 1, 0, 'R', 1);
+	$pdf->Cell($SumSize, 5,  $GrandTotal, 1, 0, 'R', 1);
 	$pdf->Cell(0.1, 5,  '', 0, 1, 'C', 0);
 	safe_free_result($Rs);
 
@@ -228,13 +232,15 @@ if($Rs && count($DivArray)>0)
 			$ChangeColumn=ceil($TotCats/2);
 		} else {
 			$cols=2;
-			$Left=($SesSize*(count($DivArray)+1))+35;
+			$Left=($SumSize*(count($DivArray)+1))+35;
 			$cellHead=  (($pdf->getPageWidth()-20-$Left)/2)-$SesSize-15;
 			$i=0;
 			$ChangeColumn=ceil($TotCats/2);
 		}
 
 	   	$pdf->SetFont($pdf->FontStd,'B',8);
+		$SesSize+=6;
+		$cellHead-=6;
 	   	foreach($DivArray as $DivCode => $DivDescription) {
 	   		foreach($ClsArray as $ClsCode => $ClsDescription) {
 	   			if(empty($Categories[$DivCode][$ClsCode])) continue;

@@ -4,6 +4,7 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Tournament/Fun_Tournament.local.inc.php');
+    checkACL(AclCompetition, AclReadWrite);
 
 	if (!CheckTourSession())
 	{
@@ -126,8 +127,8 @@
 <td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClViewOrder_<?php print $id_post;?>" id="d_ClViewOrder_<?php print $id_post;?>" size="3" maxlength="3" value="<?php print ManageHTML($MyRow->ClViewOrder);?>" onBlur="javascript:UpdateField('C','d_ClViewOrder_<?php print $id_post;?>');"></td>
 <td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClAgeFrom_<?php print $id_post;?>" id="d_ClAgeFrom_<?php print $id_post;?>" size="3" maxlength="3" value="<?php print $MyRow->ClAgeFrom;?>" onBlur="javascript:UpdateClassAge('<?php print $id_post;?>','From');"></td>
 <td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClAgeTo_<?php print $id_post;?>" id="d_ClAgeTo_<?php print $id_post;?>" size="3" maxlength="3" value="<?php print $MyRow->ClAgeTo;?>" onBlur="javascript:UpdateClassAge('<?php print $id_post;?>','To');"></td>
-<td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClValidClass_<?php print $id_post;?>" id="d_ClValidClass_<?php print $id_post;?>" size="8" maxlength="16" value="<?php print $MyRow->ClValidClass;?>" onBlur="javascript:UpdateValidClass('<?php print $id_post;?>');"></td>
-<td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClValidDivision_<?php print $id_post;?>" id="d_ClValidDivision_<?php print $id_post;?>" size="8" maxlength="16" value="<?php print $MyRow->ClDivisionsAllowed;?>" onBlur="javascript:UpdateValidDivision('<?php print $id_post;?>');"></td>
+<td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClValidClass_<?php print $id_post;?>" id="d_ClValidClass_<?php print $id_post;?>" size="8" maxlength="24" value="<?php print $MyRow->ClValidClass;?>" onBlur="javascript:UpdateValidClass('<?php print $id_post;?>');"></td>
+<td class="Center"><input <?php print (!defined('dontEditClassDiv') ? '' :' disabled="disabled"');?> type="text" name="d_ClValidDivision_<?php print $id_post;?>" id="d_ClValidDivision_<?php print $id_post;?>" size="8" maxlength="255" value="<?php print $MyRow->ClDivisionsAllowed;?>" onBlur="javascript:UpdateValidDivision('<?php print $id_post;?>');"></td>
 <td class="Center">
 	<?php if(!defined('dontEditClassDiv')) { ?>
 		<a href="javascript:DeleteRow('C','<?php print $id_post;?>','<?php print urlencode(get_text('MsgAreYouSure'))	;	?>');"><img src="<?php echo $CFG->ROOT_DIR ?>Common/Images/drop.png" border="0" alt="#" title="#"></a>

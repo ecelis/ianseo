@@ -16,10 +16,10 @@ $JSON=array('error' => 1,
 	);
 
 if (empty($_SESSION['TourId'])) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	exit;
+	JsonOut($JSON);
 }
+checkACL(AclSpeaker, AclReadOnly, false);
+
 $SQL='';
 $Sessions='';
 $Fields='QuTarget Target, QuLetter Letter';
@@ -99,5 +99,4 @@ if($SQL) {
 
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

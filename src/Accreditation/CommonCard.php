@@ -1,5 +1,6 @@
 <?php
 
+require_once('Common/Lib/Fun_Phases.inc.php');
 $ExtraSql='';
 $ExtraWhere='';
 $ExtraGroup='';
@@ -12,6 +13,8 @@ $TourId=$_SESSION['TourId'];
 
 if(empty($SpecialFilter)) $SpecialFilter='';
 if(empty($CardType)) $CardType='A';
+if(empty($CardNumber)) $CardNumber=0;
+
 if(empty($FIELDS)) {
 	$FIELDS='EnId, EnCode as Bib, EnTournament, ToCode, ToName, ToWhere, ToWhenFrom, ToWhenTo, ToCategory,
 		EnName AS Name, upper(EnFirstName) AS FirstName, EnName as GivCamel, upper(EnName) as GivCaps, EnFirstName as FamCamel, upper(EnFirstName) AS FamCaps,
@@ -27,8 +30,15 @@ if(empty($FIELDS)) {
 }
 $Where=array();
 
+if(!empty($_REQUEST['Specifics'])) {
+	$FIELDS.=", IcNumber";
+} else {
+	$FIELDS.=", $CardNumber as IcNumber";
+}
+
+
 switch($CardType) {
-	case 'A': // Accreeditation
+	case 'A': // Accreditation
 		if($_SESSION['AccreditationTourIds']) $TourId=$_SESSION['AccreditationTourIds'];
 		$FIELDS.=", (EnBadgePrinted is not null and EnBadgePrinted!=0) as Printed, '' ExtraCode, substr(QuTargetNo, 2) as TargetNo";
 		if(!empty($_REQUEST['PrintNotPrinted'])) {
@@ -43,6 +53,19 @@ switch($CardType) {
 		}
 		if(empty($SORT)) $SORT='Printed, NationCode, FirstName, Name';
 
+		if(!empty($_REQUEST['Specifics'])) {
+			$f=array();
+			foreach($_REQUEST['Specifics'] as $ToId=>$specs) {
+				foreach($specs as $k=>$v) {
+					$f[]="(IcTournament=$ToId and IcNumber=$k and find_in_set(concat(EnDivision,EnClass), '$v'))";
+				}
+			}
+			$ExtraSql.=" inner join IdCards on IcTournament=EnTournament and IcType='$CardType' and (".implode(' or ', $f).") ";
+		}
+
+		if(!empty($_REQUEST['TourId'])) {
+			$Where[] = " AND EnTournament in (".implode(',', $_REQUEST['TourId']).") ";
+		}
 		break;
 	case 'Q': // Qualifications
 		$FIELDS.=", ToNumEnds as Ends, ToElabTeam, substr(QuTargetNo, 2)+0 as RealTarget, (QuBacknoPrinted is not null and QuBacknoPrinted!=0) as Printed, '' ExtraCode, substr(QuTargetNo, 2) as TargetNo";
@@ -50,13 +73,24 @@ switch($CardType) {
 			$Where[] = ' AND (QuBacknoPrinted is NULL or QuBacknoPrinted=0) ';
 		}
 		$Where[] = ' AND EnAthlete=1 ';
+
+		if(!empty($_REQUEST['Specifics'])) {
+			$f=array();
+			foreach($_REQUEST['Specifics'] as $ToId=>$specs) {
+				foreach($specs as $k=>$v) {
+					$f[]="(IcTournament=$ToId and IcNumber=$k and find_in_set(concat(EnDivision,EnClass), '$v'))";
+				}
+			}
+			$ExtraSql.=" inner join IdCards on IcTournament=EnTournament and IcType='$CardType' and (".implode(' or ', $f).") ";
+		}
+
 		break;
 	case 'E': // Eliminations
-		$FIELDS.=", ElTargetNo+0 as RealTarget, if(ElElimPhase=0, EvElimEnds, EvElim2) as Ends, EvCode, EvEventName, IndRank as Rank, (ElBacknoPrinted is not null and ElBacknoPrinted!='0000-00-00 00:00:00') as Printed, concat(ElEventCode,ElElimPhase) ExtraCode, ElTargetNo as TargetNo";
+		$FIELDS.=", ElTargetNo+0 as RealTarget, if(ElElimPhase=0, EvE1Ends, EvE2Ends) as Ends, EvCode, EvEventName, IndRank as Rank, (ElBacknoPrinted is not null and ElBacknoPrinted!='0000-00-00 00:00:00') as Printed, concat(ElEventCode,ElElimPhase) ExtraCode, ElTargetNo as TargetNo";
 		$ExtraSql="INNER JOIN Individuals ON IndTournament=EnTournament AND EnId=IndId
-			INNER JOIN EventClass ON EnClass=EcClass AND EnDivision=EcDivision AND EcTournament=EnTournament AND EcTeamEvent=0
-			INNER JOIN Eliminations ON ElTournament=EnTournament AND EcCode=ElEventCode AND EnId=ElId
-			INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=0 AND EvTournament=EnTournament";
+			INNER JOIN Events on EvCode=IndEvent and EvTournament=EnTournament and EvTeamEvent=0
+			INNER JOIN Eliminations ON ElTournament=EnTournament AND ElEventCode=EvCode AND EnId=ElId
+			";
 		$ExtraWhere="";
 		$ExtraGroup='Group By EnId, EvCode';
 		if(empty($SORT)) $SORT='Printed, EvProgr, MatchNo';
@@ -66,6 +100,17 @@ switch($CardType) {
 		$QuSession='ElSession';
 		$QuSesLetter='E';
 		$QuOrder='ElTargetNo';
+
+		if(!empty($_REQUEST['Specifics'])) {
+			$f=array();
+			foreach($_REQUEST['Specifics'] as $ToId=>$specs) {
+				foreach ($specs as $k => $v) {
+					$f[] = "(IcTournament=$ToId and IcNumber=$k and find_in_set(EvCode, '$v'))";
+				}
+			}
+			$ExtraSql.=" inner join IdCards on IcTournament=EnTournament and IcType='$CardType' and (".implode(' or ', $f).") ";
+		}
+
 		break;
 	case 'I': // Individual matches
 		$FIELDS.=", EvCode, EvEventName, max(FinMatchNo) MatchNo, IndRank as Rank, EvCode ExtraCode, (IndBacknoPrinted is not null and IndBacknoPrinted!='0000-00-00 00:00:00') as Printed, '' as TargetNo ";
@@ -79,15 +124,20 @@ switch($CardType) {
 			$Where[] = ' AND (IndBacknoPrinted is NULL or IndBacknoPrinted=0) ';
 		}
 		if(isset($_REQUEST['Phase']) and strlen($_REQUEST['Phase'])!=0 and $_REQUEST['Phase']!=-1) {
-			$Phase=intval($_REQUEST['Phase']);
-			if($Phase==24) {
-				$Phase=32;
-			} elseif($Phase==48) {
-				$Phase=64;
-			}
+			$Phase=valueFirstPhase(intval($_REQUEST['Phase']));
 			$ExtraSql.=' inner join Grids ON FinMatchNo=GrMAtchNo AND GrPhase='.$Phase;
-// 			debug_svela($_REQUEST['Phase']);
 		}
+
+		if(!empty($_REQUEST['Specifics'])) {
+			$f=array();
+			foreach($_REQUEST['Specifics'] as $ToId=>$specs) {
+				foreach($specs as $k=>$v) {
+					$f[]="(IcTournament=$ToId and IcNumber=$k and find_in_set(EvCode, '$v'))";
+				}
+			}
+			$ExtraSql.=" inner join IdCards on IcTournament=EnTournament and IcType='$CardType' and (".implode(' or ', $f).") ";
+		}
+
 		break;
 	case 'T': // Team Matches
 		$FIELDS.=", EvCode, TeamComponents, EvEventName, max(TfMatchNo) MatchNo, TeRank as Rank, EvCode ExtraCode, (TeBacknoPrinted is not null and TeBacknoPrinted!='0000-00-00 00:00:00') as Printed, '' as TargetNo ";
@@ -103,15 +153,25 @@ switch($CardType) {
 			$Where[] = ' AND (TeBacknoPrinted is NULL or TeBacknoPrinted=0) ';
 		}
 		if(isset($_REQUEST['Phase']) and strlen($_REQUEST['Phase'])!=0 and $_REQUEST['Phase']!=-1) {
-			$Phase=intval($_REQUEST['Phase']);
+			$Phase=valueFirstPhase(intval($_REQUEST['Phase']));
 // 			if($Phase==24) {
 // 				$Phase=32;
 // 			} elseif($Phase==48) {
 // 				$Phase=64;
 // 			}
 			$ExtraSql.=' inner join Grids ON TfMatchNo=GrMAtchNo AND GrPhase='.$Phase;
-// 			debug_svela($_REQUEST['Phase']);
 		}
+
+		if(!empty($_REQUEST['Specifics'])) {
+			$f=array();
+			foreach($_REQUEST['Specifics'] as $ToId=>$specs) {
+				foreach($specs as $k=>$v) {
+					$f[]="(IcTournament=$ToId and IcNumber=$k and find_in_set(EvCode, '$v'))";
+				}
+			}
+			$ExtraSql.=" inner join IdCards on IcTournament=EnTournament and IcType='$CardType' and (".implode(' or ', $f).") ";
+		}
+
 		break;
 }
 
@@ -237,6 +297,4 @@ $MyQuery = "SELECT $FIELDS
 	".implode(' ', $Where)."
 	$ExtraWhere
 	$ExtraGroup
-	ORDER BY EnTournament, $SORT ";
-
-// 	debug_svela($MyQuery);
+	ORDER BY  ".(empty($SORTSTRICT) ? "EnTournament, IcNumber, $SORT, Bib" : $SORTSTRICT);

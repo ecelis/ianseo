@@ -140,7 +140,12 @@ switch($TourType) {
 		CreateDistance($TourId, $TourType, 'C%', '50m-1', '50m-2');
 		break;
 	case 5:
-		CreateDistance($TourId, $TourType, '%', '60 m', '50 m', '40 m');
+		CreateDistance($TourId, $TourType, '__', '55 m', '45 m', '35 m');
+		CreateDistance($TourId, $TourType, '_J_', '55 m', '45 m', '35 m');
+		CreateDistance($TourId, $TourType, '_C_', '55 m', '45 m', '35 m');
+		CreateDistance($TourId, $TourType, '_M_', '55 m', '45 m', '35 m');
+		CreateDistance($TourId, $TourType, '_B_', '45 m', '35 m', '25 m');
+		CreateDistance($TourId, $TourType, '_P_', '30 m', '25 m', '20 m');
 		break;
 	case 6:
 		CreateDistance($TourId, $TourType, '%', '18m-1', '18m-2');

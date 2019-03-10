@@ -2,8 +2,8 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Lib/CommonLib.php');
-
 CheckTourSession(true);
+checkACL(AclCompetition, AclReadOnly);
 
 $PAGE_TITLE=get_text('FopSetup');
 $JS_SCRIPT=array(
@@ -19,7 +19,8 @@ if(!$FopLocations=Get_Tournament_Option('FopLocations')) {
 
 include('Common/Templates/head.php');
 
-echo '<form name="FrmParam" method="GET" action="FopSetup.php" target="FOP">
+echo '<form name="FrmParam" method="GET" action="'.$CFG->ROOT_DIR.'Scheduler/" target="FOP">
+    <input type="hidden" name="fop" value="1">
 	<table class="Tabella2" id="FopTable">
 		<tr><th class="Title" colspan="4">'.get_text('FopSetup').'</th></tr>
 		<tr class="Divider"><td colspan="4"></td></tr>
@@ -28,7 +29,7 @@ echo '<tr>';
 echo '<th>'.get_text('Days', 'Tournament').'</th>';
 echo '<td colspan="3">';
 foreach(range(0,  intval(($_SESSION['ToWhenToUTS']-$_SESSION['ToWhenFromUTS'])/86400)) as $n) {
-	echo '<input type="checkbox" name="Day['.$n.']" '.(empty($_REQUEST['Day']) || isset($_REQUEST['Day'][$n]) ? 'checked="checked"' : '').'>'.date('Y-m-d', $_SESSION['ToWhenFromUTS']+ $n*86400).'<br/>';
+	echo '<input type="checkbox" name="Days['.$n.']" '.(empty($_REQUEST['Day']) || isset($_REQUEST['Day'][$n]) ? 'checked="checked"' : '').'>'.date('Y-m-d', $_SESSION['ToWhenFromUTS']+ $n*86400).'<br/>';
 }
 echo '</td>';
 echo '</tr>';
@@ -41,7 +42,7 @@ echo '</tr>';
 $n=0;
 foreach($FopLocations as $v) {
 	echo '<tr id="Row'.$n.'">';
-	echo '<td><input type="checkbox" name="Print['.$n.']" '.(empty($_REQUEST['Print']) || isset($_REQUEST['Print'][$n]) ? 'checked="checked"' : '').'></td>';
+	echo '<td><input type="checkbox" name="Locations['.$n.']" '.(empty($_REQUEST['Print']) || isset($_REQUEST['Print'][$n]) ? 'checked="checked"' : '').'></td>';
 	echo '<td><input type="text" value="'.$v->Loc.'" id="Location['.$n.']" onchange="UpdateField(this)"></td>';
 	echo '<td><input type="text" value="'.$v->Tg1.'" id="Start['.$n.']" onchange="UpdateField(this)"></td>';
 	echo '<td><input type="text" value="'.$v->Tg2.'" id="End['.$n.']" onchange="UpdateField(this)"></td>';

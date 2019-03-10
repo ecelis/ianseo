@@ -4,18 +4,16 @@
 	Scrive in Finals
 */
 
-	define('debug',false);
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Final/Fun_ChangePhase.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(AclTeams, AclReadWrite,false);
 
 	$Errore=0;
 	$FieldType = '#';
@@ -29,17 +27,18 @@
 
 	$xml='';
 
-	if (!IsBlocked(BIT_BLOCK_TEAM))
-	{
+	if (!IsBlocked(BIT_BLOCK_TEAM)) {
 		foreach ($_REQUEST as $Key => $Value) {
 			if(substr($Key,0,4)=='d_N_') {
 				// A note to put into the match
 				list(,,$ee,$mm)=explode('_',$Key);
-				$Update = "UPDATE TeamFinals "
-					. "SET "
-					. "TfNotes=" . StrSafe_DB($Value)
-					. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent=" . StrSafe_DB($ee) . " AND TfMatchNo=" . StrSafe_DB($mm) . " ";
+				$Update = "UPDATE TeamFinals SET TfNotes=" . StrSafe_DB($Value)
+					. ($Value=='DNS' ? ', TfTie=0, TfScore=0, TfWinLose=0, TfSetScore=0, TfDateTime=' . StrSafe_DB(date('Y-m-d H:i:s')) : '')
+					. " WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent=" . StrSafe_DB($ee) . " AND TfMatchNo=" . StrSafe_DB($mm) . " ";
 				$Rs=safe_w_sql($Update);
+				if($Value=='DNS') {
+					move2NextPhaseTeam(NULL, $ee, $mm);
+				}
 
 			} elseif (substr($Key,0,4)=='d_S_' || substr($Key,0,4)=='d_T_' || substr($Key,0,4)=='d_t_') {
 				// ho qualcosa da scrivere (considero l'attuale matchno)
@@ -52,21 +51,11 @@
 
 				$Which = $Key;
 
-				if (debug) print $ee . ' - ' . $mm . '<br>';
-
-				if (substr($Key,0,4)=='d_S_')
-				{
+				if (substr($Key,0,4)=='d_S_') {
 					$FieldType = 'Score';
-					if (debug) print $FieldType . '<br>';
-
-					if (!is_numeric($Value) || $Value > ($MaxScores['MaxSetPoints'] ? $MaxScores['MaxSetPoints'] : $MaxScores['MaxMatch']))
-					{
+					if (!is_numeric($Value) || $Value > ($MaxScores['MaxSetPoints'] ? $MaxScores['MaxSetPoints'] : $MaxScores['MaxMatch'])) {
 						$FieldError=1;
-					}
-					else
-					{
-
-
+					} else {
 						$Update
 							= "UPDATE TeamFinals "
 							. "INNER JOIN Events ON TfEvent=EvCode AND EvTeamEvent='1' AND EvTournament=TfTournament "
@@ -76,24 +65,12 @@
 							. "TfDateTime=" . StrSafe_DB(date('Y-m-d H:i:s')) . " "
 							. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent=" . StrSafe_DB($ee) . " AND TfMatchNo=" . StrSafe_DB($mm) . " ";
 						$Rs=safe_w_sql($Update);
-
-						if (debug)
-							print $Update . '<br>';
-						if (!$Rs)
-							$Errore=1;
 					}
-				}
-				elseif (substr($Key,0,4)=='d_T_')
-				{
+				} elseif (substr($Key,0,4)=='d_T_') {
 					$FieldType = 'Tie';
-					if (debug) print $FieldType . '<br>';
-
-					if (!is_numeric($Value) && !($Value>=0 && $Value<=2))
-					{
+					if (!is_numeric($Value) && !($Value>=0 && $Value<=2)) {
 						$FieldError=1;
-					}
-					else
-					{
+					} else {
 						// have to manage the "double bye" and reset all scoring data that might disturb the following call to next phase!!
 						if($Value==2) {
 							if($mm%2) {
@@ -124,15 +101,9 @@
 								. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent=" . StrSafe_DB($ee) . " AND TfMatchNo=" . StrSafe_DB($mm) . " ";
 						}
 						$Rs=safe_w_sql($Update);
-						if (debug)
-							print $Update . '<br>';
-
-						if (!$Rs)
-							$Errore=1;
 					}
 				}
-				elseif (substr($Key,0,4)=='d_t_')
-				{
+				elseif (substr($Key,0,4)=='d_t_') {
 					$tiebreak='';
 					$tiepoints = explode('|',$_REQUEST['d_t_' . $ee . '_' . $mm]);
 					for ($i=0;$i<count($tiepoints);++$i)
@@ -145,41 +116,36 @@
 					$Rs=safe_w_sql($Update);
 				}
 
-				$xml.= '<which>' . $Which . '</which>' . "\n";
-				$xml.= '<field_error>' . $FieldError . '</field_error>' . "\n";
+				$xml.= '<which>' . $Which . '</which>';
+				$xml.= '<field_error>' . $FieldError . '</field_error>';
 
 			// faccio il passaggio di fase di quel matchno e di quello accoppiato
-				if ($Errore==0)
-				{
+				if ($Errore==0) {
 					//Faccio i passaggi di fase
 					$updateTS = move2NextPhaseTeam(NULL, $ee, $mm);
 
-					if (!is_null($updateTS))
-					{
-
-						$Select
-							= "SELECT "
-							. "TfMatchNo, TfEvent,  TfTeam, TfSubTeam, IF(EvMatchMode=0,TfScore,TfSetScore) AS Score, TfTie, "
-							. "CoCode, CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS TeamName "
-							. "FROM TeamFinals "
-							. "INNER JOIN Events ON TfEvent=EvCode AND EvTeamEvent='1' AND EvTournament=TfTournament "
-							. "LEFT JOIN Countries ON TfTeam=CoId "
-							. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent=" . StrSafe_DB($ee) . " AND TfDateTime=" . StrSafe_DB($updateTS) . " "
-							. " and TfMatchNo in (".($mm%2 ? ($mm-1).','.$mm : $mm.','.($mm+1)).")"
-							. "ORDER BY TfEvent, TfMatchNo";
+					if (true OR !is_null($updateTS)) {
+						$Select = "SELECT 
+							TfMatchNo, TfEvent,  TfTeam, TfSubTeam, IF(EvMatchMode=0,TfScore,TfSetScore) AS Score, TfTie, 
+							CoCode, CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS TeamName 
+							FROM TeamFinals 
+							INNER JOIN Events ON TfEvent=EvCode AND EvTeamEvent='1' AND EvTournament=TfTournament 
+							LEFT JOIN Countries ON TfTeam=CoId 
+							WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent=" . StrSafe_DB($ee) . " AND TfDateTime=" . StrSafe_DB($updateTS) . " 
+							ORDER BY TfEvent, TfMatchNo";
 						$Rs=safe_w_sql($Select);
 						if(safe_num_rows($Rs)>0)
 						{
 							while ($MyRow=safe_fetch($Rs))
 							{
 							$xml.= '<ath matchno="' . $MyRow->TfMatchNo . '" tie="' . $MyRow->TfTie . '">';
-							$xml.= '<name><![CDATA[' . $MyRow->TeamName . ']]></name>' . "\n";
-							$xml.= '<cty><![CDATA[' . $MyRow->CoCode . ']]></cty>' . "\n";
-							$xml.= '<event><![CDATA[' . $MyRow->TfEvent . ']]></event>' . "\n";
-							$xml.= '<matchno>' . $MyRow->TfMatchNo . '</matchno>' . "\n";
-							$xml.= '<score>' . $MyRow->Score . '</score>' . "\n";
-							$xml.= '<tie>' . $MyRow->TfTie . '</tie>' . "\n";
-							$xml.= '</ath>' . "\n";
+							$xml.= '<name><![CDATA[' . $MyRow->TeamName . ']]></name>';
+							$xml.= '<cty><![CDATA[' . $MyRow->CoCode . ']]></cty>';
+							$xml.= '<event><![CDATA[' . $MyRow->TfEvent . ']]></event>';
+							$xml.= '<matchno>' . $MyRow->TfMatchNo . '</matchno>';
+							$xml.= '<score>' . $MyRow->Score . '</score>';
+							$xml.= '<tie>' . $MyRow->TfTie . '</tie>';
+							$xml.= '</ath>';
 							}
 						}
 					}
@@ -193,8 +159,8 @@
 // produco l'xml di ritorno
 	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print $xml;
-	print '</response>' . "\n";
+	print '</response>';
 ?>

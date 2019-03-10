@@ -90,7 +90,6 @@ $lang['MenuLM_PrintFinalReport']='پرينت نهائي';
 $lang['MenuLM_PrintScheduling']='چاپ برنامه زمان بندی مسابقه';
 $lang['MenuLM_PrintSchedulingByDay']='چاپ روز به روز برنامه زمان بندی';
 $lang['MenuLM_Qualification']='مقدماتي';
-$lang['MenuLM_Qualification Round']='دور مقدماتي';
 $lang['MenuLM_Send']='ارسال';
 $lang['MenuLM_Speaker']='بلند گوها';
 $lang['MenuLM_Statistics']='آمار';

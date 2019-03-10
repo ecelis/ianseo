@@ -9,6 +9,7 @@ require_once('Final/Fun_Final.local.inc.php');
 require_once('Common/Lib/ArrTargets.inc.php');
 
 CheckTourSession(true);
+checkACL(array(AclIndividuals,AclTeams),AclReadWrite);
 $Match='';
 
 // Check the correct separator (as barcode reader may interpret «-» as a «'» !)
@@ -56,7 +57,8 @@ Aggiunto il campo FinConfirm e TfConfirm (int(4)) nelle rispettive tabelle per c
 						$_REQUEST['Team']=$Match->teamEvent;
 						$_REQUEST['d_Event']=$Match->event;
 						$_REQUEST['d_Match']=$Match->match1;
-						require_once('Final/WriteScoreCard.php');
+						//require_once('Final/WriteScoreCard.php');
+						require_once('Final/Spotting.php');
 						die();
 						break;
 // 					case 'EDIT2':
@@ -103,6 +105,11 @@ if($ShowMiss) {
 		';
 }
 $JS_SCRIPT[]='
+    .winner {border: 5px solid green;}
+    .tie {border: 15px solid red;}
+    .th {background-color:#BFDDFF; text-align:center; font-weight:bold; color: #004488;margin:1px;white-space:nowrap;display:flex;align-items:center;}
+    .th div {flex:1 0 5rem; padding:0.5rem;}
+    div.td {flex:1 0 6rem; background-color:white; text-align:center; color: black; }
 	.selected td {background-color:#d0d0d0;font-weight:bold}
 	';
 $JS_SCRIPT[]='</style>';
@@ -129,7 +136,7 @@ include('Common/Templates/head.php');
 	</tr>
 	<tr>
 		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="AutoEdit"  <?php echo (!empty($_GET['AutoEdit']) ? ' checked="checked"' : ''); ?>></td>
-		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="ShowMiss"  <?php echo (!empty($_GET['ShowMiss']) ? ' checked="checked"' : ''); ?>></td>
+		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="ShowMiss"  <?php echo ((empty($_GET) or !empty($_GET['ShowMiss'])) ? ' checked="checked"' : ''); ?>></td>
 		<td class="Center"><?php
 if(!empty($_GET['B'])) {
 	echo '<input type="hidden" name="B" value="'.$_GET['B'].'">';
@@ -140,7 +147,7 @@ if(!empty($_GET['B'])) {
 
 
 ?></td>
-		<td class="Center"><select id="Session" name="T"  onclick="document.Frm.bib.focus()"><option value="0"></option><?php
+		<td class="Center"><select id="Session" name="T"  onchange="document.Frm.bib.focus()"><option value="0"></option><?php
 $q=safe_r_sql("Select distinct group_concat(distinct FSEvent ORDER BY FSEvent SEPARATOR '-') Event, FSScheduledDate, FSScheduledTime from FinSchedule where FsTournament={$_SESSION['TourId']} and FSScheduledDate>0 group by FSScheduledDate,FSScheduledTime order by FSScheduledDate,FSScheduledTime");
 while($r=safe_fetch($q)) echo '<option value="'.$r->FSScheduledDate.'|'.$r->FSScheduledTime.'" '.(!empty($_GET['T']) && $_GET['T']==$r->FSScheduledDate.'|'.$r->FSScheduledTime ? ' selected="selected"' : '').'>'.($r->FSScheduledDate.' '.$r->FSScheduledTime. ' ('.$r->Event.')').'</option>';
 ?></select></td>
@@ -149,7 +156,7 @@ while($r=safe_fetch($q)) echo '<option value="'.$r->FSScheduledDate.'|'.$r->FSSc
 		<td class="Center" colspan="2"><input type="submit" value="<?php print get_text('CmdGo','Tournament');?>" id="Vai" onClick="javascript:SendBib();"></td>
 		<td class="Center" colspan="2"><input type="button" value="<?php print get_text('BarcodeMissing','Tournament');?>" onClick="window.open('./GetScoreBarCodeMissing.php?T='+document.getElementById('Session').value);"></td>
 	</tr>
-	<?php 
+	<?php
 	if(!$Match){
 		echo '<tr class="divider"><td colspan="4"></td></tr>
 		<tr><th colspan="4"><img src="beiter.png" width="80" hspace="10" alt="Beiter Logo" border="0"/><br>' . get_text('Credits-BeiterCredits', 'Install') . '</th></tr>';
@@ -159,68 +166,85 @@ while($r=safe_fetch($q)) echo '<option value="'.$r->FSScheduledDate.'|'.$r->FSSc
 <?php
 
 if($Match) {
-/*
-[name1] => Bucki Mateusz (POL)
-[name2] => Van Der Ven Rick (NED)
-[match1] => 62
-[match2] => 63
-[event] => RM
-[phase] => 16
-[live] => 0
-[teamEvent] => 0
-[mixedTeam] => 0
-[LastUpdate] => 2013-02-28 08:02:55
-[matchMode] => 1
-[matchArrowsNo] => 240
-[score1] => 81
-[setScore1] => 0
-[setPoints1] => 28|26|27|0|0
-[tie1] => 0
-[arrowString1] => LJJLJHLJI
-[tiebreak1] =>
-[score2] => 87
-[setScore2] => 6
-[setPoints2] => 30|28|29|0|0
-[tie2] => 0
-[arrowString2] => LLLLJJLLJ
-[tiebreak2] =>
-*/
-	echo '<table class="Tabella2" style="font-size:150%">';
-	echo '<tr><th class="Title" colspan="5">'.get_text('Archer').'</th></tr>';
-	echo '<tr><th class="Title" colspan="5">'.get_text('Target'). ' ' . $Match->target1 . ($Match->target1!=$Match->target2 ? ' - ' . $Match->target2 : '') . '</th></tr>';
-	echo '<tr>';
-	echo '<th colspan="2">'.$Match->name1.'</th>';
-	echo '<th>&nbsp;</th>';
-	echo '<th colspan="2">'.$Match->name2.'</th>';
-	echo '</tr>';
+    // check who is winner...
+    $Win1='';
+    $Win2='';
+    $Score1=($Match->matchMode ? $Match->setScore1:$Match->score1);
+    $Score2=($Match->matchMode ? $Match->setScore2:$Match->score2);
+    $TB1=ValutaArrowStringSO($Match->tiebreak1);
+    $TB2=ValutaArrowStringSO($Match->tiebreak2);
+    $Closest1=($Match->tiebreak1!=strtoupper($Match->tiebreak1));
+    $Closest2=($Match->tiebreak2!=strtoupper($Match->tiebreak2));
 
-	echo '<tr>';
-	echo '<th>'.get_text('Score', 'Tournament').'</th>';
-	echo '<td class="LetteraGrande" align="right">'.($Match->matchMode ? $Match->setScore1:$Match->score1).'</td>';
-	echo '<th>&nbsp;</th>';
-	echo '<th>'.get_text('Score', 'Tournament').'</th>';
-	echo '<td class="LetteraGrande" align="right">'.($Match->matchMode ? $Match->setScore2:$Match->score2).'</td>';
-	echo '</tr>';
-
-	if($Match->matchMode) {
-		echo '<tr>';
-		echo '<td colspan="2" class="LetteraGrande" align="right">'.str_replace("|",",&nbsp;",$Match->setPoints1).'</td>';
-		echo '<th>&nbsp;</th>';
-		echo '<td colspan="2" class="LetteraGrande" align="right">'.str_replace("|",",&nbsp;",$Match->setPoints2).'</td>';
-		echo '</tr>';
-
+	if($Match->win1) {
+		$Win1=' winner';
+	} elseif($Match->win2) {
+		$Win2=' winner';
+	} else {
+		$Win1=' tie';
+		$Win2=' tie';
 	}
+
+	echo '<table class="Tabella2 half" style="font-size:150%">';
+	echo '<tr><th class="Title" colspan="5">'.get_text('Archer').'</th></tr>';
+	echo '<tr><th class="Title" colspan="5">'.get_text('Target'). ' ' . ltrim($Match->target1, '0') . ($Match->target1!=$Match->target2 ? ' - ' . ltrim($Match->target2,'0') : '') . '</th></tr>';
+
 	echo '<tr>';
-	echo '<th>'.get_text('ShotOffShort', 'Tournament').'</th>';
-	echo '<td class="LetteraGrande" align="right">'.(!empty($Match->tiebreak1) ? (strlen($Match->tiebreak1)>1 ? implode(DecodeFromString($Match->tiebreak1, false),',') : DecodeFromString($Match->tiebreak1, false)):'&nbsp;').'</td>';
-	echo '<th>&nbsp;</th>';
-	echo '<th>'.get_text('ShotOffShort', 'Tournament').'</th>';
-	echo '<td class="LetteraGrande" align="right">'.(!empty($Match->tiebreak2) ? (strlen($Match->tiebreak2)>1 ? implode(DecodeFromString($Match->tiebreak2, false),',') : DecodeFromString($Match->tiebreak2, false)):'&nbsp;').'</td>';
+
+	// Opponent 1
+	echo '<td colspan="2" class="'.$Win1.'">';
+	echo '<div class="th"><div>'.$Match->name1.'</div></div>';
+	echo '<div class="th"><div>'.get_text('Score', 'Tournament').'</div><div class="LetteraGrande td"> '.$Score1.'</div></div>';
+	if($Match->matchMode) {
+		echo '<div>';
+		echo '<div class="LetteraGrande td">'.str_replace("|",",&nbsp;",$Match->setPoints1).'</div>';
+		echo '</div>';
+	}
+	echo '<div class="th"><div>'.get_text('ShotOffShort', 'Tournament').'</div><div class="LetteraGrande td">'.(!empty($Match->tiebreak1) ? (strlen($Match->tiebreak1)>1 ? implode(DecodeFromString($Match->tiebreak1, false),',') : DecodeFromString($Match->tiebreak1, false)):'&nbsp;').'</div></div>';
+    echo '</td>';
+
+	echo '<td>&nbsp;</td>';
+
+	// Opponent 2
+	echo '<td colspan="2" class="'.$Win2.'">';
+	echo '<div class="th"><div>'.$Match->name2.'</div></div>';
+	echo '<div class="th"><div>'.get_text('Score', 'Tournament').'</div><div class="LetteraGrande td"> '.$Score2.'</div></div>';
+	if($Match->matchMode) {
+		echo '<div>';
+		echo '<div class="LetteraGrande td">'.str_replace("|",",&nbsp;",$Match->setPoints2).'</div>';
+		echo '</div>';
+	}
+	echo '<div class="th"><div>'.get_text('ShotOffShort', 'Tournament').'</div><div class="LetteraGrande td">'.(!empty($Match->tiebreak2) ? (strlen($Match->tiebreak2)>1 ? implode(DecodeFromString($Match->tiebreak2, false),',') : DecodeFromString($Match->tiebreak2, false)):'&nbsp;').'</div></div>';
+    echo '</td>';
 	echo '</tr>';
+
+	//echo '<tr>';
+	//echo '<th class="'.$Win1.'">'.get_text('Score', 'Tournament').'</th>';
+	//echo '<td class="LetteraGrande'.$Win1.'" align="right">'.$Score1.'</td>';
+	//echo '<td>&nbsp;</td>';
+	//echo '<th class="'.$Win2.'">'.get_text('Score', 'Tournament').'</th>';
+	//echo '<td class="LetteraGrande'.$Win2.'" align="right">'.$Score2.'</td>';
+	//echo '</tr>';
+	//
+	//if($Match->matchMode) {
+	//	echo '<tr>';
+	//	echo '<td colspan="2" class="LetteraGrande'.$Win1.'" align="right">'.str_replace("|",",&nbsp;",$Match->setPoints1).'</td>';
+	//	echo '<td>&nbsp;</td>';
+	//	echo '<td colspan="2" class="LetteraGrande'.$Win2.'" align="right">'.str_replace("|",",&nbsp;",$Match->setPoints2).'</td>';
+	//	echo '</tr>';
+	//}
+	//
+	//echo '<tr>';
+	//echo '<th>'.get_text('ShotOffShort', 'Tournament').'</th>';
+	//echo '<td class="LetteraGrande" align="right">'.(!empty($Match->tiebreak1) ? (strlen($Match->tiebreak1)>1 ? implode(DecodeFromString($Match->tiebreak1, false),',') : DecodeFromString($Match->tiebreak1, false)):'&nbsp;').'</td>';
+	//echo '<td>&nbsp;</td>';
+	//echo '<th>'.get_text('ShotOffShort', 'Tournament').'</th>';
+	//echo '<td class="LetteraGrande" align="right">'.(!empty($Match->tiebreak2) ? (strlen($Match->tiebreak2)>1 ? implode(DecodeFromString($Match->tiebreak2, false),',') : DecodeFromString($Match->tiebreak2, false)):'&nbsp;').'</td>';
+	//echo '</tr>';
 
 	echo '<tr>';
 		echo '<td colspan="2" align="center" style="font-size:80%"><b><a href="'.go_get(array('C'=>$_REQUEST['B'])).'">CONFIRM</a></b></td>';
-		echo '<th>&nbsp;</th>';
+		echo '<td>&nbsp;</td>';
 		echo '<td colspan="2" align="center" style="font-size:80%"><b><a href="'.go_get(array('C'=> 'EDIT')).'">Edit arrows</a>';
 // 		echo '<br/><a href="'.go_get(array('C' => 'EDIT2')).'">Edit totals</a></b>';
 		echo '</td>';
@@ -234,22 +258,30 @@ if($Match) {
 <?php
 if($ShowMiss and !empty($_GET['T'])) {
 	list($FsDate, $FsTime)=explode('|', $_GET['T']);
-	echo '<div class="ShowMiss"><table>';
+	echo '<div class="ShowMiss"><table class="Missing">';
 	$cnt = 0;
 	$tmpRow = '';
 	$Q=GetFinMatches_sql(" and fs1.FSScheduledDate='$FsDate' and fs1.FSScheduledTime='$FsTime' and f1.FinConfirmed=0", 0, ' target1');
 	while($r=safe_fetch($Q)) {
 		if(!$r->familyName1 or !$r->familyName2) continue;
-		$tmpRow .= '<tr><td>'.ltrim($r->target1,'0').($r->target1!=$r->target2 ? '-'.ltrim($r->target2,'0') : '').'</td><td nowrap="nowrap">'.$r->familyName1.'</td><td nowrap="nowrap">'.$r->familyName2.'</td></tr>';
+	    $lnk=' onclick="location.href=\''.go_get('B', $r->match1.$_SESSION['BarCodeSeparator'].$r->teamEvent.$_SESSION['BarCodeSeparator'].$r->event).'\'"';
+		if($r->win1 or $r->win2) {
+			$lnk.=' style="font-weight:bold;"';
+        }
+		$tmpRow .= '<tr'.$lnk.'><td>'.ltrim($r->target1,'0').($r->target1!=$r->target2 ? '-'.ltrim($r->target2,'0') : '').'</td><td nowrap="nowrap">'.$r->familyName1.'</td><td nowrap="nowrap">'.$r->familyName2.'</td></tr>';
 		$cnt++;
 	}
 	$Q=GetFinMatches_sql(" and fs1.FSScheduledDate='$FsDate' and fs1.FSScheduledTime='$FsTime' and tf1.TfConfirmed=0", 1, ' target1');
 	while($r=safe_fetch($Q)) {
 		if(!$r->familyName1 or !$r->familyName2) continue;
-		$tmpRow .= '<tr><td nowrap="nowrap">'.ltrim($r->target1,'0').($r->target1!=$r->target2 ? '-'.ltrim($r->target2,'0') : '').'</td><td nowrap="nowrap">'.$r->familyName1.'</td><td nowrap="nowrap">'.$r->familyName2.'</td></tr>';
+	    $lnk=' onclick="location.href=\''.go_get('B',$r->match1.$_SESSION['BarCodeSeparator'].$r->teamEvent.$_SESSION['BarCodeSeparator'].$r->event).'\'"';
+		if($r->win1 or $r->win2) {
+			$lnk.=' style="font-weight:bold;"';
+        }
+		$tmpRow .= '<tr'.$lnk.'><td nowrap="nowrap">'.ltrim($r->target1,'0').($r->target1!=$r->target2 ? '-'.ltrim($r->target2,'0') : '').'</td><td nowrap="nowrap">'.$r->familyName1.'</td><td nowrap="nowrap">'.$r->familyName2.'</td></tr>';
 		$cnt++;
 	}
-	echo '<tr><th colspan="3">' . get_text('TotalMissingScorecars','Tournament',$cnt) . '</th></tr>';
+	echo '<tr><th colspan="3" class="Title">' . get_text('TotalMissingScorecars','Tournament',$cnt) . '</th></tr>';
 	echo $tmpRow;
 	echo '</table></div>';
 }
@@ -262,9 +294,14 @@ include('Common/Templates/tail.php');
 function getScore($barcode, $strict=false) {
 	@list($matchno, $team, $event) = @explode($_SESSION['BarCodeSeparator'], $barcode, 3);
 	$event=str_replace($_SESSION['BarCodeSeparator'], "-", $event);
-// 	debug_svela($event);
 	$rs=GetFinMatches($event, null, $matchno, $team, false);
-	return safe_fetch($rs);
+
+	$r= safe_fetch($rs);
+	$obj=getEventArrowsParams($event, $r->phase, $team);
+
+	$r->winAt=$obj->winAt;
+
+	return $r;
 }
 
 function ConfirmMatch($Match) {

@@ -15,6 +15,8 @@
 		exit;
 	}
 
+    checkACL(($_REQUEST['Team'] ? AclTeams : AclIndividuals), AclReadOnly);
+
 	$JS_SCRIPT=array(
 		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Final/Individual/Fun_JS.js"></script>',
 		);
@@ -33,7 +35,7 @@
 		$Select
 			= "SELECT FinEvent AS Event,FinMatchNo AS MatchNo,FinTournament,FinAthlete AS Id, FinLive AS Live,/*Finals*/ "
 			. "EvProgr,EvEventName,	/* Events*/ "
-			. "GrMatchNo,GrPhase,IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition,	/* Grids */ "
+			. "GrMatchNo,GrPhase,IF(EvFinalFirstPhase=48, GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) as GrPosition,	/* Grids */ "
 			. "CONCAT(EnFirstName,' ',EnName) AS Name,EnCountry,	/* Entries*/ "
 			. "CoCode,CoName,	/* Countries */ "
 			. "RevLanguage" . $_REQUEST['Language'] . " AS Rev "
@@ -51,7 +53,7 @@
 		$Select
 			= "SELECT TfTeam AS Id,TfEvent AS Event,TfMatchNo AS MatchNo,TfTournament,TfLive AS Live, "
 			. "EvProgr,EvEventName,	/* Events*/ "
-			. "GrMatchNo,GrPhase,IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition,	/* Grids */ "
+			. "GrMatchNo,GrPhase,IF(EvFinalFirstPhase=48, GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) as GrPosition,	/* Grids */ "
 			. "CoName,	/* Countries*/ "
 			. "CoCode,CoName AS Name,	/* Countries */ "
 			. "RevLanguage" . $_REQUEST['Language'] . " AS Rev "

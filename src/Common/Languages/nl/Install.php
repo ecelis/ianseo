@@ -127,7 +127,6 @@ $lang['Setup-SE']='Zweeds tournooi';
 $lang['Setup-Select']='Kies de juist regel';
 $lang['Setup-UK']='GB regels';
 $lang['Setup-US']='US regels';
-$lang['Setup-VEGAS']='Las Vegas regels';
 $lang['SetVegas-KOA']='Koning';
 $lang['SetVegas-WAF']='Wereld Handboogsport Festival (Las Vegas)';
 $lang['SpecialUpdate']='U hebt een "test" installatie.<br/>Alleen geselecteerde gebruikers mogen dit gebruiken. Stuur alstublieft een email met registratie gegevens. Een reactie wordt zowel naar U als naar de staf van Ianseo gestuurd.';

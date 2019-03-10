@@ -13,7 +13,6 @@ $lang['About']='au sujet';
 $lang['AlertNoScore']='Un ou plusieurs archers n\'a pas de pointage pour cette volée. Ces rangées sont surlignées en rouge. Cliquer sur la rangée pour corriger le pointage ou continuer si correct.';
 $lang['AlertNoScoreTitle']='Résultat manquant';
 $lang['All']='Tous';
-$lang['AppName']='Scorekeeper Lite';
 $lang['ArrowValues']='Valeur des flèches';
 $lang['AthletesError']='Les données des athlètes ne sont pas dans le tableau';
 $lang['AutoEntry']='Entrée automatique';

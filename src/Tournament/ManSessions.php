@@ -7,9 +7,9 @@
 	require_once('Common/Fun_Various.inc.php');
 	require_once('Tournament/Fun_Tournament.local.inc.php');
 	require_once('Tournament/Fun_ManSessions.inc.php');
+    checkACL(AclCompetition, AclReadWrite);
 
-	if (defined('hideSchedulerAndAdvancedSession'))
-	{
+	if (defined('hideSchedulerAndAdvancedSession')) {
 		header('location: ManSessions_kiss.php');
 		exit;
 	}
@@ -293,7 +293,7 @@
 					<td><input type="text" size="60" id="d_SesName" name="d_SesName" value="" /></td>
 					<td class="Center"><input type="datetime-local" id="d_SesDtStart" name="d_SesDtStart" min="<?php echo $_SESSION["TourRealWhenFrom"]?>T00:00:00" max="<?php echo $_SESSION["TourRealWhenTo"]?>T23:59:00"/></td>
 					<td class="Center"><input type="datetime-local" id="d_SesDtEnd" name="d_SesDtEnd" min="<?php echo $_SESSION["TourRealWhenFrom"]?>T00:00:00" max="<?php echo $_SESSION["TourRealWhenTo"]?>T23:59:00"/></td>
-					
+
 					<td class="Center"><input type="text" size="3" id="d_SesTar4Session" name="d_SesTar4Session" value="0" /></td>
 					<td class="Center"><input type="text" size="3" id="d_SesAth4Target" name="d_SesAth4Target" value="0" /></td>
 					<td class="Center"><input type="text" size="3" id="d_SesFirstTarget" name="d_SesFirstTarget" value="1" /></td>
@@ -318,12 +318,12 @@
 		<form method="get" action="">
 			<?php foreach ($sessions as $k=>$v) { // per ogni tipo di sessione ?>
 					<table class="Tabella">
-						<tr><th colspan="<?php echo ($v[0]->SesType!='Q'? '9':'7');?>"  class="Title"><?php print $k;?></th></tr>
+						<tr><th colspan="<?php echo ((count($v) AND $v[0]->SesType!='Q') ? '9':'7');?>"  class="Title"><?php print $k;?></th></tr>
 						<?php if (count($v)>0) { ?>
 							<tr>
 								<th style="width:15%;" colspan="2">#</th>
 								<th><?php print get_text('Name','Tournament');?></th>
-								<?php 
+								<?php
 								if($v[0]->SesType!='Q') {
 									echo '<th style="width:5%;">'. get_text('SessionStart','Tournament') . '</th>';
 									echo '<th style="width:5%;">'. get_text('SessionEnd','Tournament') . '</th>';
@@ -350,19 +350,19 @@
 										<input type="hidden" id="dtstart-<?php print $id;?>" value="<?php print str_replace(" ","T",$s->SesDtStart);?>" />
 										<input type="hidden" id="dtend-<?php print $id;?>" value="<?php print str_replace(" ","T",$s->SesDtEnd);?>" />
 										<?php print $s->SesName; ?>
-										
+
 									</td>
-									<?php 
-									if($v[0]->SesType=='F') {
+									<?php
+									if($v[0]->SesType!='Q') {
 										echo '<td class="Right">';
-										echo substr($s->SesDtStart,0,-3);
+										if(intval($s->SesDtStart)) echo substr($s->SesDtStart,0,-3);
 										echo '</td>';
 										echo '<td class="Right">';
-										echo substr($s->SesDtEnd,0,-3);
+										if(intval($s->SesDtEnd)) echo substr($s->SesDtEnd,0,-3);
 										echo '</td>';
-									} 
+									}
 									?>
-									
+
 									<td class="Right">
 										<input type="hidden" id="tar4session-<?php print $id;?>" value="<?php print $s->SesTar4Session;?>" />
 										<?php print $s->SesTar4Session;?>

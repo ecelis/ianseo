@@ -4,6 +4,7 @@ define('debug',false);	// settare a true per l'output di debug
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
+checkACL(AclAccreditation, AclReadWrite);
 require_once('Common/Fun_FormatText.inc.php');
 require_once(dirname(__FILE__).'/Lib.php');
 
@@ -44,102 +45,32 @@ $Turni=substr($Turni,0,-1);
 $Id = -1;
 $bib = '';
 $NoArcher=false;
-$BibIsId = false;
 
 if (isset($_REQUEST['Id'])) {
 	$Id = $_REQUEST['Id'];
 } else {
-	// analizzo il bib
-	// se inizia con $ tento di interpretare la matricola come id
-	if (substr($_REQUEST['bib'],0,1)=='$') {
-		$Id=substr($_REQUEST['bib'],1);
-		$BibIsId=true;
-	} elseif (preg_match('/^[0-9]{5}.{1}[0-9]{3}$/i',stripslashes($_REQUEST['bib']))) {
-		// proviene dal fitarco pass
-		$tmp=substr(stripslashes($_REQUEST['bib']),0,5);
-		$bib='';
-		for ($i=0;$i<strlen($tmp);++$i)
-		{
-			if ($tmp[$i]!='0') break;
-
-		}
-		$bib.=substr($tmp,$i);
-
-	} else {
-		// colpo secco
-		$WAbib=preg_split("/['-]/", $_REQUEST['bib']);
-
-		$tmp=stripslashes($_REQUEST['bib']);
-
-		if (is_numeric($tmp)) {
-			$bib=ltrim($tmp,'0');
-		} else {
-			$bib=$tmp;
-		}
-			//print $bib;exit;
-	}
-
-		if (!$BibIsId)
-		{
-		// se ho una sola matricola, setto il suo Id, altrimenti mando alla pagina di scelta
-			$Select
-				= "SELECT EnId FROM Entries INNER JOIN Qualifications ON EnId=QuId "
-				. "WHERE EnCode=" . StrSafe_DB($bib) . " AND QuSession IN (" . $Turni . ") AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
-			//print $Select;exit;
-			$RsSel =safe_r_sql($Select);
-
-			if ($RsSel)
-			{
-				if (safe_num_rows($RsSel)==1)	// ok
-				{
-					$row=safe_fetch($RsSel);
-					$Id=$row->EnId;
-				}
-				elseif (safe_num_rows($RsSel)>1)
-				{
-					header('Location: SelArcher.php?bib=' . $bib);
-					exit;
-				} elseif(!empty($WAbib) and count($WAbib)==3) {
-					// coming from  WA bib?
-					$Select
-						= "SELECT EnId FROM Entries INNER JOIN Qualifications ON EnId=QuId "
-						. "WHERE EnCode=" . StrSafe_DB($WAbib[0]) . " AND QuSession IN (" . $Turni . ") AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . "
-						AND EnDivision=".StrSafe_DB($WAbib[1])." AND EnClass=".StrSafe_DB($WAbib[2]);
-					//print $Select;exit;
-					$RsSel =safe_r_sql($Select);
-					if (safe_num_rows($RsSel)==1)	// ok
-					{
-						$row=safe_fetch($RsSel);
-						$Id=$row->EnId;
-					}
-				}
-				/*else
-					$NoArcher=true;*/
-			}
-			else
-				exit;
-		}
-	}
+	$Id = CheckAccreditationCode($_REQUEST['bib'], array($_SESSION['TourId'] => $_SESSION['chk_Turni']));
+}
 
 // vale 1 se il conto è aperto
-	$SetRap = (isset($_SESSION['SetRap']) ? $_SESSION['SetRap'] : 0);
+$SetRap = (isset($_SESSION['SetRap']) ? $_SESSION['SetRap'] : 0);
 
-	$RicaricaOpener=false;
-	if (!IsBlocked(BIT_BLOCK_ACCREDITATION)) {
-		if (isset($_REQUEST['Command'])) {
-			if ($_REQUEST['Command']=='EXEC') {
-				if($_SESSION['chk_Paid']==2) {
-					// 3 is the code for payment
-					$RicaricaOpener=SetAccreditation($Id, 0, 'RicaricaOpener', 0, 3);
-				}
-				if($_SESSION['chk_Accredited']==2) {
-					// 1 is the code for accreditation
-					$RicaricaOpener=SetAccreditation($Id, 0, 'RicaricaOpener', 0, 1);
-				}
-				$RicaricaOpener=SetAccreditation($Id, $SetRap);
-			}
-		}
-	}
+$RicaricaOpener=false;
+if (!IsBlocked(BIT_BLOCK_ACCREDITATION)) {
+    if (isset($_REQUEST['Command'])) {
+        if ($_REQUEST['Command']=='EXEC') {
+            if($_SESSION['chk_Paid']==2) {
+                // 3 is the code for payment
+                $RicaricaOpener=SetAccreditation($Id, 0, 'RicaricaOpener', 0, 3);
+            }
+            if($_SESSION['chk_Accredited']==2) {
+                // 1 is the code for accreditation
+                $RicaricaOpener=SetAccreditation($Id, 0, 'RicaricaOpener', 0, 1);
+            }
+            $RicaricaOpener=SetAccreditation($Id, $SetRap);
+        }
+    }
+}
 
 $Select = getAccrQuery($Id);
 $Rs=safe_r_sql($Select);
@@ -201,6 +132,7 @@ if (safe_num_rows($Rs)==1) {
 		}
 	} else {
 		$Button= '<tr><td colspan="12" class="Center"><input type="button" name="Submit" value="' . get_text('Close') . '" onclick="javascript:window.close();"></td></tr>' . "\n";
+        $SelectButton=true;
 	}
 }
 

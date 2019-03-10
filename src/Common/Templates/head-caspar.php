@@ -12,7 +12,7 @@ if(empty($JS_SCRIPT)) {
 }
 
 array_unshift($JS_SCRIPT,
-	'<script src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-2.1.4.min.js"></script>',
+	'<script src="'.$CFG->ROOT_DIR.'Common/js/jquery-3.2.1.min.js"></script>',
 	'<script src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-ui.min.js"></script>',
 	'<script src="'.$CFG->ROOT_DIR.'Common/jQuery/velocity.min.js"></script>',
 	'<script src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery.marquee.min.js"></script>'

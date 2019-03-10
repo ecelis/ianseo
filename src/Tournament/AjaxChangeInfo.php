@@ -2,6 +2,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Lib/Fun_DateTime.inc.php');
 require_once('Scheduler/LibScheduler.php');
+checkACL(AclCompetition, AclReadWrite, false);
 
 $Errore=1;
 

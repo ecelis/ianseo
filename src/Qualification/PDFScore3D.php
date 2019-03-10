@@ -3,6 +3,7 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/ScorePDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Lib/ArrTargets.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 $pdf = new ScorePDF(true);
 $pdf->BottomImage=empty($_REQUEST['QRCode']);
@@ -30,6 +31,9 @@ if(!empty($_REQUEST["ScoreBarcode"])) $pdf->PrintBarcode=true;
 // gets the default target face for this tournament
 $Target=getTarget($_SESSION['TourId']);
 
+$pdf->FillWithArrows=(!empty($_REQUEST["ScoreFilled"]));
+$reqDist = (empty($_REQUEST["ScoreDist"]) ? 1 : $_REQUEST["ScoreDist"]);
+
 if(!(isset($_REQUEST["ScoreHeader"]) && $_REQUEST["ScoreHeader"]==1))
 	$pdf->HideHeader();
 
@@ -38,7 +42,7 @@ if(!(isset($_REQUEST["ScoreLogos"]) && $_REQUEST["ScoreLogos"]==1))
 
 if(!(isset($_REQUEST["ScoreFlags"]) && $_REQUEST["ScoreFlags"]==1))
 	$pdf->HideFlags();
-	
+
 if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST["ScoreDraw"]=="Data")
 	$pdf->NoDrawing();
 
@@ -56,13 +60,13 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw")
 	$pdf->AddPage();
 	if($subRule)
 	{
-		$pdf->DrawScore3D($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd/2, array(), false, $Target);
-		$pdf->DrawScore3D($defScoreX, $defScoreY2, $defScoreW, $defScoreH, $NumEnd/2, array(), false, $Target);
+		$pdf->DrawScore3D($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd, array(), false, $Target);
+		$pdf->DrawScore3D($defScoreX, $defScoreY2, $defScoreW, $defScoreH, $NumEnd, array(), false, $Target);
 	}
 	else
 	{
-		$pdf->DrawScoreField($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd/2, 2, array(), false);
-		$pdf->DrawScoreField($defScoreX, $defScoreY2, $defScoreW, $defScoreH, $NumEnd/2, 2, array(), false);
+		$pdf->DrawScoreField($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd, 2, array(), false);
+		$pdf->DrawScoreField($defScoreX, $defScoreY2, $defScoreW, $defScoreH, $NumEnd, 2, array(), false);
 	}
 	if(!empty($_REQUEST['QRCode'])) {
 		foreach($_REQUEST['QRCode'] as $k => $Api) {
@@ -74,8 +78,9 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw")
 }
 else
 {
-	$MyQuery = 'SELECT EnCode, EnDivision, EnClass, SUBSTRING(at.AtTargetNo,2) as tNo, CONCAT(EnFirstName,\' \', EnName) AS Ath, CONCAT(CoCode, \' - \', CoName) as Noc, CONCAT(EnDivision, \' \', EnClass) AS Cat, TfName '
-		. ', CoCode, CoName FROM AvailableTarget as at ';
+	$MyQuery = 'SELECT EnCode, EnDivision, EnClass, SUBSTRING(at.AtTargetNo,2) as tNo, CONCAT(EnFirstName,\' \', EnName) AS Ath, CONCAT(CoCode, \' - \', CoName) as Noc, CONCAT(EnDivision, \' \', EnClass) AS Cat, TfName, '
+		. " TdX, ArrowstringX, ScoreX, GoldX, XNineX, printDXgx, DiEnds, DiArrows, "
+		. ' CoCode, CoName FROM AvailableTarget as at ';
 		if((isset($_REQUEST["noEmpty"]) && $_REQUEST["noEmpty"]==1))
 		{
 			$MyQuery .= "INNER JOIN
@@ -86,11 +91,14 @@ else
 				) as Tgt ON at.AtTournament=Tgt.EnTournament AND SUBSTRING(at.AtTargetNo,1,4)=Tgt.TgtNo	";
 		}
 		$MyQuery .= " LEFT JOIN "
-		. " (SELECT QuTargetNo, EnCode, EnName, EnFirstName, CoCode, CoName, EnClass, EnDivision, TfName "
+		. " (SELECT QuTargetNo, EnCode, EnName, EnFirstName, CoCode, CoName, EnClass, EnDivision, TfName, DiEnds, DiArrows, "
+		. " Td{$reqDist} as TdX, QuD{$reqDist}Arrowstring as ArrowstringX, QuD{$reqDist}Score as ScoreX, QuD{$reqDist}Gold as GoldX, QuD{$reqDist}XNine as XNineX, (QuD{$reqDist}Gold+QuD{$reqDist}XNine)  as printDXgx "
 		. " FROM Qualifications AS q  "
 		. " INNER JOIN Entries AS e ON q.QuId=e.EnId AND e.EnTournament= " . StrSafe_DB($_SESSION['TourId']) . " AND EnAthlete=1 "
 		. " INNER JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament "
 		. ' INNER JOIN Tournament AS t ON e.EnTournament=t.ToId '
+		. ' LEFT JOIN TournamentDistances ON ToType=TdType and TdTournament=ToId AND CONCAT(TRIM(EnDivision),TRIM(EnClass)) LIKE TdClasses '
+		. ' LEFT JOIN DistanceInformation ON DiTournament=ToId AND DiSession=QuSession and DiDistance='.$reqDist.' '
 		. ' LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId) as Sq ON at.AtTargetNo=Sq.QuTargetNo'
 		. " WHERE AtTournament =  " . StrSafe_DB($_SESSION['TourId']) . ' '
 		. " AND at.AtTargetNo>='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_From'],TargetNoPadding,"0",STR_PAD_LEFT) . "A' AND at.AtTargetNo<='" . $_REQUEST['x_Session'] . str_pad($_REQUEST['x_To'],TargetNoPadding,"0",STR_PAD_LEFT) . "Z' "
@@ -106,15 +114,21 @@ else
 				"tNo"=>$MyRow->tNo,
 				"startTarget"=>(substr($MyRow->tNo,0,-1)*1),
 				"Cat"=>$MyRow->Cat,
-				"Dist"=>$MyRow->TfName,
+				"Peg"=>$MyRow->TfName,
+				"Dist"=>$MyRow->TdX,
+                "CurDist"=>$reqDist,
 				"Ath"=>$MyRow->Ath,
 				"Noc"=>$MyRow->Noc,
 				"CoCode"=>$MyRow->CoCode,
 				"CoName"=>$MyRow->CoName,
-				"Arr"=>'',
-				"QuD"=>'',
-				"QuGD"=>'',
-				"QuXD"=>'');
+				"D"=>$MyRow->TdX,
+				"gxD"=>$MyRow->printDXgx,
+				"Arr"=>(($pdf->FillWithArrows && $_REQUEST['ScoreDraw']!="TargetNo") ? $MyRow->ArrowstringX : ''),
+				"QuD"=>$MyRow->ScoreX,
+				"QuGD"=>$MyRow->GoldX,
+				"QuXD"=>$MyRow->XNineX,
+                "Session"=>$_REQUEST['x_Session']
+				);
 		} else {
 			$Value = array(
 				"EnCode"=>$MyRow->EnCode,
@@ -122,8 +136,9 @@ else
 				"Cls"=>$MyRow->EnClass,
 				"tNo"=>$MyRow->tNo,
 				"startTarget"=>(substr($MyRow->tNo,0,-1)*1),
-				"Cat"=>'',
-				"Dist"=>'',
+				"Cat"=>$MyRow->Cat,
+				"Dist"=>$MyRow->TdX,
+                "CurDist"=>$reqDist,
 				"Ath"=>'',
 				"Noc"=>'',
 				"CoCode"=>'',
@@ -131,7 +146,8 @@ else
 				"Arr"=>'',
 				"QuD"=>'',
 				"QuGD"=>'',
-				"QuXD"=>'');
+				"QuXD"=>'',
+                "Session"=>$_REQUEST['x_Session']);
 		}
 
 		$Yscore = $defScoreY2;
@@ -145,7 +161,7 @@ else
 		if($subRule) {
 			$pdf->DrawScore3D($defScoreX, $Yscore, $defScoreW, $defScoreH,$NumEnd/2,$Value,false, $Target);
 		} else {
-			$pdf->DrawScoreField($defScoreX, $Yscore, $defScoreW, $defScoreH, $NumEnd/2, 2, $Value, false);
+			$pdf->DrawScoreField($defScoreX, $Yscore, $defScoreW, $defScoreH, (empty($MyRow->DiEnds) ? $NumEnd : $MyRow->DiEnds), empty($MyRow->DiArrows) ? 2 : $MyRow->DiArrows, $Value, false);
 		}
 		if($Yscore == $defScoreY2 and !empty($_REQUEST['QRCode'])) {
 			foreach($_REQUEST['QRCode'] as $k => $Api) {

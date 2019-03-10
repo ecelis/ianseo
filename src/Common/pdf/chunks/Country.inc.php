@@ -28,10 +28,15 @@ if (isset($PdfData->Data['Items']) && count($PdfData->Data['Items'])>0) {
 //Legenda per la partecipazione alle varie fasi
 if(!$PdfData->HideCols)
 {
+	$pdf->SetDefaultColor();
+
 	$pdf->DrawPartecipantLegend();
 //Legenda per lo stato di ammisisone alle gare
-	if($ShowStatusLegend)
+	if($ShowStatusLegend) {
+		$pdf->SetDefaultColor();
 		$pdf->DrawStatusLegend();
+
+	}
 }
 
 ?>

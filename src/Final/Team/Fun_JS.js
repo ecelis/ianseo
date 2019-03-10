@@ -107,7 +107,7 @@ function BlockPhase(Phase,EnValue,DisValue,NumTiebreak)
 					SetStyle(Tie.id,'');
 			}
 				
-			for (j=0;j<NumTiebreak;++j)
+			for (j=0;j<3*NumTiebreak;++j)
 			{
 				Tiebreak = document.getElementById('d_t_' + ee + '_' + i + '_' + j);
 				

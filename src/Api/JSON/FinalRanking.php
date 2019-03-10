@@ -35,8 +35,6 @@ if($EvType) {
 $rank->read();
 $Data=$rank->getData();
 
-//debug_svela($Data);
-
 foreach($Data['sections'] as $kSec=>$vSec) {
 	$json_array = Array("Event"=>$EvCode, "Type"=>$EvType, "Results"=>array());
 	foreach($vSec['items'] as $kItem=>$vItem) {
@@ -53,7 +51,7 @@ foreach($Data['sections'] as $kSec=>$vSec) {
 			$tmp["Components"] = $tmpAth;
 		}
 		//$tmp += array("Score"=>$vItem["score"], "Gold"=>$vItem["gold"], "XNine"=>$vItem["xnine"]);
-		
+
 		$json_array["Results"][] = $tmp;
 	}
 }

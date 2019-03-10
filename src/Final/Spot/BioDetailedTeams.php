@@ -42,7 +42,6 @@ if(($BioData=json_decode($rawData))!=null) {
 	// fetches the previous matches between the 2 opponents
 	$rawData = file_get_contents($CFG->WaWrapper."?v=3&RBP=All&content=ATHMAT&CatCode=".$_REQUEST["Cat"]."&Noc=".$_REQUEST["Id"]."&Noc2=".$_REQUEST["Id2"]);
 	if(($Matches=json_decode($rawData))!=null) {
-// 		debug_svela($Matches);
 		$TotalMatches=$Matches->pageInfo->totalResults;
 		$Wins=0;
 		$TB=0;

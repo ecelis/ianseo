@@ -5,43 +5,38 @@ require_once('Common/Lib/Fun_DateTime.inc.php');
 class Obj_Scheduler
 {
 	protected $tourId=null;
-	
+
 	protected $data=null;
-	
+
 /**
  * $opts
  * Array delle opzioni.
  * La forma è chiave/valore.
- * 
+ *
  * Le opzioni sono:
- * sessionType: 
- * 		* = tutte altrimenti il tipo (vedi la funzione GetSessions()). 
+ * sessionType:
+ * 		* = tutte altrimenti il tipo (vedi la funzione GetSessions()).
  * 		Se non presente vale *
- * 
+ *
  * qual: true per mettere le righe di Qualifications e false altrimenti. Se non presente vale true
- * 
+ *
  * qualOrphans: true per mettere gli orfani delle qualifiche. Se non presente vale true
- * 
- * training: true per mettere le righe di  FinTraining e false altrimenti. Se non presente vale true
- * 
- * trainingOrphans: true per mettere gli orfani del FinTraining (le righe che non entrano sotto nessun gruppo F) e false altrimenti.
- * 		Se non presente vale true
- * 
+ *
  * elim: true per mettere le righe di Eliminations con sessione impostata e false altrimenti. Se non presente vale true
- * 
- * elimOrphans: true per mettere gli orfani delle eliminatorie. Se non presente vale true 
- * 
+ *
+ * elimOrphans: true per mettere gli orfani delle eliminatorie. Se non presente vale true
+ *
  * final: true per mettere le righe di FinSchedule sotto ai gruppi F e false altrimenti. Se non presente vale true
- * 
+ *
  * finalOrphans: true per mettere gli orfani del FinSchedule (le righe che non entrano sotto nessun gruppo F)
- * 		e false altrimenti. 
- * 		Se non presente vale true		
- * 
+ * 		e false altrimenti.
+ * 		Se non presente vale true
+ *
  * @var mixed[]
  * @access protected
  */
 	protected $opts=array();
-	
+
 	protected function sortDayItems($day)
 	{
 	/*
@@ -56,11 +51,11 @@ class Obj_Scheduler
 		}
 		array_multisort($dates, SORT_ASC,  $this->data['days'][$day]['items']);
 	}
-	
+
 /**
  * base()
  * Inizializza Obj_Scheduler::data con le info di base
- * 
+ *
  * @return void
  */
 	protected function base()
@@ -71,14 +66,14 @@ class Obj_Scheduler
 	 * *****************************************************************************
 	 * Le sessioni Z e F (+ l'eventuale filtro)
 	 * *****************************************************************************
-	 */ 
-	
+	 */
+
 		$filter="SchTournament={$this->tourId} AND SchSesType NOT IN ('Q','E') ";
 		if ($this->opts['sessionType']!='*')
 		{
 			$filter.= " AND SchSesType='" . $this->opts['sessionType'] . "' ";
 		}
-			
+
 		$queries[]="
 			(
 				SELECT
@@ -97,18 +92,18 @@ class Obj_Scheduler
 					SchDateStart ASC,SchOrder ASC
 			)	
 		";
-		
+
 	/*
 	 * *****************************************************************************
 	 * Le sessioni Q se richieste
 	 * *****************************************************************************
-	 */ 
+	 */
 		if (($this->opts['sessionType']=='*' || $this->opts['sessionType']=='Q') && $this->opts['qual'])
 		{
 			$qual=get_text('QualRound');
-			
+
 			$filter="SchTournament={$this->tourId} AND QuSession<>0 ";
-			
+
 			$queries[]="
 				(
 					SELECT
@@ -142,20 +137,20 @@ class Obj_Scheduler
 	 * *****************************************************************************
 	 * Le sessioni E se richieste
 	 * *****************************************************************************
-	 */ 
+	 */
 		if (($this->opts['sessionType']=='*' || $this->opts['sessionType']=='E') && $this->opts['elim'])
 		{
 			$elim=get_text('Elimination');
-		
+
 			$case="(CASE ElElimPhase ";
-			
+
 				$case.="WHEN 0 THEN '" . get_text('Eliminations_1'). "' ";
 				$case.="WHEN 1 THEN '" . get_text('Eliminations_2'). "' ";
-			
+
 			$case.="END)";
-			
+
 			$filter="SchTournament={$this->tourId} AND ElSession<>0 ";
-		
+
 			$queries[]="
 				(
 					SELECT
@@ -183,7 +178,7 @@ class Obj_Scheduler
 				)
 			";
 		}
-		
+
 		$q="";
 		if (count($queries)>0)
 		{
@@ -196,15 +191,15 @@ class Obj_Scheduler
 		}
 		//print $q;exit;
 		$r=safe_r_sql($q);
-		
+
 		if ($r)
 		{
 			$this->data['meta']=array(
 				'title'=>get_text('Scheduler')
 			);
-			
+
 			$this->data['days']=array();
-			
+
 			while ($row=safe_fetch_assoc($r))
 			{
 				$row['timeLabel']=dateRenderer($row['dateStart'],'H:i');
@@ -212,9 +207,9 @@ class Obj_Scheduler
 				{
 					$row['timeLabel'].=' - ' . dateRenderer($row['dateEnd'],'H:i');
 				}
-				
+
 				$day=substr($row['dateStart'],0,10);
-				
+
 			// se nella struttura non c'è il giorno lo aggiungo
 				if (!array_key_exists($day,$this->data['days']))
 				{
@@ -222,28 +217,28 @@ class Obj_Scheduler
 						'dateLabel'=>dateRenderer($day,get_text('DateFmt')),
 						'items'=>array()
 					);
-				}		
-				
+				}
+
 				$row['children']=array();
-				
-				
+
+
 			// ... e metto la riga nel giorno
 				$this->data['days'][$day]['items'][]=$row;
 			}
 		}
-		
+
 //		print '<pre>';
 //		print_r($this->data);
 //		print '</pre>';exit;
 	}
-	
+
 /**
  * qual()
  * Popola se richieste, le righe che riguardano le qualifiche.
  * Qui non ragioniamo con le date ma con QuSession che se impostato aggancia nel gruppo Q corretto.
- * 
+ *
  * @return void
- */	
+ */
 	public function qual()
 	{
 	/*
@@ -253,13 +248,13 @@ class Obj_Scheduler
 		if (!(($this->opts['sessionType']=='*' || $this->opts['sessionType']=='Q') && $this->opts['qual']))
 		{
 			return;
-		}	
+		}
 
 	/*
 	 * Tiro fuori dallo scheduler le righe Q.
 	 * Qui le righe dello scheduler sono i figli della query base
 	 */
-		
+
 		$q="
 			SELECT
 				SchOrder AS `schOrder`,
@@ -287,9 +282,9 @@ class Obj_Scheduler
 			while ($row=safe_fetch_assoc($r))
 			{
 				$found=false;
-				
+
 				$row['timeLabel']=dateRenderer($row['dateStart'],'H:i') . (dateRenderer($row['dateEnd'],'H:i')!='' ? ' - ' . dateRenderer($row['dateEnd'],'H:i') : '');
-				
+
 			// cerco dove infilare la riga (OCIO ALLE DUE &!!!!)
 				foreach ($this->data['days'] as &$day)
 				{
@@ -300,13 +295,13 @@ class Obj_Scheduler
 							if ($row['sessionOrder']==$v['sessionOrder'] && substr($row['dateStart'],0,10)==substr($v['dateStart'],0,10))
 							{
 								$found=true;
-							// ... e metto la riga 
+							// ... e metto la riga
 								$v['children'][]=$row;
 							}
 						}
 					}
 				}
-				
+
 				$d=substr($row['dateStart'],0,10);
 				if (!$found && $this->opts['qualOrphans'])	// orfano
 				{
@@ -317,20 +312,20 @@ class Obj_Scheduler
 							'items'=>array()
 						);
 					}
-					
+
 					$this->data['days'][$d]['items'][]=$row;
 				}
-								
+
 				$this->sortDayItems($d);
 			}
 		}
 	}
-	
+
 /**
  * elim()
  * Popola se richieste, le righe che riguardano le eliminatorie.
  * Qui non ragioniamo con le date ma con ElSession che se impostato aggancia nel gruppo E corretto.
- * 
+ *
  * @return void
  */
 	public function elim()
@@ -342,14 +337,14 @@ class Obj_Scheduler
 		if (!(($this->opts['sessionType']=='*' || $this->opts['sessionType']=='E') && $this->opts['elim']))
 		{
 			return;
-		}	
+		}
 
 	/*
 	 * Tiro fuori dallo scheduler le righe Q.
 	 * Qui le righe dello scheduler sono i figli della query base
 	 * La procedura è in pratica la stessa di qual()
 	 */
-		
+
 		$q="
 			SELECT
 				SchOrder AS `schOrder`,
@@ -369,7 +364,7 @@ class Obj_Scheduler
 			ORDER BY
 				SchDateStart ASC,SchOrder ASC		
 		";
-		
+
 		$r=safe_r_sql($q);
 
 		if ($r)
@@ -378,7 +373,7 @@ class Obj_Scheduler
 			{
 				$found=false;
 				$row['timeLabel']=dateRenderer($row['dateStart'],'H:i') . (dateRenderer($row['dateEnd'],'H:i')!='' ? ' - ' . dateRenderer($row['dateEnd'],'H:i') : '');
-				
+
 			// cerco dove infilare la riga (OCIO ALLE DUE &!!!!)
 				foreach ($this->data['days'] as &$day)
 				{
@@ -389,13 +384,13 @@ class Obj_Scheduler
 							if ($row['sessionOrder']==$v['sessionOrder'] && substr($row['dateStart'],0,10)==substr($v['dateStart'],0,10))
 							{
 								$found=true;
-							// ... e metto la riga 
+							// ... e metto la riga
 								$v['children'][]=$row;
 							}
 						}
 					}
 				}
-				
+
 				$d=substr($row['dateStart'],0,10);
 				if (!$found && $this->opts['elimOrphans'])	// orfano
 				{
@@ -406,65 +401,31 @@ class Obj_Scheduler
 							'items'=>array()
 						);
 					}
-					
+
 					$this->data['days'][$d]['items'][]=$row;
 				}
-								
+
 				$this->sortDayItems($d);
 			}
 		}
 	}
-	
+
 /**
  * trainingAndFinal()
  * Popola le righe che riguardano il warmup e le finali (se richieste)
- * 
+ *
  * @return void
  */
 	protected function trainingAndFinal()
 	{
 		$queries=array();
-		
-	/*
-	 * Se sono state richieste le righe di FinTraining e il filtro sul tipo di righe
-	 * è F oppure * allora le metto
-	 */	
-		if (($this->opts['sessionType']=='*' || $this->opts['sessionType']=='F') && $this->opts['training'])
-		{
-			$warmup=get_text('WarmUp','Tournament');
-			
-			$caseTeam="(CASE FteTeamEvent ";
-				$caseTeam.="WHEN 0 THEN '" . get_text('Individual') ."' ";
-				$caseTeam.="WHEN 1 THEN '" . get_text('Team') ."' ";
-			$caseTeam.="END) ";
-			
-			$queries[]="
-				(
-					SELECT
-						1 AS `schOrder`,CONCAT(FtScheduledDate,' ',FtScheduledTime) AS `dateStart`, ADDDATE(CONCAT(FtScheduledDate,' ',FtScheduledTime), INTERVAL FtScheduledLen MINUTE) AS `dateEnd`,
-						'W' AS `sessionType`,
-						CONCAT('{$warmup}',' ',CONCAT({$caseTeam},' ',group_concat(FteEvent separator '-'))) AS `descr`
-					FROM
-						FinTraining
-						LEFT JOIN
-							FinTrainingEvent
-						ON FteTournament=FtTournament and FteScheduledDate=FtScheduledDate and FteScheduledTime=FtScheduledTime and FteTargetFrom=FtTargetFrom
-					WHERE
-						FtTournament={$this->tourId} AND FtScheduledDate!='0000-00-00' 
-					GROUP BY 
-						FtTournament, FtScheduledDate, FtScheduledTime/*, FtTargetFrom*/ 
-				)
-				/*ORDER BY 
-				FtScheduledDate ASC, FtScheduledTime ASC*/
-			";
-		}
-		
+
 	/*
 	 * Se sono state richieste le righe di FinSchedule e il filtro sul tipo di righe
 	 * è F oppure * allora le metto
 	 */
 		if (($this->opts['sessionType']=='*' || $this->opts['sessionType']=='F') && $this->opts['final'])
-		{	
+		{
 			$phases=getPhasesId(-1);
 
 			$casePhase="(CASE GrPhase ";
@@ -478,7 +439,7 @@ class Obj_Scheduler
 							$txt2=get_text('48_Phase');
 						elseif ($p==32)
 							$txt2=get_text('24_Phase');
-							
+
 						if ($p==64)
 						{
 							$casePhase.=" WHEN {$p} THEN IF( EvFinalFirstPhase=64,'{$txt1}','{$txt2}' ) ";
@@ -500,9 +461,9 @@ class Obj_Scheduler
 				$caseTeam.="WHEN 0 THEN '" . get_text('Individual') ."' ";
 				$caseTeam.="WHEN 1 THEN '" . get_text('Team') ."' ";
 			$caseTeam.="END) ";
-			
+
 			$final=get_text('MenuLM_Final Rounds');
-			
+
 			$queries[]="
 				(
 					SELECT DISTINCT
@@ -511,12 +472,9 @@ class Obj_Scheduler
 						CONCAT('{$final}',' ',group_concat(DISTINCT CONCAT({$caseTeam},' ',FSEvent,' (',{$casePhase},')' ) separator ' - ')) AS `descr`
 					FROM
 						FinSchedule
-						INNER JOIN
-							Events
-						ON EvCode=FSEvent AND EvTeamEvent=FSTeamEvent AND EvTournament=FSTournament
-						INNER JOIN
-							Grids
-						ON FSMatchNo=GrMatchNo AND GrPhase<=(IF(EvFinalFirstPhase=24,32, IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase )))
+						INNER JOIN Events ON EvCode=FSEvent AND EvTeamEvent=FSTeamEvent AND EvTournament=FSTournament
+						inner join Phases on PhId=EvFinalFirstPhase and (PhIndTeam & pow(2, EvTeamEvent))>0
+						INNER JOIN Grids ON FSMatchNo = GrMatchNo AND GrPhase<=greatest(PhId, PhLevel)
 					WHERE
 						FSTournament={$this->tourId} AND FSScheduledDate!='0000-00-00'
 					GROUP BY
@@ -526,7 +484,7 @@ class Obj_Scheduler
 				/*ORDER BY
 					FSScheduledDate ASC, FSScheduledTime ASC*/
 			";
-		}	
+		}
 
 	// se ho query parto se no termino
 		if (count($queries)>0)
@@ -534,7 +492,7 @@ class Obj_Scheduler
 			$q=implode(' UNION ALL ',$queries) . " ORDER BY dateStart ASC ";
 			//print $q;exit;
 			$r=safe_r_sql($q);
-			
+
 			if ($r)
 			{
 				while ($row=safe_fetch_assoc($r))
@@ -542,9 +500,9 @@ class Obj_Scheduler
 					$row['timeLabel']=dateRenderer($row['dateStart'],'H:i');
 					if ($row['dateEnd']!='0000-00-00 00:00:00' && $row['dateStart']!=$row['dateEnd'])
 						$row['timeLabel'].= ' - ' . dateRenderer($row['dateEnd'],'H:i');
-					
-					
-					
+
+
+
 				// cerco dove infilare la riga
 					$day=substr($row['dateStart'],0,10);
 					$found=false;
@@ -560,7 +518,7 @@ class Obj_Scheduler
 								if ($row['dateStart']>=$v['dateStart'] && $row['dateStart']<$v['dateEnd'])
 								{
 									$found=true;
-		
+
 								/*
 								 *  ... e metto la riga nel giorno
 								 *  Se il padre ha il Follow=0
@@ -569,22 +527,22 @@ class Obj_Scheduler
 								 *  		- se il figlio precedente è di tipo diverso oppure non ci sono precedenti,
 								 *  			la timeLabel è quella preparata prima
 								 * 			- se il figlio precedente è dello stesso tipo
-								 * 				la timeLabel cambia 
-								 */	
+								 * 				la timeLabel cambia
+								 */
 									if ($v['follow']==1)
 									{
 										if (count($v['children'])!=0 && $v['children'][count($v['children'])-1]['sessionType']==$row['sessionType'])
 										{
 											$row['timeLabel']=get_text('ToFollow','Tournament');
-										}	
+										}
 									}
-									$v['children'][]=$row;	
+									$v['children'][]=$row;
 									break;
 								}
 							}
 						}
 					}
-					if (!$found && (($this->opts['trainingOrphans'] && $row['sessionType']=='W') || ($this->opts['finalOrphans'] && $row['sessionType']=='F')))	// orfano
+					if (!$found && ($this->opts['finalOrphans'] && $row['sessionType']=='F'))	// orfano
 					{
 						//$day=substr($row['dateStart'],0,10);
 						if (!array_key_exists($day,$this->data['days']))
@@ -594,17 +552,17 @@ class Obj_Scheduler
 								'items'=>array()
 							);
 						}
-						
+
 						$this->data['days'][$day]['items'][]=$row;
 					}
-					
+
 					$this->sortDayItems($day);
-				
+
 				}
 			}
 		}
 	}
-	
+
 	public function __construct($opts=array(),$tourId=null)
 	{
 		if ($tourId===null)
@@ -615,66 +573,56 @@ class Obj_Scheduler
 		{
 			$this->tourId=$tourId;
 		}
-		
+
 	// default
 		if (!array_key_exists('sessionType',$opts))
 		{
 			$opts['sessionType']='*';
-		}	
-		
+		}
+
 		if (!array_key_exists('qual',$opts))
 		{
 			$opts['qual']=true;
 		}
-		
+
 		if (!array_key_exists('qualOrphans',$opts))
 		{
 			$opts['qualOrphans']=true;
 		}
-		
-		if (!array_key_exists('training',$opts))
-		{
-			$opts['training']=true;
-		}
-		
-		if (!array_key_exists('trainingOrphans',$opts))
-		{
-			$opts['trainingOrphans']=true;
-		}
-		
+
 		if (!array_key_exists('elim',$opts))
 		{
 			$opts['elim']=true;
 		}
-		
+
 		if (!array_key_exists('elimOrphans',$opts))
 		{
 			$opts['elimOrphans']=true;
 		}
-		
+
 		if (!array_key_exists('final',$opts))
 		{
 			$opts['final']=true;
 		}
-		
+
 		if (!array_key_exists('finalOrphans',$opts))
 		{
 			$opts['finalOrphans']=true;
 		}
-		
+
 	// imposto le opzioni
 		$this->opts=$opts;
-		
+
 	// parto con il calcolo
 		$this->process(false);
 	}
-	
+
 /**
  * process()
  * Da qui parte la popolazione di Obj_Scheduler::data.
- * 
+ *
  * @param true $return: se true ritorna $this altrimenti popola Obj_Scheduler::data e basta
- * 
+ *
  * @return mixed: $this (per il chainable-methods)
  */
 	public function process($return=true)
@@ -684,20 +632,20 @@ class Obj_Scheduler
 		$this->elim();
 		$this->trainingAndFinal();
 		//$this->finalEvents();
-		
+
 	/*
 	 * Questo mi assicura che i giorni siano ordinati giusti!
 	 * Valgono le osservazioni del posizionamento di un orfano delle finali/warmup
 	 */
 		ksort($this->data['days']);
-		
+
 		if ($return)
 			return $this;
 	}
 /**
  * getData()
  * Ritorna la struttura dello scheduler.
- * 
+ *
  * @return mixed[]: scheduler
  */
 	public function getData()

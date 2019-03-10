@@ -110,6 +110,7 @@ table.Tabella tr.Spacer {background-color: #004488; height:2px}
 table.Tabella tr.warning {background-color:#FFFF99; text-align: left; vertical-align:middle; }
 table.Tabella tr.yellow {background-color:#FFFF99; text-align: left; vertical-align:middle; }
 table.Tabella tr.error {background-color: #FFCC99; text-align: left; vertical-align:middle; }
+table.Missing th.Title,
 table.Tabella th { background-color:#BFDDFF; text-align:center; padding-left:2px; padding-right:2px; font-weight:bold; color: #004488}
 table.Tabella th.Main,
 #GrdDiv div.Main { background-color:#004488; height:80px; line-height:80px;font-family:Verdana, Arial, Helvetica, sans-serif; font-size:11px;  text-align:center; padding-left:2px; padding-right:2px; font-weight:bold; color: #F9FCFF; vertical-align:middle; letter-spacing: 0.5em;}
@@ -117,6 +118,7 @@ table.Tabella th.Title,
 #RssDiv div.Title,
 #GrdDiv div.Title,
 #Accreditation div.Title,
+#AccreditationSync div.Title,
 #AwaDiv div.Title { background-color:#004488; text-align:center; padding-left:2px; padding-right:2px; font-weight:bold; color: #F2F9ff; font-size:120%}
 table.Tabella th.TitleLeft { background-color:#004488; text-align:left; padding-left:2px; padding-right:2px; font-weight:bold; color: #F2F9ff; font-size:100%}
 table.Tabella th.TitleNeg { background-color:#F2F9ff; text-align:center; padding-left:2px; padding-right:2px; font-weight:bold; color: #004488; font-size:120%}
@@ -137,9 +139,11 @@ table.Tabella td.Medium {background-color:#FFFFD0}
 table.Tabella td.Dark {background-color:#BFDDFF}
 table.Tabella td.Left {text-align: left;}
 
-#Accreditation div.Title {padding:0.5rem 0.1rem;}
-.GenFlex {display:flex; justify-content:center;margin:0.5rem;}
-.GenFlex div {margin:0 0.5em;}
+#Accreditation div.Title,
+#AccreditationSync div.Title {padding:0.5rem 0.1rem;}
+
+#AccreditationSync div {margin-top:0.5em;}
+
 .filter {width:100%;box-sizing: border-box;}
 .short {width:3em;}
 .medium {width:5em;}
@@ -228,7 +232,7 @@ div.OvrOk {color:white; background-color:green; padding:2px; }
 /********************************Tabelle griglia ************************************/
 table.Content  {width:100%; padding:0px; background-color:#FFFFFF; border: 1px;  border-color:#000000; border-collapse:collapse; border-spacing:0px; empty-cells:hide;}
 table.Content td.Center { text-align:center; background-color:#FFFFFF;}
-table.Griglia  {width:100%; padding:0px; background-color:#FFFFFF; border: 1px;  border-color:#ffffff; border-collapse:collapse; border-spacing:0px; empty-cells:hide; font-family:Verdana, Arial, Helvetica, sans-serif; color:#0066CC; font-size:10px; font-weight:normal;}
+table.Griglia  {width:100%; padding:0px; background-color:#FFFFFF; border: 1px;  border-color:#ffffff; border-collapse:separate; border-spacing:0px; empty-cells:hide; font-family:Verdana, Arial, Helvetica, sans-serif; color:#0066CC; font-size:10px; font-weight:normal;}
 table.Griglia th { background-color:#BFDDFF; text-align:center; padding-left:2px; padding-right:2px; font-weight:bold; color: #004488}
 table.Griglia td.TextRight { text-align:right; background-color:#FFFFFF;  color:#000066;}
 table.Griglia td.Center { text-align:center; background-color:#FFFFFF;  color:#000066;}
@@ -268,4 +272,37 @@ table.Griglia td.wLeft { border-left: 1px solid white; padding-left: 1px; color:
 
 body.loading .modal {
     display: block;
+}
+
+/* Button */
+.Button {display:inline-block; padding:0.25em; background-color:#F0F8FF;border:1px solid darkblue;border-top-color:lightblue;border-left-color:lightblue; margin:0 0.25em;}
+.Button:hover {text-decoration: none;}
+.Button:focus {border:1px solid darkblue;border-bottom-color:lightblue;border-right-color:lightblue;}
+
+.ClickableDiv { cursor: pointer; -webkit-user-select: none;/* Chrome/Safari */  -moz-user-select: none;/* Firefox */  -ms-user-select: none;/* IE10+ */ /* Not implemented yet */ -o-user-select: none; user-select: none;}
+
+.Flex-line {display:flex; white-space: nowrap;}
+.Flex-line div {margin: 0 5px; display: inline-block;}
+
+.rowHover:hover {background-color: #9fff7c !important;}
+.rowHover:hover input, .rowHover:hover select { background-color: #e1ffde !important;}
+
+#securityBox {
+	font-size: 80%;
+	font-weight: normal;
+	text-align: center;
+}
+
+.aclIP {
+	font-size: 140%;
+	text-align: left;
+}
+
+.ServerError {
+    font-weight: bold;
+    color:white;
+    background-color: #800000;
+    text-align: center;
+    font-size:3em;
+    padding:1em!important;
 }

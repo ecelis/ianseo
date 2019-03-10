@@ -3,6 +3,7 @@
 
 	if (!CheckTourSession())
 		exit;
+    checkACL(AclOutput,AclReadOnly);
 
 	$teamEvent = (!empty($_REQUEST["teamEvent"]) && $_REQUEST["teamEvent"]==1 ? 1 : 0);
 
@@ -36,17 +37,17 @@
 					<val>' . ($myRow->FSTeamEvent . $myRow->MyDate) . '</val>
 					<display>' . (($myRow->FSTeamEvent ? get_text('Team'):get_text('Individual')) . ' ' . $myRow->MyDate) . '</display>
 				</schedule>
-			' . "\n";
+			';
 		}
 	}
 
 	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
+	print '<response>';
 
-		print '<error>' . $error . '</error>' . "\n";
+		print '<error>' . $error . '</error>';
 
 		print $xml;
 
-	print '</response>' . "\n";
+	print '</response>';
 ?>

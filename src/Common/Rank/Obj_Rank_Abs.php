@@ -167,15 +167,26 @@
 			$EnFilter  = (empty($this->opts['enid']) ? '' : " AND EnId=" . intval($this->opts['enid'])) ;
 			$EnFilter .= (empty($this->opts['coid']) ? '' : " AND EnCountry=" . intval($this->opts['coid'])) ;
 
-			if (array_key_exists('cutRank',$this->opts) && is_numeric($this->opts['cutRank']) && $this->opts['cutRank']>0)
-				$filter.= "AND Ind{$dd}Rank<={$this->opts['cutRank']} ";
+			if (array_key_exists('cutRank',$this->opts)) {
+				if(is_numeric($this->opts['cutRank']) && $this->opts['cutRank']>0) {
+					$EnFilter.= "AND Ind{$dd}Rank<={$this->opts['cutRank']} ";
+				} elseif (strtolower($this->opts['cutRank'])=='cut') {
+					$EnFilter.= "AND Ind{$dd}Rank<=EvNumQualified ";
+				}
+			}
 
 			$comparedTo=0;
 			if(!empty($this->opts["comparedTo"]) && is_numeric($this->opts["comparedTo"]))
 				$comparedTo=$this->opts["comparedTo"];
 
-			if(!empty($this->opts['session']) and $ses=intval($this->opts['session'])) {
-				$EnFilter .= " AND QuSession=$ses ";
+			if(!empty($this->opts['session'])) {
+				if(is_array($this->opts['session'])) {
+					$EnFilter .= " AND QuSession in (".implode(', ', $this->opts['session']).") ";
+				} else {
+					if($ses=intval($this->opts['session'])) {
+						$EnFilter .= " AND QuSession=$ses ";
+					}
+				}
 			}
 
 			$tmp=null;
@@ -209,11 +220,11 @@
 					QuD1Gold, QuD2Gold, QuD3Gold, QuD4Gold, QuD5Gold, QuD6Gold, QuD7Gold, QuD8Gold,
 					QuD1Xnine, QuD2Xnine, QuD3Xnine, QuD4Xnine, QuD5Xnine, QuD6Xnine, QuD7Xnine, QuD8Xnine,
 					QuD1Arrowstring,QuD2Arrowstring,QuD3Arrowstring,QuD4Arrowstring,QuD5Arrowstring,QuD6Arrowstring,QuD7Arrowstring,QuD8Arrowstring,
-					QuScore, QuNotes, IndNotes,
+					QuScore, QuNotes, IndNotes, (EvShootOff OR EvE1ShootOff OR EvE2ShootOff) as ShootOffSolved,
 					IF(EvRunning=1,IFNULL(ROUND(QuScore/QuHits,3),0),0) as RunningScore,
 					EvCode,EvEventName,EvRunning, EvFinalFirstPhase, EvElim1, EvElim2,
 					{$tmp} AS Arrows_Shot,
-					IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) ,IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo, EvQualPrintHead as PrintHeader,
+					IF(EvElim1=0 && EvElim2=0, EvNumQualified ,IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo, EvQualPrintHead as PrintHeader,
 					{$MyRank} AS Rank, " . (!empty($comparedTo) ? 'IFNULL(IopRank,0)' : '0') . " as OldRank, Qu{$dd}Score AS Score, Qu{$dd}Gold AS Gold,Qu{$dd}Xnine AS XNine, Qu{$dd}Hits AS Hits, ";
 
 			if(!empty($this->opts['runningDist']) && $this->opts['runningDist']>0) {
@@ -244,9 +255,8 @@
 				INNER JOIN Entries ON ToId=EnTournament
 				INNER JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament AND EnTournament={$this->tournament}
 				INNER JOIN Qualifications ON EnId=QuId
-				INNER JOIN EventClass ON EnClass=EcClass AND EnDivision=EcDivision AND EnTournament=EcTournament AND EcTeamEvent=0
-				INNER JOIN Individuals ON EcTournament=IndTournament AND EcCode=IndEvent AND EnId=IndId
-				INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=EcTeamEvent AND EvTournament=EcTournament
+				INNER JOIN Individuals ON IndTournament=EnTournament AND EnId=IndId
+				INNER JOIN Events ON EvCode=IndEvent AND EvTeamEvent=0 AND EvTournament=EnTournament
 				LEFT JOIN DocumentVersions DV1 on EvTournament=DV1.DvTournament AND DV1.DvFile = 'QUAL-IND' and DV1.DvEvent=''
 				LEFT JOIN DocumentVersions DV2 on EvTournament=DV2.DvTournament AND DV2.DvFile = 'QUAL-IND' and DV2.DvEvent=EvCode
 				LEFT JOIN TournamentDistances ON ToType=TdType AND TdTournament=ToId AND CONCAT(TRIM(EnDivision),TRIM(EnClass)) LIKE TdClasses
@@ -271,10 +281,10 @@
 
 				WHERE
 					EnAthlete=1 AND EnIndFEvent=1 AND EnStatus <= 1  "
-					. (empty($this->opts['includeNullPoints'])? " AND QuScore != 0 " : "")
+					. (empty($this->opts['includeNullPoints'])? " AND (QuScore != 0 OR IndRank != 0) " : "")
 					." AND ToId = {$this->tournament}
 					{$filter}
-					AND (IndRank!=9999 OR EvRunning=0)
+					AND (IndRank!=9999 OR IndRank!=9998 OR EvRunning=0)
 					{$EnFilter}
 				ORDER BY
 						EvProgr, EvCode, ";
@@ -397,6 +407,7 @@
 								'maxArrows' => ($myRow->DiEnds ? $myRow->DiEnds*$myRow->DiArrows : $myRow->ToNumEnds*3),
 								'sesArrows'=> array(),
 								'running' => ($myRow->EvRunning==1 ? 1:0),
+								'finished' => ($myRow->ShootOffSolved ? 1:0),
 								'order' => $myRow->EvProgr,
 								'fields' => $fields,
 								'version' => $myRow->DocVersion,
@@ -439,7 +450,9 @@
 
 				// creo un elemento per la sezione
 					if($myRow->Rank==9999) {
-						$tmpRank= 'DSQ';
+                        $tmpRank = 'DSQ';
+                    } else if ($myRow->Rank==9998) {
+                        $tmpRank = 'DNS';
 					} else {
 						$tmpRank= (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRank : ($myRow->EvRunning==1 ? $runningRank: $myRow->Rank));
 					}

@@ -12,6 +12,8 @@ if (!isset($_SESSION['TourId']) && isset($_REQUEST['TourId']))
 	CreateTourSession($_REQUEST['TourId']);
 }
 
+checkACL(AclCompetition, AclReadOnly);
+
 $PdfData=getRankingTeams();
 
 if(!isset($isCompleteResultBook))

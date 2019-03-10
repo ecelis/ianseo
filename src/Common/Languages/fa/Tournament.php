@@ -33,7 +33,6 @@ $lang['Group']='گروه';
 $lang['Image']='تصویر';
 $lang['ImageChecked']='تصویر بررسی شد';
 $lang['ImgInfo']='(64KB:حداکثر حجم PNG و JPG:تصاویر مجاز(نوع';
-$lang['LogoB']='تصویر پایین';
 $lang['LogoL']='تصویر بالا-چپ';
 $lang['LogoManagement']='مدیریت تصویر';
 $lang['LogoR']='تصویر بالا-راست';
@@ -103,7 +102,6 @@ $lang['Type_FITA 72']='فیتا 72';
 $lang['Type_FITA+50']='فیتا مرحله +50';
 $lang['Type_ITA_Sperimental']='مسابقه برای تازه واردین';
 $lang['Unisex']='مختلط';
-$lang['WarmupTargets']='سیبلهای آماده سازی و تمرین';
 $lang['YearEnd']='تا سال';
 $lang['YearStart']='از سال';
 ?>

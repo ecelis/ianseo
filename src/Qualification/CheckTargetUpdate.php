@@ -3,6 +3,7 @@
 	require_once('Common/Fun_Sessions.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadOnly);
 
 	if (isset($_REQUEST['Command']) && $_REQUEST['Command']=='OK' && $_REQUEST['x_Session']!=-1
 		&& isset($_REQUEST['x_Hour']) && preg_match('/[0-9]{1,2}:[0-9]{1,2}/i',$_REQUEST['x_Hour']))

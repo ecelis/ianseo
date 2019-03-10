@@ -105,7 +105,7 @@ function writeDataRowPrnIndividual($pdf, $item, $distSize, $addSize, $distances,
 	{
 		$TmpX=$pdf->GetX();
 		$TmpY=$pdf->GetY();
-		$RunningTotal='';
+		$RunningTotal=0;
 		for($i=1; $i<=$distances/2;$i++)
 		{
 			list($rank,$score)=explode('|',$item['dist_' . $i]);
@@ -135,7 +135,7 @@ function writeDataRowPrnIndividual($pdf, $item, $distSize, $addSize, $distances,
 		}
 		$pdf->Cell($distSize, 4, is_numeric($RunningTotal) ? number_format($RunningTotal,0,'',$pdf->NumberThousandsSeparator) : '', 1, 0, 'R', 0);
 		$pdf->setXY($TmpX,$TmpY+4);
-		$RunningTotal='';
+		$RunningTotal=0;
 		for($i; $i<=$distances;$i++)
 		{
 			list($rank,$score)=explode('|',$item['dist_' . $i]);

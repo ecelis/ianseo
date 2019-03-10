@@ -1,7 +1,7 @@
 <?php
 $version='2011-10-06 08:48:00';
 
-$AllowedTypes=array(1,3,5,6,7,10,11,12,22);
+$AllowedTypes=array(1,3,5,39,22,6,7,12,10,11);
 
 $SetType['SE']['descr']=get_text('Setup-SE', 'Install');
 $SetType['SE']['types']=array();

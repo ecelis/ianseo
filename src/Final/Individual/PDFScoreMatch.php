@@ -6,6 +6,7 @@
 	require_once('Common/Fun_Phases.inc.php');
 	require_once('Common/Lib/Fun_PrintOuts.php');
 	require_once('Common/Lib/Obj_RankFactory.php');
+	checkACL(AclIndividuals, AclReadOnly);
 
 	$pdf = new ResultPDF((get_text('IndFinal')),false);
 	$pdf->setBarcodeHeader(70);
@@ -241,10 +242,19 @@ function DrawScore(&$pdf, $MyRow, $Side='L') {
 	$pdf->Cell(2*$GoldW,12, $MyRow->{$Prefix.'QualRank'},'BLR',1,'C',1);
 
 //Header
+	$PhaseName='';
+	if($MyRow->{'Phase'}>=0) {
+		$PhaseName=get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->Phase). '_Phase');
+		if($MyRow->EvElimType==3 and isset($pdf->PoolMatches[$MyRow->MatchNo])) {
+			$PhaseName=$pdf->PoolMatches[$MyRow->MatchNo];
+		} elseif($MyRow->EvElimType==4 and isset($pdf->PoolMatchesWA[$MyRow->MatchNo])) {
+			$PhaseName=$pdf->PoolMatchesWA[$MyRow->MatchNo];
+		}
+	}
    	$pdf->SetFont($pdf->FontStd,'B',10);
 	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]);
 	$pdf->Cell($GoldW,CellH,'',0,0,'C',0);
-	$pdf->Cell(2*$GoldW+2*$TotalW+$NumCol*$ArrowW,CellH, ($MyRow->{'Phase'}>=0 ? get_text(namePhase($MyRow->EvFinalFirstPhase, $MyRow->Phase). '_Phase') : ''),1,0,'C',1);
+	$pdf->Cell(2*$GoldW+2*$TotalW+$NumCol*$ArrowW,CellH, $PhaseName,1,0,'C',1);
 //Winner Checkbox
 	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]);
 	$pdf->Cell(2*$GoldW,CellH,'',0,0,'C',0);
@@ -363,26 +373,35 @@ function DrawScore(&$pdf, $MyRow, $Side='L') {
 		}
 		$WhereY[$WhichScore]=$pdf->GetY();
 	}
+
 //Shoot Off
 	$closeToCenter=false;
 	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]+(CellH/4));
 	$pdf->SetFont($pdf->FontStd,'B',8);
-	$pdf->Cell($GoldW,CellH*11/8,(get_text('TB')),1,0,'C',1);
+	$pdf->Cell($GoldW,CellH*($MyRow->EvElimType ? 11 : 23)/8,(get_text('TB')),1,0,'C',1);
 	$ShootOffW=($tmp->so<=$NumCol ? $ArrowW : ($ArrowW*$NumCol)/$tmp->so);
-	for($j=0; $j<$tmp->so; $j++)
-	{
-		$pdf->SetXY($pdf->GetX()+0.5,$pdf->GetY());
-		$pdf->SetFont($pdf->FontStd,'',10);
-		$pdf->Cell($ShootOffW-0.5,CellH*3/4,($FillWithArrows ? DecodeFromLetter(substr($MyRow->{$Prefix.'TieBreak'},$j,1)) : ''),1,0,'C',0);
-		if(substr(($FillWithArrows ? DecodeFromLetter(substr($MyRow->{$Prefix.'TieBreak'},$j,1)) : ''),-1,1)=="*")
-			$closeToCenter=true;
+	$StartX=$pdf->getX();
+	for($i=0; $i<($MyRow->EvElimType ? 1 : 3); $i++) {
+
+		$pdf->SetX($StartX);
+		for($j=0; $j<$tmp->so; $j++) {
+			$pdf->SetXY($pdf->GetX()+0.5,$pdf->GetY());
+			$pdf->SetFont($pdf->FontStd,'',10);
+			$pdf->Cell($ShootOffW-0.5,CellH*3/4,($FillWithArrows ? DecodeFromLetter(substr($MyRow->{$Prefix.'TieBreak'}, $i*$tmp->so + $j ,1)) : ''),1,0,'C',0);
+			if(substr(($FillWithArrows ? DecodeFromLetter(substr($MyRow->{$Prefix.'TieBreak'},$i*$tmp->so + $j,1)) : ''),-1,1)=="*") {
+				$closeToCenter=true;
+			}
+			$pdf->ln();
+		}
 	}
 	if($MyRow->{$Prefix.'Tie'}==1) $SetTotal++;
-	if($NumCol>$j)
-		$pdf->Cell($ArrowW*($NumCol-$j),CellH*3/4,'',0,0,'L',0);
+	//if($NumCol>$j) {
+	//	$pdf->Cell($ArrowW*($NumCol-$j),CellH*3/4,'',0,0,'L',0);
+	//}
+
 //Totale
 	$Errore=($FillWithArrows and (strlen($MyRow->{$Prefix.'ArrowString'}) and ($MyRow->{'EvMatchMode'} ? $MyRow->{$Prefix.'SetScore'}!=$SetTotal : $MyRow->{$Prefix.$ScorePrefix.'Score'}!=$ScoreTotal)));
-	$pdf->SetXY($TopX=$pdf->GetX(),$WhereY[$WhichScore]);
+	$pdf->SetXY($TopX=$StartX+$ArrowW*$NumCol,$WhereY[$WhichScore]);
 	$pdf->SetFont($pdf->FontStd,'B',10);
 	if($MyRow->{'EvMatchMode'}==0)
 	{
@@ -419,7 +438,7 @@ function DrawScore(&$pdf, $MyRow, $Side='L') {
 	$WhereY[$WhichScore]=$pdf->GetY();
 //Closet to the center
 	$pdf->SetFont($pdf->FontStd,'',9);
-	$pdf->SetXY($WhereX[$WhichScore]+$GoldW+$ShootOffW/2,$WhereY[$WhichScore]+CellH/8);
+	$pdf->SetXY($WhereX[$WhichScore]+$GoldW+$ShootOffW/2, $WhereY[$WhichScore]+CellH*($MyRow->EvElimType ? 1 : 13)/8);
 	$pdf->Cell($ShootOffW/2,CellH/2,'',1,0,'R',0);
 	if($closeToCenter)
 	{

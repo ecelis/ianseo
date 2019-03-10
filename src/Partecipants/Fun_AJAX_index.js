@@ -342,23 +342,23 @@ function GetRows_Response()
 			for (var i=0; i<Arr_Id.length;++i)
 			{
 				var ComboDiv
-					= '<select name="d_e_EnDivision_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnDivision_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateField(\'d_e_EnDivision_' + Arr_Id.item(i).firstChild.data + '\');">' + "\n"
-					+ '<option value="">--</option>' + "\n";
+					= '<select name="d_e_EnDivision_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnDivision_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateField(\'d_e_EnDivision_' + Arr_Id.item(i).firstChild.data + '\');">'
+					+ '<option value="">--</option>';
 				for (j=0;j<Divisions.length;++j)
-					ComboDiv+= '<option value="' + Divisions.item(j).firstChild.data + '"' + (Arr_Div.item(i).firstChild.data==Divisions.item(j).firstChild.data ? ' selected' : '') + '>' + Divisions.item(j).firstChild.data + '</option>' + "\n";
-				ComboDiv+= '</select>' + "\n";
+					ComboDiv+= '<option value="' + Divisions.item(j).firstChild.data + '"' + (Arr_Div.item(i).firstChild.data==Divisions.item(j).firstChild.data ? ' selected' : '') + '>' + Divisions.item(j).firstChild.data + '</option>';
+				ComboDiv+= '</select>';
 
 			// genero la combo delle ageclass usando AllClasses
 				var ComboAgeCl
-					= '<select name="d_e_EnAgeClass_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnAgeClass_' + Arr_Id.item(i).firstChild.data + '"' + (Arr_Editable.item(i).firstChild.data==0 ? ' disabled' : '') + ' onChange="javascript:SelectAgeClass(' + Arr_Id.item(i).firstChild.data + ');" onBlur="javascript:UpdateClass(' + Arr_Id.item(i).firstChild.data + ');" onFocus="GetClassesByGender(' + Arr_Id.item(i).firstChild.data + ');">' + "\n"
-					+ '<option value="">--</option>' + "\n";
+					= '<select name="d_e_EnAgeClass_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnAgeClass_' + Arr_Id.item(i).firstChild.data + '"' + (Arr_Editable.item(i).firstChild.data==0 ? ' disabled' : '') + ' onChange="javascript:SelectAgeClass(' + Arr_Id.item(i).firstChild.data + ');" onBlur="javascript:UpdateClass(' + Arr_Id.item(i).firstChild.data + ');" onFocus="GetClassesByGender(' + Arr_Id.item(i).firstChild.data + ');">'
+					+ '<option value="">--</option>';
 
 
 				for (var j=0;j<AllClasses.length;++j)
 				{
-					ComboAgeCl+= '<option value="' + AllClasses.item(j).firstChild.data + '"' + (Arr_AgeCl.item(i).firstChild.data==AllClasses.item(j).firstChild.data ? ' selected' : '') + '>' + AllClasses.item(j).firstChild.data + '</option>' + "\n";
+					ComboAgeCl+= '<option value="' + AllClasses.item(j).firstChild.data + '"' + (Arr_AgeCl.item(i).firstChild.data==AllClasses.item(j).firstChild.data ? ' selected' : '') + '>' + AllClasses.item(j).firstChild.data + '</option>';
 				}
-				ComboAgeCl+= '</select>' + "\n";
+				ComboAgeCl+= '</select>';
 
 			// genero la combo delle classi buone
 				var GoodCl = new Array();
@@ -375,43 +375,43 @@ function GetRows_Response()
 
 				var ComboCl
 					= '<select name="d_e_EnClass_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnClass_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateClass(' + Arr_Id.item(i).firstChild.data + ');">'
-					+ '<option value="">--</option>' + "\n";
+					+ '<option value="">--</option>';
 
 				if (GoodCl.length>0)
 				{
 					for (k=0;k<GoodCl.length;++k)
 					{
-						ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Arr_Cl.item(i).firstChild.data ? ' selected' : '') + '>' + GoodCl[k] + '</option>' + "\n";
+						ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Arr_Cl.item(i).firstChild.data ? ' selected' : '') + '>' + GoodCl[k] + '</option>';
 					}
 				}
 
-				ComboCl+= '</select>' + "\n";
+				ComboCl+= '</select>';
 
 				var ComboSubCl
-					= '<select name="d_e_EnSubClass_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnSubClass_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateField(\'d_e_EnSubClass_' + Arr_Id.item(i).firstChild.data + '\');">' + "\n"
-					+ '<option value="">--</option>' + "\n";
+					= '<select name="d_e_EnSubClass_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnSubClass_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateField(\'d_e_EnSubClass_' + Arr_Id.item(i).firstChild.data + '\');">'
+					+ '<option value="">--</option>';
 				for (j=0;j<SubClasses.length;++j)
-					ComboSubCl+= '<option value="' + SubClasses.item(j).firstChild.data + '"' + (SubClasses.item(j).firstChild.data==Arr_SubCl.item(i).firstChild.data ? ' selected' : '') + '>' + SubClasses.item(j).firstChild.data + '</option>' + "\n";
-				ComboSubCl+= '</select>' + "\n";
+					ComboSubCl+= '<option value="' + SubClasses.item(j).firstChild.data + '"' + (SubClasses.item(j).firstChild.data==Arr_SubCl.item(i).firstChild.data ? ' selected' : '') + '>' + SubClasses.item(j).firstChild.data + '</option>';
+				ComboSubCl+= '</select>';
 
 				var ComboSes
-					= '<select name="d_q_QuSession_' + Arr_Id.item(i).firstChild.data + '" id="d_q_QuSession_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateSession(\'d_q_QuSession_' + Arr_Id.item(i).firstChild.data + '\');">' + "\n"
-					+ '<option value="0">--</option>' + "\n";
+					= '<select name="d_q_QuSession_' + Arr_Id.item(i).firstChild.data + '" id="d_q_QuSession_' + Arr_Id.item(i).firstChild.data + '" onBlur="javascript:UpdateSession(\'d_q_QuSession_' + Arr_Id.item(i).firstChild.data + '\');">'
+					+ '<option value="0">--</option>';
 				for (j=0;j<Sessions.length;++j)
-					ComboSes+= '<option value="' + Sessions.item(j).firstChild.data + '"' + (Sessions.item(j).firstChild.data==Arr_Session.item(i).firstChild.data ? ' selected' : '') + '>' + Sessions.item(j).firstChild.data + '</option>' + "\n";
-				ComboSes+= '</select>' + "\n";
+					ComboSes+= '<option value="' + Sessions.item(j).firstChild.data + '"' + (Sessions.item(j).firstChild.data==Arr_Session.item(i).firstChild.data ? ' selected' : '') + '>' + Sessions.item(j).firstChild.data + '</option>';
+				ComboSes+= '</select>';
 
 			// combo del sesso
 				var ComboSex
-					= '<select name="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '" onChange="javascript:UpdateCtrlCode(' + Arr_Id.item(i).firstChild.data + ')">' + "\n"
-						+ '<option value="0"' + (Arr_SexId.item(i).firstChild.data==0 ? ' selected' : '') + '>' + StrShortMale + '</option>' + "\n"
-						+ '<option value="1"' + (Arr_SexId.item(i).firstChild.data==1 ? ' selected' : '') + '>' + StrShortFemale + '</option>' + "\n"
+					= '<select name="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '" onChange="javascript:UpdateCtrlCode(' + Arr_Id.item(i).firstChild.data + ')">'
+						+ '<option value="0"' + (Arr_SexId.item(i).firstChild.data==0 ? ' selected' : '') + '>' + StrShortMale + '</option>'
+						+ '<option value="1"' + (Arr_SexId.item(i).firstChild.data==1 ? ' selected' : '') + '>' + StrShortFemale + '</option>'
 					+ '</select>';
 
 			// combo of Targetfaces
 				var ComboTf
-					= '<select name="d_e_EnTargetFace_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnTargetFace_' + Arr_Id.item(i).firstChild.data + '" onChange="javascript:UpdateCtrlCode(' + Arr_Id.item(i).firstChild.data + ')">' + "\n"
-						+ '<option value="0">--</option>' + "\n";
+					= '<select name="d_e_EnTargetFace_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnTargetFace_' + Arr_Id.item(i).firstChild.data + '" onChange="javascript:UpdateCtrlCode(' + Arr_Id.item(i).firstChild.data + ')">'
+						+ '<option value="0">--</option>';
 					Div=Arr_Div.item(i).firstChild.data;
 					Clas=Arr_Cl.item(i).firstChild.data;
 					Tf=Arr_TargetFace.item(i).firstChild.data;
@@ -508,10 +508,10 @@ function GetRows_Response()
 				var TD_Sex = document.createElement("TD");
 				TD_Sex.className='Center';
 				TD_Sex.innerHTML
-					= '<select name="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '">' + "\n"
-					+ '<option value="0"' + (Arr_Sex.item(i).firstChild.data==0 ? ' selected' : '') + '>M</option>' + "\n"
-					+ '<option value="1"' + (Arr_Sex.item(i).firstChild.data==1 ? ' selected' : '') + '>F</option>' + "\n"
-					+ '</select>' + "\n";
+					= '<select name="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '" id="d_e_EnSex_' + Arr_Id.item(i).firstChild.data + '">'
+					+ '<option value="0"' + (Arr_Sex.item(i).firstChild.data==0 ? ' selected' : '') + '>M</option>'
+					+ '<option value="1"' + (Arr_Sex.item(i).firstChild.data==1 ? ' selected' : '') + '>F</option>'
+					+ '</select>';
 				*/
 
 				var TD_CtrlCode = document.createElement("TD");
@@ -663,8 +663,9 @@ function CercaMatr(Id,Ret)
 			var dt = new Date();
 
 			var Matr = encodeURIComponent(document.getElementById(Id).value);
+            var selectDiv = encodeURIComponent(document.getElementById(Id).value);
 			var IdReturn =  encodeURIComponent(Ret);
-			CacheMatr.push("Matr=" + Matr + "&IdReturn=" + Ret + "&dt=" + dt.getTime());
+			CacheMatr.push("Matr=" + Matr + "&Div=" + selectDiv + "&IdReturn=" + Ret + "&dt=" + dt.getTime());
 
 			var SplittedId = new Array();
 			SplittedId=Id.split('_');
@@ -774,15 +775,15 @@ function CercaMatr_Response()
 
 	// genero la combo delle ageclass usando AllClasses
 		var ComboAgeCl
-			= '<select name="d_e_EnAgeClass_' + Id + '" id="d_e_EnAgeClass_' + Id + '"' + (Editable==0 ? ' disabled' : '') + ' onChange="javascript:SelectAgeClass(' + Id + ');" onBlur="javascript:UpdateClass(' + Id + ');" onFocus="GetClassesByGender(' + Id + ');">' + "\n"
-			+ '<option value="">--</option>' + "\n";
+			= '<select name="d_e_EnAgeClass_' + Id + '" id="d_e_EnAgeClass_' + Id + '"' + (Editable==0 ? ' disabled' : '') + ' onChange="javascript:SelectAgeClass(' + Id + ');" onBlur="javascript:UpdateClass(' + Id + ');" onFocus="GetClassesByGender(' + Id + ');">'
+			+ '<option value="">--</option>';
 
 
 		for (var j=0;j<AllClasses.length;++j)
 		{
-			ComboAgeCl+= '<option value="' + AllClasses.item(j).firstChild.data + '"' + (AgeClass==AllClasses.item(j).firstChild.data ? ' selected' : '') + '>' + AllClasses.item(j).firstChild.data + '</option>' + "\n";
+			ComboAgeCl+= '<option value="' + AllClasses.item(j).firstChild.data + '"' + (AgeClass==AllClasses.item(j).firstChild.data ? ' selected' : '') + '>' + AllClasses.item(j).firstChild.data + '</option>';
 		}
-		ComboAgeCl+= '</select>' + "\n";
+		ComboAgeCl+= '</select>';
 
 	// genero la combo delle classi buone
 		var GoodCl = new Array();
@@ -799,17 +800,17 @@ function CercaMatr_Response()
 
 		var ComboCl
 			= '<select name="d_e_EnClass_' + Id + '" id="d_e_EnClass_' + Id + '" onBlur="javascript:UpdateClass(' + Id + ');">'
-			+ '<option value="">--</option>' + "\n";
+			+ '<option value="">--</option>';
 
 		if (GoodCl.length>0)
 		{
 			for (k=0;k<GoodCl.length;++k)
 			{
-				ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Class ? ' selected' : '') + '>' + GoodCl[k] + '</option>' + "\n";
+				ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Class ? ' selected' : '') + '>' + GoodCl[k] + '</option>';
 			}
 		}
 
-		ComboCl+= '</select>' + "\n";
+		ComboCl+= '</select>';
 
 		document.getElementById('d_e_EnName_' + Id).value=Name;
 		document.getElementById('d_e_EnFirstName_' + Id).value=FirstName;
@@ -1556,15 +1557,15 @@ function UpdateCtrlCode_Response()
 
 	// genero la combo delle ageclass usando AllClasses
 		var ComboAgeCl
-			= '<select name="d_e_EnAgeClass_' + Id + '" id="d_e_EnAgeClass_' + Id + '"' + (Arr_Editable==0 ? ' disabled' : '') + ' onChange="javascript:SelectAgeClass(' + Id + ');" onBlur="javascript:UpdateClass(' + Id + ');" onFocus="GetClassesByGender(' + Id + ');">' + "\n"
-			+ '<option value="">--</option>' + "\n";
+			= '<select name="d_e_EnAgeClass_' + Id + '" id="d_e_EnAgeClass_' + Id + '"' + (Arr_Editable==0 ? ' disabled' : '') + ' onChange="javascript:SelectAgeClass(' + Id + ');" onBlur="javascript:UpdateClass(' + Id + ');" onFocus="GetClassesByGender(' + Id + ');">'
+			+ '<option value="">--</option>';
 
 
 		for (j=0;j<AllClasses.length;++j)
 		{
-			ComboAgeCl+= '<option value="' + AllClasses.item(j).firstChild.data + '"' + (Arr_AgeCl==AllClasses.item(j).firstChild.data ? ' selected' : '') + '>' + AllClasses.item(j).firstChild.data + '</option>' + "\n";
+			ComboAgeCl+= '<option value="' + AllClasses.item(j).firstChild.data + '"' + (Arr_AgeCl==AllClasses.item(j).firstChild.data ? ' selected' : '') + '>' + AllClasses.item(j).firstChild.data + '</option>';
 		}
-		ComboAgeCl+= '</select>' + "\n";
+		ComboAgeCl+= '</select>';
 
 	// genero la combo delle classi buone
 		var GoodCl = new Array();
@@ -1579,18 +1580,18 @@ function UpdateCtrlCode_Response()
 		}
 
 		var ComboCl
-			= '<select name="d_e_EnClass_' + Id + '" id="d_e_EnClass_' + Id + '" onBlur="javascript:UpdateClass(' + Id + ');">' + "\n"
-			+ '<option value="">--</option>' + "\n";
+			= '<select name="d_e_EnClass_' + Id + '" id="d_e_EnClass_' + Id + '" onBlur="javascript:UpdateClass(' + Id + ');">'
+			+ '<option value="">--</option>';
 
 		if (GoodCl.length>0)
 		{
 			for (k=0;k<GoodCl.length;++k)
 			{
-				ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Arr_Cl ? ' selected' : '') + '>' + GoodCl[k] + '</option>' + "\n";
+				ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Arr_Cl ? ' selected' : '') + '>' + GoodCl[k] + '</option>';
 			}
 		}
 
-		ComboCl+= '</select>' + "\n";
+		ComboCl+= '</select>';
 
 		document.getElementById('Col_AgeCl_' + Id).innerHTML=ComboAgeCl;
 		document.getElementById('Col_Cl_' + Id).innerHTML=ComboCl;
@@ -1700,17 +1701,17 @@ function SelectAgeClass_Response()
 
 		var ComboCl
 			= '<select name="d_e_EnClass_' + Id + '" id="d_e_EnClass_' + Id + '" onBlur="javascript:UpdateClass(' + Id + ');">'
-			+ '<option value="">--</option>' + "\n";
+			+ '<option value="">--</option>';
 
 		if (GoodCl.length>0)
 		{
 			for (k=0;k<GoodCl.length;++k)
 			{
-				ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Class ? ' selected' : '') + '>' + GoodCl[k] + '</option>' + "\n";
+				ComboCl+= '<option value="' + GoodCl[k] + '"' + (GoodCl[k]==Class ? ' selected' : '') + '>' + GoodCl[k] + '</option>';
 			}
 		}
 
-		ComboCl+= '</select>' + "\n";
+		ComboCl+= '</select>';
 
 		document.getElementById('Col_Cl_' + Id).innerHTML=ComboCl;
 
@@ -2057,9 +2058,9 @@ function AddRow_Response()
 	TD_CtrlCode.innerHTML='<input type="text" size="20" maxlength="16" name="d_e_EnCtrlCode_' + NewId + '" id="d_e_EnCtrlCode_' + NewId + '" value="" onBlur="javascript:UpdateCtrlCode(' + NewId + ');">'
 
 	var ComboSex
-		= '<select name="d_e_EnSex_' + NewId + '" id="d_e_EnSex_' + NewId + '" onChange="javascript:UpdateCtrlCode(' + NewId + ')">' + "\n"
-			+ '<option value="0">' + StrShortMale + '</option>' + "\n"
-			+ '<option value="1">' + StrShortFemale + '</option>' + "\n"
+		= '<select name="d_e_EnSex_' + NewId + '" id="d_e_EnSex_' + NewId + '" onChange="javascript:UpdateCtrlCode(' + NewId + ')">'
+			+ '<option value="0">' + StrShortMale + '</option>'
+			+ '<option value="1">' + StrShortFemale + '</option>'
 		+ '</select>';
 
 	var TD_Sex = document.createElement("TD");
@@ -2190,9 +2191,9 @@ function DeleteRow(Id,Msg1,Msg2,Msg3,Msg4)
 				if (GetConfirm)
 				{
 					var StrMsg //book
-						= Msg1 + ': ' + document.getElementById('d_e_EnFirstName_' + Id).value + '  ' + document.getElementById('d_e_EnName_' + Id).value + "\n"
-						+ Msg2 + ': ' + document.getElementById('d_c_CoCode_' + Id).value + "\n"
-						+ Msg3 + "\n"
+						= Msg1 + ': ' + document.getElementById('d_e_EnFirstName_' + Id).value + '  ' + document.getElementById('d_e_EnName_' + Id).value
+						+ Msg2 + ': ' + document.getElementById('d_c_CoCode_' + Id).value
+						+ Msg3
 						+ Msg4;
 
 					if (!confirm(StrMsg))

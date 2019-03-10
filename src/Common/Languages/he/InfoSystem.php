@@ -42,6 +42,7 @@ $lang['Matches']='משחקים';
 $lang['NewContent']='מידע חדש זמין';
 $lang['NoDataDisplay']='אין מידע להציג';
 $lang['NotYetDefined']='-לא הוגדר עדין-';
+$lang['OfficialBiography']='ביוגרפיה רשמית';
 $lang['OlympicFont']='שם הפונט האולימפי';
 $lang['OlympicFont-use']='השתמש בפונט אולימפי';
 $lang['OtherInfo']='מידע נוסף';

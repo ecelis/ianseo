@@ -8,11 +8,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore=0;
 	$Troppi=0;
@@ -124,12 +124,12 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<troppi>' . $Troppi . '</troppi>' . "\n";
-	print '<msg>' . $Msg . '</msg>' . "\n";
-	print '<id>' . $Id . '</id>' . "\n";
-	print '<session>' . $Session . '</session>' . "\n";
-	print '<new_targetno>' . $NewTargetNo . '</new_targetno>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<troppi>' . $Troppi . '</troppi>';
+	print '<msg>' . $Msg . '</msg>';
+	print '<id>' . $Id . '</id>';
+	print '<session>' . $Session . '</session>';
+	print '<new_targetno>' . $NewTargetNo . '</new_targetno>';
+	print '</response>';
 ?>

@@ -2,11 +2,11 @@
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	
 /****** Controller ******/
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 	
 	$tourId=StrSafe_DB($_SESSION['TourId']);
 

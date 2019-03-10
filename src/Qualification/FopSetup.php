@@ -2,6 +2,7 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 include_once('Common/pdf/ResultPDF.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 $pdf = new ResultPDF(get_text('FopSetup'),false);
 

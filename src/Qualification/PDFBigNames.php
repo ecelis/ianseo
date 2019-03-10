@@ -1,5 +1,6 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclQualification, AclReadOnly);
 require_once('Common/pdf/IanseoPdf.php');
 
 $pdf = new IanseoPdf('',false);

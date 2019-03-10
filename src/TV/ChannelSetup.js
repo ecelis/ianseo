@@ -6,7 +6,7 @@ function saveChannel() {
 	var rule = $('#Rule\\[0\\]').val();
 	var status = $('#Status\\[0\\]').val();
 
-	$.getJSON("ChannelsUpdate.php?act=save&name="+name+"&msg="+message+"&url="+url+"&tour="+tour+"&rule="+rule+"&status="+status,
+	$.getJSON("ChannelsUpdate.php?act=save&name="+encodeURIComponent(name)+"&msg="+encodeURIComponent(message)+"&url="+encodeURIComponent(url)+"&tour="+tour+"&rule="+rule+"&status="+status,
 		function(data) {
 			if(data.error==0) {
 				var rowClone=$('#newRow').clone();
@@ -32,7 +32,7 @@ function saveChannel() {
 }
 
 function update(obj) {
-	$.getJSON("ChannelsUpdate.php?act=update&"+obj.id+"="+obj.value,
+	$.getJSON("ChannelsUpdate.php?act=update&"+obj.id+"="+encodeURIComponent(obj.value),
 		function(data) {
 			if(data.TVRules!=undefined) {
 				// we have TV rules to update!

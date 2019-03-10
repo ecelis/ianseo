@@ -12,11 +12,11 @@
 	require_once ('Partecipants/Fun_Partecipants.local.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Arr_Tabelle = array
 	(
@@ -55,8 +55,8 @@
 			 * e squadre
 			 */
 				$recalc=false;
-				$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
-				$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+				$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
+				$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 				switch($Campo) {
 					case 'EnDivision':
@@ -71,7 +71,7 @@
 							$x=Params4Recalc($Chiave);
 							if ($x!==false)
 							{
-								list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+								list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld)=$x;
 							}
 						}
 						break;
@@ -158,12 +158,12 @@
 							$x=Params4Recalc($Chiave);
 							if ($x!==false)
 							{
-								list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+								list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 							}
 
 						// ricalcolo il vecchio e il nuovo
-							RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
-							RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+							RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
+							RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 						// rank di classe x tutte le distanze
 							$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";
@@ -184,11 +184,11 @@
 			else
 				$Errore=1;
 
-			print '<response>' . "\n";
-			print '<error>' . $Errore . '</error>' . "\n";
-			print '<which>' . $Which . '</which>' . "\n";
-			print '<value>' . ((($Campo=='CoParent1' || $Campo=='CoParent2') && $passValue='') ? '' : $Value) . '</value>' . "\n";
-			print '</response>' . "\n";
+			print '<response>';
+			print '<error>' . $Errore . '</error>';
+			print '<which>' . $Which . '</which>';
+			print '<value>' . ((($Campo=='CoParent1' || $Campo=='CoParent2') && $passValue='') ? '' : $Value) . '</value>';
+			print '</response>';
 		}
 	}
 

@@ -8,6 +8,7 @@ require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
 
 CheckTourSession(true);
+checkACL(AclQualification,AclReadWrite);
 $EnBib='-';
 $archers=array();
 
@@ -47,6 +48,7 @@ if($_GET) {
 		}
 	}
 
+
 	// sets the distance
 	if(!empty($_GET['D'])) $D=intval($_GET['D']);
 
@@ -62,8 +64,7 @@ if($_GET) {
 		// _GET['target']
 		$archers=getScore($D, $_GET['B']);
 		if($EnBib=='-') {
-			$tmp=each($archers);
-			$EnBib=$tmp['key'];
+			$EnBib=key($archers);
 		}
 		// if we have a "C" input (beware of autoedit!) then do the action
 		if(!empty($_GET['C'])) {
@@ -155,8 +156,9 @@ if($_GET) {
 						}
 						break;
 					case strtoupper($_GET['B']):
-// 						echo "qui";exit;
-						foreach($archers as $arc) updateArcher($arc, $D);
+						foreach($archers as $arc) {
+						    updateArcher($arc, $D);
+						}
 						unset($_GET['C']);
 						unset($_GET['B']);
 						cd_redirect(basename(__FILE__).go_get());
@@ -171,9 +173,9 @@ if($_GET) {
 					// reset SOfs
 					$SQL=" SELECT DISTINCT EvCode,EvTeamEvent
 						FROM Events
-						INNER JOIN EventClass ON EvCode=EcCode AND (EvTeamEvent='0' OR EvTeamEvent='1') AND EcTournament={$_SESSION['TourId']}
-						INNER JOIN Entries ON TRIM(EcDivision)=TRIM(EnDivision) AND TRIM(EcClass)=TRIM(EnClass)  AND EnId={$archer->EnId}
-					WHERE (EvTeamEvent='0' AND EnIndFEvent='1') OR (EvTeamEvent='1' AND EnTeamFEvent='1') AND EvTournament={$_SESSION['TourId']} ";
+						INNER JOIN EventClass ON EvCode=EcCode AND if(EvTeamEvent='0', EcTeamEvent=0, EcTeamEvent>0) AND EcTournament={$_SESSION['TourId']}
+						INNER JOIN Entries ON TRIM(EcDivision)=TRIM(EnDivision) AND TRIM(EcClass)=TRIM(EnClass) AND if(EcSubClass='', true, EcSubClass=EnSubClass) AND EnId={$archer->EnId}
+					WHERE (EvTeamEvent='0' AND EnIndFEvent='1') OR (EvTeamEvent='1' AND EnTeamFEvent+EnTeamMixEvent>0) AND EvTournament={$_SESSION['TourId']} ";
 					$Rs=safe_r_sql($SQL);
 
 					while ($row=safe_fetch($Rs)) {
@@ -191,41 +193,45 @@ if($_GET) {
 						// distance Rank
 						$Event = '*#*#';
 
-						$Select = "SELECT CONCAT(EnDivision,EnClass) AS MyEvent, EnCountry as MyTeam,EnDivision,EnClass
+						$Select = "SELECT CONCAT(EnDivision,EnClass) AS MyEvent, EnCountry as MyTeam, EnDivision, EnClass, EnIndClEvent, EnIndFEvent, EnTeamClEvent, EnTeamFEvent+EnTeamMixEvent as AbsTeam
 							FROM Entries
 							WHERE EnId={$archer->EnId} AND EnTournament={$_SESSION['TourId']}";
 						$Rs=safe_r_sql($Select);
 
 						if ($rr=safe_fetch($Rs)) {
-							$Event=$rr->MyEvent;
+							$Event = $rr->MyEvent;
 							$Category = $rr->MyEvent;
 							$Club = $rr->MyTeam;
 							$Div = $rr->EnDivision;
 							$Cl = $rr->EnClass;
 
-							CalcQualRank($D, $Event);
-							CalcQualRank(0, $Event);
+							if($rr->EnIndClEvent) {
+                                CalcQualRank($D, $Event);
+                                CalcQualRank(0, $Event);
+                            }
 
-							// events to recalculate
-							$events4abs=array();
-							$q="SELECT EcCode FROM EventClass
-								WHERE EcTournament={$_SESSION['TourId']} AND EcTeamEvent=0 AND EcDivision='" . $Div . "' AND EcClass='" . $Cl. "' ";
-							$r=safe_r_sql($q);
+                            // regular teams
+                            if($rr->EnTeamClEvent) {
+                                MakeTeams($Club, $Category);
+                            }
 
-							while ($tmp=safe_fetch($r)) {
-								$events4abs[]=$tmp->EcCode;
-							}
+                            // recalc AbsTeams
+                            if($rr->AbsTeam) {
+                                MakeTeamsAbs($Club, $Div, $Cl);
+                            }
 
-							if ($events4abs) {
-								Obj_RankFactory::create('Abs', array('events'=>$events4abs, 'dist'=>$D))->calculate();
-								Obj_RankFactory::create('Abs', array('events'=>$events4abs, 'dist'=>0))->calculate();
-
-								// regular teams
-								MakeTeams($Club, $Category);
-
-								// Events Teams
-								MakeTeamsAbs($Club, $Div, $Cl);
-							}
+                            if($rr->EnIndFEvent) {
+                                // recalc Individuals
+                                $events4abs=array();
+                                $Rs=safe_r_sql("select distinct IndEvent from Individuals where IndId={$archer->EnId} AND IndTournament={$_SESSION['TourId']}");
+                                while($rr=safe_fetch($Rs)) {
+                                    $events4abs[] = $tmp->EcCode;
+                                }
+                                if ($events4abs) {
+                                    Obj_RankFactory::create('Abs', array('events' => $events4abs, 'dist' => $D))->calculate();
+                                    Obj_RankFactory::create('Abs', array('events' => $events4abs, 'dist' => 0))->calculate();
+                                }
+                            }
 						}
 					}
 				}
@@ -278,9 +284,9 @@ include('Common/Templates/head.php');
 		<th><?php print get_text('Session');?></th>
 	</tr>
 	<tr>
-		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="Targets" <?php echo (!empty($_GET['Targets']) ? ' checked="checked"' : ''); ?>></td>
+		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="Targets" <?php echo ((empty($_GET) or !empty($_GET['Targets'])) ? ' checked="checked"' : ''); ?>></td>
 		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="AutoEdit"  <?php echo (!empty($_GET['AutoEdit']) ? ' checked="checked"' : ''); ?>></td>
-		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="ShowMiss"  <?php echo (!empty($_GET['ShowMiss']) ? ' checked="checked"' : ''); ?>></td>
+		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="ShowMiss"  <?php echo ((empty($_GET) or !empty($_GET['ShowMiss'])) ? ' checked="checked"' : ''); ?>></td>
 		<td class="Center"><select id="Distance" name="D"  onchange="document.Frm.bib.focus()"><option value="0"></option><?php
 $q=safe_r_sql("Select ToNumDist, ToGolds, ToXNine from Tournament where ToId={$_SESSION['TourId']}");
 $TOUR=safe_fetch($q);
@@ -301,7 +307,7 @@ while($r=safe_fetch($q)) echo '<option value="'.$r->SesOrder.'" '.(!empty($_GET[
 </tr>
 	<tr>
 		<td class="Center" colspan="2"><input type="submit" value="<?php print get_text('CmdGo','Tournament');?>" id="Vai" onClick="javascript:SendBib();"></td>
-		<td class="Center"><input type="button" value="<?php print get_text('BarcodeMissing','Tournament');?>" onClick="window.open('./GetScoreBarCodeMissing.php?D='+document.getElementById('Distance').value+'&T='+document.getElementById('Session').value);"></td>
+		<td class="Center"><input type="button" value="<?php print get_text('BarcodeMissing','Tournament');?>" onClick="window.open('./GetScoreBarCodeMissing.php?S=Q&D='+document.getElementById('Distance').value+'&T='+document.getElementById('Session').value);"></td>
 	</tr>
 
 	<tr>
@@ -393,14 +399,16 @@ if($ShowMiss) {
 		inner join Session on SesOrder=$T and SesTournament=EnTournament and SesType='Q'
 		WHERE EnAthlete=1
 			AND EnTournament = {$_SESSION['TourId']} AND EnStatus<=1
-			AND EnId not in (select AEId from AccEntries where AETournament={$_SESSION['TourId']} and AEOperation=".(100+$D).")
+			AND QuConfirm & ".pow(2, $D)." = 0
 		ORDER BY QuTargetNo ";
 	$Q=safe_r_sql($MyQuery);
 	while($r=safe_fetch($Q)) {
-		if($tgt!=intval($r->TargetNo)) {
+		if(empty($_GET['Targets']) or $tgt!=intval($r->TargetNo)) {
 			$tgt=intval($r->TargetNo);
 			$cnt++;
 		}
+//		$lnk=' onclick="location.href=\''.go_get('B', $r->match1.$_SESSION['BarCodeSeparator'].$r->teamEvent.$_SESSION['BarCodeSeparator'].$r->event).'\'"';
+
 		$tmpRow .= '<tr><td>'.$r->TargetNo.'</td><td>'.$r->DivCode.$r->ClassCode.'</td><td nowrap="nowrap">'.$r->FirstName.' '.$r->Name.'</td></tr>';
 	}
 	echo '<tr><th colspan="3">' . get_text('TotalMissingScorecars','Tournament',$cnt) . '</th></tr>';
@@ -437,7 +445,8 @@ function getScore($dist, $barcode, $strict=false) {
 			$div=$tmp[2];
 			$cls=$tmp[3];
 		} else {
-			$bib=ltrim($tmp[0], '0');
+			//$bib=ltrim($tmp[0], '0'); // why??? Breaks all the regular bibs that start with 0!
+			$bib=$tmp[0];
 			$div=$tmp[1];
 			$cls=$tmp[2];
 		}
@@ -466,20 +475,44 @@ function getScore($dist, $barcode, $strict=false) {
 		while($r=safe_fetch($q)) $ret["$r->EnBib"]=$r;
 		if(count($ret)>1) $ret=array();
 	}
+	if(!$ret) {
+		$filter="EdExtra='$bib' and EnDivision='$div' and EnClass='$cls'";
+		$filter2="EdExtra='$bib'";
+		$EnBib=$bib;
+
+		if(!$strict and !empty($_GET['Targets'])) {
+			$filter="left(QuTargetNo,4)=(select left(QuTargetNo,4) from Qualifications inner join Entries on EnId=QuId and EnTournament={$_SESSION['TourId']} where $filter)";
+		}
+		if(empty($bib) or empty($div) or empty($cls)) return;
+
+		$SQL="select QuTargetNo, EdExtra EnBib, EnId, EnName, upper(EnFirstname) Firstname, EnDivision, EnClass, QuScore tScore, QuGold tGold, QuXnine tXnine, " .
+			($dist ? "QuD{$dist}Score Score, QuD{$dist}Gold Gold, QuD{$dist}Xnine Xnine" : "QuScore Score, QuGold Gold, QuXnine Xnine") . "
+            from Qualifications 
+            inner join Entries on EnId=QuId and EnTournament={$_SESSION['TourId']} 
+            inner JOIN ExtraData ON EdType='Z' and EdId=EnId
+            where $filter
+            order by QuTargetNo, EnDivision='$div' desc, EnClass='$cls' desc ";
+		$q=safe_r_sql($SQL, false, true);
+		while($r=safe_fetch($q)) $ret["$r->EnBib"]=$r;
+		if(!$ret) {
+			$SQL="select QuTargetNo, EdExtra EnBib, EnId, EnName, upper(EnFirstname) Firstname, EnDivision, EnClass, QuScore tScore, QuGold tGold, QuXnine tXnine, " .
+				($dist ? "QuD{$dist}Score Score, QuD{$dist}Gold Gold, QuD{$dist}Xnine Xnine" : "QuScore Score, QuGold Gold, QuXnine Xnine") . "
+				from Qualifications 
+				inner join Entries on EnId=QuId and EnTournament={$_SESSION['TourId']} 
+                inner JOIN ExtraData ON EdType='Z' and EdId=EnId
+				where $filter2
+				order by QuTargetNo, EnDivision='$div' desc, EnClass='$cls' desc ";
+			$q=safe_r_sql($SQL, false, true);
+			while($r=safe_fetch($q)) $ret["$r->EnBib"]=$r;
+			if(count($ret)>1) $ret=array();
+		}
+	}
 	return $ret;
 }
 
 function updateArcher($archer, $D) {
-	$SQL= "INSERT INTO AccEntries "
-		. "(AEId,AEOperation,AETournament,AEWhen,AEFromIp) "
-		. "VALUES("
-		. StrSafe_DB($archer->EnId) . ","
-		. StrSafe_DB(100+$D) . ","
-		. StrSafe_DB($_SESSION['TourId']) . ","
-		. StrSafe_DB(date('Y-m-d H:i')) . ","
-		. "INET_ATON('" . ($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1') . "') "
-		. ") ON DUPLICATE KEY UPDATE "
-		. "AEWhen=" . StrSafe_DB(date('Y-m-d H:i')) . ","
-		. "AEFromIp=INET_ATON('" . ($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1') . "') ";
+	$SQL= "update Qualifications
+	    set QuConfirm = QuConfirm | ".pow(2, $D) ."
+	    where QuId=$archer->EnId";
 	safe_w_sql($SQL);
 }

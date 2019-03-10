@@ -5,6 +5,7 @@ require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/OrisFunctions.php');
 require_once('Common/pdf/PdfChunkLoader.php');
 
+checkACL(array(AclIndividuals, AclTeams), AclReadOnly);
 /*
 
 call with

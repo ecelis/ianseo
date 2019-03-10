@@ -5,15 +5,13 @@
 	La funzione ajax si preoccuperà di colorare i doppioni
 */
 
-	define('debug',false);
-
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_Sessions.inc.php');
+	checkACL(AclEliminations, AclReadWrite, false);
 
 	$flags=array();
 
-	function findClone()
-	{
+	function findClone() {
 		global $flags;
 
 		$Select="
@@ -48,11 +46,11 @@
 				$flags[$MyRow->Id]['quantity']=($MyRow->q>1 ? 0:1);
 				$flags[$MyRow->Id]['out']=1;
 				/*$xml
-					.= '<target>' . "\n"
-					 	. '<id>' . $MyRow->Id . '</id>' . "\n"
+					.= '<target>'
+					 	. '<id>' . $MyRow->Id . '</id>'
 					 	. '<good>' . ($MyRow->q>1 ? 0:1). '</good>'
 					 	. '<q>' . ($MyRow->q). '</q>'
-					 . '</target>' . "\n";*/
+					 . '</target>';*/
 			}
 		}
 	}
@@ -122,19 +120,18 @@
 	{
 		//print $k . ': ' . $v['quantity']*$v['out'].'<br>';
 		$xml
-			.= '<target>' . "\n"
-			 	. '<id>' . $k . '</id>' . "\n"
+			.= '<target>'
+			 	. '<id>' . $k . '</id>'
 			 // 0 male 1 buono
 			 	. '<good>' . ($v['quantity']*$v['out']). '</good>'
-			 . '</target>' . "\n";
+			 . '</target>';
 	}
 
 
-	if (!debug)
-		header('Content-Type: text/xml');
+	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print $xml;
-	print '</response>' . "\n";
+	print '</response>';
 ?>

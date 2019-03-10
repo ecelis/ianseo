@@ -1,4 +1,10 @@
 <?php
+/*
+ *
+ * TODO: reorder bis targets in the flow for Fields and 3D
+ *
+ *
+ * */
 	@define('debug',false);	// settare a true per l'output di debug
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
@@ -8,6 +14,7 @@
 	require_once('Common/Fun_Sessions.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadWrite);
 
 
 	$JS_SCRIPT=array(

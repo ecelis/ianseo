@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadWrite);
 	require_once('Common/Lib/CommonLib.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Number.inc.php');

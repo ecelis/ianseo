@@ -9,11 +9,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!isset($_REQUEST['Code']) ||  !isset($_REQUEST['Name']) || !CheckTourSession())
-	{
+	if (!isset($_REQUEST['Code']) ||  !isset($_REQUEST['Name']) || !CheckTourSession())	{
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore=0;
 	$NuovoNome=0;
@@ -57,10 +57,10 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<new_name><![CDATA[' . stripslashes($NuovoNome) . ']]></new_name>' . "\n";
-	print '<name><![CDATA[' . stripslashes((trim($_REQUEST['Name'])!='' ? $_REQUEST['Name'] : '#')) . ']]></name>' . "\n";
-	print '<code>' . $_REQUEST['Code'] . '</code>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<new_name><![CDATA[' . stripslashes($NuovoNome) . ']]></new_name>';
+	print '<name><![CDATA[' . stripslashes((trim($_REQUEST['Name'])!='' ? $_REQUEST['Name'] : '#')) . ']]></name>';
+	print '<code>' . $_REQUEST['Code'] . '</code>';
+	print '</response>';
 ?>

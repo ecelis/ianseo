@@ -1,7 +1,10 @@
 <?php
 
-if(!empty($_GET['SEP']) && strlen(($_GET['SEP']))==1) {
-	$_SESSION['BarCodeSeparator']=$_GET['SEP'][0];
+if(!empty($_GET['SEP'])
+        and (mb_strlen(($_GET['SEP']))==1
+            or (mb_strlen(($_GET['SEP']))==3 and mb_substr($_GET['SEP'],0,1)==mb_substr($_GET['SEP'], 1, 1) and mb_substr($_GET['SEP'],0,1)==mb_substr($_GET['SEP'],2,1)))) {
+
+    $_SESSION['BarCodeSeparator']=mb_substr($_GET['SEP'], 0, 1);
 	CD_redirect($_SERVER['PHP_SELF']);
 }
 
@@ -30,7 +33,7 @@ include('Common/Templates/head.php');
 		<td class="Center" colspan="2"><input type="submit" value="' . get_text('CmdGo','Tournament') . '" id="Vai" onClick="javascript:SendBib();"></td>
 		</tr>';
 	echo '<tr class="divider"><td colspan="2"></td></tr>
-		<tr><th colspan="2"><img src="beiter.png" width="80" hspace="10" alt="Beiter Logo" border="0"/><br>' . get_text('Credits-BeiterCredits', 'Install') . '</th></tr>'; 
+		<tr><th colspan="2"><img src="beiter.png" width="80" hspace="10" alt="Beiter Logo" border="0"/><br>' . get_text('Credits-BeiterCredits', 'Install') . '</th></tr>';
 	?>
 </table>
 </form>

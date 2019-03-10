@@ -1,6 +1,8 @@
 <?php
 if (!defined('IN_PHP')) CD_redirect();
 
+require_once('Common/Lib/Fun_Phases.inc.php');
+
 // Show the already made Chain
 $RuleChain='<table class="Tabella">';
 $q=safe_r_sql("SELECT TVSequence.*,TVSOrder=(SELECT COUNT(*) FROM TVSequence WHERE TVSRule=$RuleId AND TVSTournament=$TourId) as last FROM TVSequence WHERE TVSRule=$RuleId AND TVSTournament=$TourId ORDER BY TVSOrder");
@@ -164,18 +166,20 @@ ORDER BY DivViewOrder, ClViewOrder	";
 		if (safe_num_rows($RsPh)==1)
 		{
 			$Row=safe_fetch($RsPh);
-			$StartPhase=$Row->Phase;
+			$StartPhase=valueFirstPhase($Row->Phase);
 		}
 	}
-	else
-		$StartPhase=TeamStartPhase;
-
-	for ($i=0,$pp=$StartPhase;$pp>=1;$pp/=2,++$i)
-	{
-		$Arr_PhaseTeam[$i][0]=$pp;
-		$Arr_PhaseTeam[$i][1]=get_text( $pp . '_Phase');
+	else {
+	    $StartPhase=TeamStartPhase;
 	}
 
+	for ($i=0,$pp=$StartPhase; $pp>=1; $pp/=2,++$i) {
+	    $p2=namePhase($StartPhase, $pp);
+	    $pfull=valueFirstPhase($pp);
+		$Arr_PhaseTeam[$i][0]=valueFirstPhase($pp);
+		$Arr_PhaseTeam[$i][1]=get_text( $p2 . '_Phase');
+		if($p2!=$pfull) $Arr_PhaseTeam[$i][1].='/'.get_text( $pfull . '_Phase');
+	}
 	$Arr_PhaseTeam[$i][0]=0;
 	$Arr_PhaseTeam[$i][1]=get_text('0_Phase');
 
@@ -346,10 +350,14 @@ if($NumSession>1) {
 	echo '</tr>';
 }
 
-?>
-</table>
+echo '</table>';
 
-<div id="EventPhaseSel"></div>
+echo '<div id="EventPhaseSel"></div>';
+
+?>
+
+
+
 
 <br/>
 <table class="Tabella">
@@ -527,16 +535,16 @@ function getDefaults(&$Rmain) {
 		'col2e' => 'black',
 		'col2o' => 'black',
 		'rev1e' => 'black',
-		'rev1o' => 'white',
+		'rev1o' => 'black',
 		'rev2e' => 'black',
-		'rev2o' => 'white',
+		'rev2o' => 'black',
 		'bck1e' => 'linear-gradient(to right, #FFFFFF, #DDDDDD)',
 		'bck1o' => 'linear-gradient(to right, #EDDE5D, #F09819)',
 		'bck2e' => 'linear-gradient(#FFFFFF, #DDDDDD)',
 		'bck2o' => 'linear-gradient(#EDDE5D, #F09819)',
-		'title' => 'background: linear-gradient(#1E5799, #7DB9E8);font-size:2.5em; text-align:center; width:100%; padding:0.5em; box-sizing:border-box;color: white;',
-		'Headers' => 'background: linear-gradient(#1E5799, #7DB9E8);font-size:1.5rem; box-sizing:border-box;color: white;white-space:nowrap;',
-		'content' => 'height:100%; left:2%; width:96%;',
+		'title' => 'background: linear-gradient(#1E5799, #7DB9E8);font-size:2.4vw; text-align:center; width:100%; padding:0.5em; box-sizing:border-box;color: white;',
+		'Headers' => 'background: linear-gradient(#1E5799, #7DB9E8);font-size:1.25vw;box-sizing:border-box;color: white;white-space:nowrap;',
+		'content' => 'height:100%; left:2vw; width:96vw;font-size:1vw;',
 	);
 	foreach($ret as $k=>$v) {
 		if(!isset($Rmain[$k])) $Rmain[$k]=$v;

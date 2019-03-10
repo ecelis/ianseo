@@ -27,9 +27,16 @@ if(isset($FilterRequest['Status'])) {
 	$f=$FilterRequest['Status'];
 	$ExtraWhere.=' AND ToCode like '.StrSafe_DB('%'.str_replace('_', '\\_', $f).'%');
 }
-$Filter.='<td><input type="text" class="filter short" id="Status" value="'.$f.'" onchange="getRows()"></td>';
+$Filter.='<td></td>';
 $Headers.='<td class="Title" id="sortStatus" status="'.($Sort=='sortStatus' ? $NegSort[$SortOrder] : 'asc').'" onclick="getRows(this)">' . get_text('Status','Tournament') . '</td>';
 $Columns[]='status';
+
+if($ShowPicture) {
+	$f='';
+	$Filter.='<td></td>';
+	$Headers.='<td class="Title" id="sortPicture" status="'.($Sort=='sortPicture' ? $NegSort[$SortOrder] : 'asc').'" onclick="getRows(this)">' . get_text('Photo','Tournament') . '</td>';
+	$Columns[]='picture';
+}
 
 $f='';
 if(isset($FilterRequest['Session'])) {
@@ -244,7 +251,6 @@ $Filter.='<td>&nbsp;</td>';
 $Headers.='<td class="Title">&nbsp;</td>';
 $Columns[]='delete';
 
-// debug_svela($ExtraWhere);
 $Rows=GetRows($RowKey, $TourId, $OrderBy, $AllTargets, $ExtraWhere);
 
 $JSON=array('html'=>'');
@@ -264,7 +270,7 @@ if (count($Rows)>0) {
 			$oldstyle=$r['key'];
 		}
 
-		$JSON['html'] .= '<tr id="ToId='.$r['tourid'].'&QuTargetNo='.$r['qutargetno'].'&EnId='.$r['id'].'" class="EntryRow '.$styles[$ref].'">';
+		$JSON['html'] .= '<tr id="ToId='.$r['tourid'].'&QuTargetNo='.$r['qutargetno'].'&EnId='.$r['id'].'" enid="'.$r['id'].'" class="EntryRow '.$styles[$ref].'">';
 		foreach($Columns as $col) {
 			switch($col) {
 				case 'edit':
@@ -289,6 +295,9 @@ if (count($Rows)>0) {
 					break;
 				case 'tourcode':
 					$JSON['html'] .= '<td field="'.$col.'" val="'.$r['tourid'].'">'.$r[$col].'</td>';
+					break;
+				case 'picture':
+					$JSON['html'] .= '<td field="'.$col.'" val="'.$r['picture'].'"><img src="'.$CFG->ROOT_DIR.'Common/Images/photo-'.($r[$col] ? 'yes' : 'no').'.gif"></td>';
 					break;
 				case 'session':
 					$JSON['html'] .= '<td field="'.$col.'" val="'.$r['session'].'">'.$r[$col].'</td>';
@@ -329,8 +338,7 @@ if (count($Rows)>0) {
 
 $JSON['html'] .= '</table>';
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);
 
 
 function GetRows($RowKey, $TourId, $OrderBy=null, $AllTargets=false, $ExtraWhere='') {
@@ -346,76 +354,66 @@ function GetRows($RowKey, $TourId, $OrderBy=null, $AllTargets=false, $ExtraWhere
 
 	$Select="";
 	if (!$AllTargets) {
-		$Select = "SELECT $RowKey, e.*,IF(EnDob=0,'',EnDob) AS Dob,c.CoCode,c.CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2,  c3.CoCode AS CoCode3,c3.CoName AS CoName3,"
-			. "q.QuSession AS `Session`,SUBSTRING(q.QuTargetNo,2) AS TargetNo,ToWhenFrom,TfName, ToCode,ToId,QuTargetNo,"
-			. "eextra.EdEmail, zextra.EdExtra locBib, cextra.EdExtra AccrCaption "
-			. "FROM Entries AS e LEFT JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament "
-			. "LEFT JOIN Countries AS c2 ON e.EnCountry2=c2.CoId AND e.EnTournament=c2.CoTournament "
-			. "LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament "
-			. "LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId "
-			. "LEFT JOIN ExtraData eextra ON eextra.EdType='E' and eextra.EdId=EnId "
-			. "LEFT JOIN ExtraData zextra ON zextra.EdType='Z' and zextra.EdId=EnId "
-			. "LEFT JOIN ExtraData cextra ON cextra.EdType='C' and cextra.EdId=EnId "
-			. "INNER JOIN Qualifications AS q ON e.EnId=q.QuId "
-			. "INNER JOIN Tournament ON EnTournament=ToId "
-			. "WHERE e.EnTournament in ({$TourId}) $ExtraWhere "
-			. "ORDER BY " . $OrderBy . " ";
+		$Select = "SELECT $RowKey, e.*,IF(EnDob=0,'',EnDob) AS Dob,c.CoCode,c.CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2, c3.CoCode AS CoCode3, c3.CoName AS CoName3,
+			q.QuSession AS `Session`,SUBSTRING(q.QuTargetNo,2) AS TargetNo,ToWhenFrom,TfName, ToCode,ToId,QuTargetNo,
+			eextra.EdEmail, zextra.EdExtra locBib, cextra.EdExtra AccrCaption, PhPhoto is not null as HasPhoto
+			FROM Entries AS e 
+			INNER JOIN Qualifications AS q ON e.EnId=q.QuId 
+			INNER JOIN Tournament ON EnTournament=ToId 
+			LEFT JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament 
+			LEFT JOIN Countries AS c2 ON e.EnCountry2=c2.CoId AND e.EnTournament=c2.CoTournament 
+			LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament 
+			LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId 
+			LEFT JOIN ExtraData eextra ON eextra.EdType='E' and eextra.EdId=EnId 
+			LEFT JOIN ExtraData zextra ON zextra.EdType='Z' and zextra.EdId=EnId 
+			LEFT JOIN ExtraData cextra ON cextra.EdType='C' and cextra.EdId=EnId 
+			LEFT JOIN Photos ON PhEnId=EnId 
+			WHERE e.EnTournament in ({$TourId}) $ExtraWhere 
+			ORDER BY $OrderBy";
 	} else {
-		$Select
-			= "(SELECT RowKey, EnId,EnIocCode,EnTournament,EnDivision,EnClass,EnSubClass,EnAgeClass,ToCode,ToId,"
-			. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,Dob,"
-			. "EnCode,EnName,EnFirstName,EnBadgePrinted,EnAthlete,"
-			. "EnSex,EnWChair,EnSitting,EnIndClEvent,EnTeamClEvent,EnIndFEvent,EnTeamFEvent,EnTeamMixEvent,"
-			. "EnDoubleSpace,EnPays,EnStatus,EnTargetFace,EnTimestamp,TfName, "
-			. "CoCode,CoName,CoCode2,CoName2,CoCode3,CoName3,"
-			. "SUBSTRING(AtTargetNo,1,1) AS `Session`,SUBSTRING(AtTargetNo,2) AS TargetNo,AtTargetNo QuTargetNo,sq.ToWhenFrom, EdEmail, EdExtra locBib, AccrCaption "
-			. "FROM "
-			. "AvailableTarget
-					INNER JOIN Tournament ON AtTournament=ToId
-					LEFT JOIN ("
-				. "SELECT "
-				. "$RowKey, EnId,EnIocCode,EnTournament,EnDivision,EnClass,EnSubClass,EnAgeClass,eextra.EdEmail,zextra.EdExtra, cextra.EdExtra AccrCaption,"
-				. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob,"
-				. "EnCode,EnName,EnFirstName,EnBadgePrinted,EnAthlete,"
-				. "EnSex,EnWChair,EnSitting,EnIndClEvent,EnTeamClEvent,EnIndFEvent,EnTeamFEvent,EnTeamMixEvent,"
-				. "EnDoubleSpace,EnPays,EnStatus,EnTargetFace,EnTimestamp,TfName, "
-				. "c.CoCode AS CoCode,c.CoName AS CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2,c3.CoCode AS CoCode3,c3.CoName AS CoName3, q.QuSession AS `Session`,SUBSTRING(q.QuTargetNo,2) AS TargetNo,q.QuTargetNo AS QuTargetNo,ToWhenFrom "
-				. "FROM Entries AS e LEFT JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament "
-				. "LEFT JOIN Countries AS c2 ON e.EnCountry2=c2.CoId AND e.EnTournament=c2.CoTournament "
-				. "LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament "
-				. "LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId "
-				. "LEFT JOIN ExtraData eextra ON eextra.EdType='E' and eextra.EdId=EnId "
-				. "LEFT JOIN ExtraData zextra ON zextra.EdType='Z' and zextra.EdId=EnId "
-				. "LEFT JOIN ExtraData cextra ON cextra.EdType='C' and cextra.EdId=EnId "
-				. "INNER JOIN Qualifications AS q ON e.EnId=q.QuId "
-				. "INNER JOIN Tournament ON EnTournament=ToId "
-				. "WHERE e.EnTournament in ({$TourId}) $ExtraWhere "
-				. "ORDER BY " . $OrderBy . " "
-				. ") AS sq ON AtTournament=EnTournament AND AtTargetNo=QuTargetNo "
-			. "WHERE AtTournament in ({$TourId})) "
-
-			. "UNION ALL "
-
-			. "(SELECT $RowKey, EnId,EnIocCode,EnTournament,EnDivision,EnClass,EnSubClass,EnAgeClass,ToCode,ToId,"
-			. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob,"
-			. "EnCode,EnName,EnFirstName,EnBadgePrinted,EnAthlete,"
-			. "EnSex,EnWChair,EnSitting,EnIndClEvent,EnTeamClEvent,EnIndFEvent,EnTeamFEvent,EnTeamMixEvent,"
-			. "EnDoubleSpace,EnPays,EnStatus,EnTargetFace,EnTimestamp,TfName, "
-			. "c.CoCode AS CoCode,c.CoName AS CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2,c3.CoCode AS CoCode3,c3.CoName AS CoName3,"
-			. "q.QuSession AS `Session`,SUBSTRING(q.QuTargetNo,2) AS TargetNo,QuTargetNo, ToWhenFrom,eextra.EdEmail, zextra.EdExtra locBib, cextra.EdExtra AccrCaption "
-
-			. "FROM "
-			. "Entries LEFT JOIN Countries AS c ON EnCountry=c.CoId AND EnTournament=c.CoTournament "
-			. "LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId "
-			. "LEFT JOIN Countries AS c2 ON EnCountry2=c2.CoId AND EnTournament=c2.CoTournament "
-			. "LEFT JOIN Countries AS c3 ON EnCountry3=c3.CoId AND EnTournament=c3.CoTournament "
-			. "LEFT JOIN ExtraData eextra ON eextra.EdType='E' and eextra.EdId=EnId "
-			. "LEFT JOIN ExtraData zextra ON zextra.EdType='Z' and zextra.EdId=EnId "
-			. "LEFT JOIN ExtraData cextra ON cextra.EdType='C' and cextra.EdId=EnId "
-			. "INNER JOIN Qualifications AS q ON EnId=q.QuId "
-			. "INNER JOIN Tournament ON EnTournament=ToId "
-			. "WHERE EnTournament in ({$TourId}) AND length(QuTargetNo)<4 $ExtraWhere ) "
-			. "ORDER BY " . $OrderBy . " ";
+		$Select = "(SELECT RowKey, EnId, EnIocCode, EnTournament, EnDivision, EnClass, EnSubClass, EnAgeClass, ToCode, ToId,
+				EnCountry, EnSubTeam, EnCountry2, EnCountry3, EnCtrlCode, Dob,
+				EnCode, EnName, EnFirstName, EnBadgePrinted, EnAthlete, EnSex, EnWChair, EnSitting, EnIndClEvent, EnTeamClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent, EnDoubleSpace, 
+				EnPays, EnStatus, EnTargetFace, EnTimestamp, TfName, CoCode, CoName, CoCode2, CoName2, CoCode3, CoName3, 
+				SUBSTRING(AtTargetNo,1,1) AS `Session`, SUBSTRING(AtTargetNo,2) AS TargetNo, AtTargetNo QuTargetNo, sq.ToWhenFrom, EdEmail, EdExtra locBib, AccrCaption, HasPhoto  
+			FROM  AvailableTarget 
+			INNER JOIN Tournament ON AtTournament=ToId 
+			LEFT JOIN (SELECT $RowKey, EnId, EnIocCode, EnTournament, EnDivision, EnClass, EnSubClass, EnAgeClass, eextra.EdEmail, zextra.EdExtra, cextra.EdExtra AccrCaption, 
+					EnCountry, EnSubTeam, EnCountry2, EnCountry3, EnCtrlCode, IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob, 
+					EnCode, EnName, EnFirstName, EnBadgePrinted, EnAthlete, EnSex, EnWChair, EnSitting, EnIndClEvent, EnTeamClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent, EnDoubleSpace,
+					EnPays, EnStatus, EnTargetFace, EnTimestamp, TfName, c.CoCode AS CoCode, c.CoName AS CoName, c2.CoCode AS CoCode2, c2.CoName AS CoName2, c3.CoCode AS CoCode3, c3.CoName AS CoName3, 
+					q.QuSession AS `Session`, SUBSTRING(q.QuTargetNo,2) AS TargetNo, q.QuTargetNo AS QuTargetNo, ToWhenFrom, PhPhoto is not null as HasPhoto  
+				FROM Entries AS e 
+				INNER JOIN Qualifications AS q ON e.EnId=q.QuId  
+				INNER JOIN Tournament ON EnTournament=ToId  
+				LEFT JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament  
+				LEFT JOIN Countries AS c2 ON e.EnCountry2=c2.CoId AND e.EnTournament=c2.CoTournament  
+				LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament  
+				LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId  
+				LEFT JOIN ExtraData eextra ON eextra.EdType='E' and eextra.EdId=EnId  
+				LEFT JOIN ExtraData zextra ON zextra.EdType='Z' and zextra.EdId=EnId  
+				LEFT JOIN ExtraData cextra ON cextra.EdType='C' and cextra.EdId=EnId  
+				WHERE e.EnTournament in ({$TourId}) $ExtraWhere  
+				ORDER BY " . $OrderBy . "  ) AS sq ON AtTournament=EnTournament AND AtTargetNo=QuTargetNo  
+			WHERE AtTournament in ({$TourId}))  
+			UNION ALL  
+			(SELECT $RowKey, EnId, EnIocCode, EnTournament, EnDivision, EnClass, EnSubClass, EnAgeClass, ToCode, ToId, 
+				EnCountry, EnSubTeam, EnCountry2, EnCountry3, EnCtrlCode, IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob, 
+				EnCode, EnName, EnFirstName, EnBadgePrinted, EnAthlete, EnSex, EnWChair, EnSitting, EnIndClEvent, EnTeamClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent, EnDoubleSpace,
+				EnPays, EnStatus, EnTargetFace, EnTimestamp, TfName, c.CoCode AS CoCode, c.CoName AS CoName, c2.CoCode AS CoCode2, c2.CoName AS CoName2, c3.CoCode AS CoCode3, c3.CoName AS CoName3, 
+				q.QuSession AS `Session`, SUBSTRING(q.QuTargetNo,2) AS TargetNo, QuTargetNo, ToWhenFrom, eextra.EdEmail, zextra.EdExtra locBib, cextra.EdExtra AccrCaption, PhPhoto is not null as HasPhoto  
+			FROM  Entries 
+			INNER JOIN Qualifications AS q ON EnId=q.QuId  
+			INNER JOIN Tournament ON EnTournament=ToId  
+			LEFT JOIN Countries AS c ON EnCountry=c.CoId AND EnTournament=c.CoTournament  
+			LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId  
+			LEFT JOIN Countries AS c2 ON EnCountry2=c2.CoId AND EnTournament=c2.CoTournament  
+			LEFT JOIN Countries AS c3 ON EnCountry3=c3.CoId AND EnTournament=c3.CoTournament  
+			LEFT JOIN ExtraData eextra ON eextra.EdType='E' and eextra.EdId=EnId  
+			LEFT JOIN ExtraData zextra ON zextra.EdType='Z' and zextra.EdId=EnId  
+			LEFT JOIN ExtraData cextra ON cextra.EdType='C' and cextra.EdId=EnId  
+			WHERE EnTournament in ({$TourId}) AND length(QuTargetNo)<4 $ExtraWhere )  
+			ORDER BY " . $OrderBy . " ";
 	}
 
 	$Rs=safe_r_sql($Select);
@@ -430,7 +428,7 @@ function GetRows($RowKey, $TourId, $OrderBy=null, $AllTargets=false, $ExtraWhere
 				} elseif(empty($DefTargets[$MyRow->EnTournament][$MyRow->EnDivision][$MyRow->EnClass][$MyRow->EnTargetFace])) {
 					// the assigned target face doesn't exists so resets to the first one (default)
 					reset($DefTargets[$MyRow->EnTournament][$MyRow->EnDivision][$MyRow->EnClass]);
-					list($TfId, $TfFace) = each($DefTargets[$MyRow->EnTournament][$MyRow->EnDivision][$MyRow->EnClass]);
+					$TfId = key($DefTargets[$MyRow->EnTournament][$MyRow->EnDivision][$MyRow->EnClass]);
 					safe_w_sql("update Entries set EnTargetFace=$TfId where EnId=$MyRow->EnId");
 					$MyRow->EnTargetFace=$TfId;
 				}
@@ -438,6 +436,7 @@ function GetRows($RowKey, $TourId, $OrderBy=null, $AllTargets=false, $ExtraWhere
 
 			$ret[]=array(
 					'tourcode' => $MyRow->ToCode,
+					'picture' => $MyRow->HasPhoto,
 					'tourid' => $MyRow->ToId,
 					'qutargetno' => $MyRow->QuTargetNo,
 					'caption' => $MyRow->AccrCaption,

@@ -41,10 +41,10 @@ function CreateStandardEvents($TourId, $SubRule, $Outdoor=true) {
 	switch($SubRule) {
 		default:
 			$i=1;
-			CreateEvent($TourId, $i++, 0, 0,8, $TargetR, 5, 3, 1, 5, 3, 1, 'RH',  'Recurve Heren', 1, 240, 240, 0, 0, 'RM', 'RM', $TargetSizeR, $DistanceR);
+			CreateEvent($TourId, $i++, 0, 0,16, $TargetR, 5, 3, 1, 5, 3, 1, 'RH',  'Recurve Heren', 1, 240, 240, 0, 0, 'RM', 'RM', $TargetSizeR, $DistanceR);
 			CreateEvent($TourId, $i++, 0, 0, 8, $TargetR, 5, 3, 1, 5, 3, 1, 'RD',  'Recurve Damen', 1, 240, 240, 0, 0, 'RW', 'RW', $TargetSizeR, $DistanceR);
-			CreateEvent($TourId, $i++, 0, 0, 8, $TargetC, 5, 3, 1, 5, 3, 1, 'CH',  'Compound Heren', 0, 240, 240, 0, 0, 'CM', 'CM', $TargetSizeC, $DistanceC);
-			CreateEvent($TourId, $i++, 0, 0, 4, $TargetC, 5, 3, 1, 5, 3, 1, 'CD',  'Compound Damen', 0, 240, 240, 0, 0, 'CW', 'CW', $TargetSizeC, $DistanceC);
+			CreateEvent($TourId, $i++, 0, 0, 16, $TargetC, 5, 3, 1, 5, 3, 1, 'CH',  'Compound Heren', 0, 240, 240, 0, 0, 'CM', 'CM', $TargetSizeC, $DistanceC);
+			CreateEvent($TourId, $i++, 0, 0, 8, $TargetC, 5, 3, 1, 5, 3, 1, 'CD',  'Compound Damen', 0, 240, 240, 0, 0, 'CW', 'CW', $TargetSizeC, $DistanceC);
 			break;
 	}
 }

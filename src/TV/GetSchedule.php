@@ -5,13 +5,14 @@
 
 	if (!CheckTourSession() || is_null($schedule))
 		exit;
+    checkACL(AclOutput,AclReadWrite,false);
 
 	$xml='';
 	$error=0;
 
 	$team=substr($schedule,0,1);
 
-	$xml.='<team>' . $team . '</team>' . "\n";
+	$xml.='<team>' . $team . '</team>';
 
 	$tmp=explode(' ',substr($schedule,1));
 
@@ -44,11 +45,11 @@
 
 	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
+	print '<response>';
 
-		print '<error>' . $error . '</error>' . "\n";
+		print '<error>' . $error . '</error>';
 
 		print $xml;
 
-	print '</response>' . "\n";
+	print '</response>';
 ?>

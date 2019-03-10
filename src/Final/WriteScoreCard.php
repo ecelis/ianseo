@@ -11,6 +11,9 @@
 	$d_Phase=isset($_REQUEST['d_Phase']) ? $_REQUEST['d_Phase'] : null;
 	$d_Match=isset($_REQUEST['d_Match']) ? $_REQUEST['d_Match'] : null;
 	$TeamEvent=isset($_REQUEST['Team']) ? $_REQUEST['Team'] : 0;
+	$ElimPool=isset($_REQUEST['ElimPool']) ? $_REQUEST['ElimPool'] : 0;
+
+    checkACL(($TeamEvent ? AclTeams : AclIndividuals), AclReadWrite);
 
 	if(!is_null($d_Match) and !is_null($d_Event)) $ONLOAD=' onload="makeScore('.$TeamEvent.')"';
 
@@ -45,7 +48,15 @@
 			. '<option value="2">' . get_text('Review') . '</option>' . "\n"
 		. '</select>' . "\n";
 
-	$JS_SCRIPT=array(phpVars2js(array("WebDir" => $CFG->ROOT_DIR)),
+	$JS_SCRIPT=array(phpVars2js(array(
+	            "WebDir" => $CFG->ROOT_DIR,
+                'TeamEvent' => $TeamEvent,
+                'ElimPool' => $ElimPool,
+		        'MoveWinner2NextPhase' => get_text('MoveWinner2NextPhase','Tournament'),
+		        'MoveWinner2PoolA' => get_text('MoveWinner2PoolA','Tournament'),
+		        'MoveWinner2PoolB' => get_text('MoveWinner2PoolB','Tournament'),
+		        'Select' => get_text('Select','Tournament'),
+                )),
 			'<style>.hidden {display:none;}</style>'
 	);
 

@@ -1,12 +1,12 @@
 <?php
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclIndividuals, AclReadOnly);
 	require_once('Common/Globals.inc.php');
 	require_once('Common/Fun_DB.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('HHT/Fun_HHT.local.inc.php');
-	require_once('Common/Fun_Modules.php');
 	require_once('Common/Lib/CommonLib.php');
 
 	// calcola la massima fase
@@ -22,8 +22,9 @@
 	$MyQuery = 'SELECT '
         . ' EvCode, EvEventName, GrPhase, MAX(IF(FinAthlete=0,0,1)) as Printable'
         . ' FROM Events '
+        . ' INNER JOIN Phases ON PhId=EvFinalFirstPhase and (PhIndTeam & 1)=1 '
         . ' INNER JOIN Finals ON EvCode=FinEvent AND EvTournament=FinTournament '
-        . ' INNER JOIN Grids ON FinMatchNo=GrMAtchNo AND GrPhase<=(IF(EvFinalFirstPhase=24,32, IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase ))) '
+        . ' INNER JOIN Grids ON FinMatchNo=GrMAtchNo AND if(EvElimType=3, true, GrPhase<=greatest(PhId, PhLevel)) '
         . ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=0 AND EvFinalFirstPhase!=0 '
         . ' GROUP BY EvCode, EvEventName, EvFinalFirstPhase, GrPhase'
         . ' ORDER BY EvCode, GrPhase DESC';
@@ -101,11 +102,8 @@
 	echo '<td width="50%" class="Center"><div align="center">';
 
 /**********************************
- *
  * PRIMA LA COLONNA DI SINISTRA
- *
  *********************************/
-
 //INIZIO - Scores Personali su file unico
 	echo '<br><a href="'.$CFG->ROOT_DIR.'Final/Individual/PDFScore.php" class="Link" target="PrintOut">';
 	echo '<img src="'.$CFG->ROOT_DIR.'Common/Images/pdf.gif" alt="' . get_text('IndFinal') . '" border="0"><br>';
@@ -208,7 +206,9 @@
 	if(module_exists("Barcodes"))
 		echo '<input name="Barcode" type="checkbox" checked value="1">&nbsp;' . get_text('ScoreBarcode','Tournament') . '<br>';
 	foreach(AvailableApis() as $Api) {
-		if(!getModuleParameter($Api, 'Mode')) continue;
+        if(!($tmp=getModuleParameter($Api, 'Mode')) || $tmp=='live' ) {
+            continue;
+        }
 		echo '<input name="QRCode[]" type="checkbox" checked value="'.$Api.'" >&nbsp;' . get_text($Api.'-QRCode','Api') . '<br>';
 	}
 	echo '</td>';
@@ -225,17 +225,14 @@
 //Scores Personali
 	echo '<td width="50%" class="Center"><br>';
 	// recupera per questo torneo quanti formati ci sono...
-	$query="
-		SELECT
-			EvCode, EvMatchMode, EvFinalFirstPhase, EvMatchArrowsNo, EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
-		FROM
-			Events
-		WHERE
-			EvTournament = '{$_SESSION['TourId']}'
+	$query="SELECT EvCode, EvMatchMode, EvFinalFirstPhase, EvMatchArrowsNo, EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
+		FROM Events
+		INNER JOIN Phases on PhId=EvFinalFirstPhase	and (PhIndTeam & 1)=1
+		WHERE EvTournament = '{$_SESSION['TourId']}'
 			AND EvTeamEvent =0
 			AND EvFinalFirstPhase !=0
 		GROUP BY
-			EvMatchMode, EvFinalFirstPhase, (EvMatchArrowsNo & (POW(2,1+LOG(2,IF(EvFinalFirstPhase>0,2*IF(EvFinalFirstPhase=48,64,IF(EvFinalFirstPhase=24,32,EvFinalFirstPhase)),1)))-1)), EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
+			EvMatchMode, EvFinalFirstPhase, (EvMatchArrowsNo & (POW(2,1+LOG(2,IF(EvFinalFirstPhase>0, 2*greatest(PhId, PhLevel), 1)))-1)), EvElimEnds, EvElimArrows, EvElimSO, EvFinEnds, EvFinArrows, EvFinSO
 	";
 	//print $query;
 	$q=safe_r_sql($query);
@@ -363,6 +360,7 @@
 	echo '<input name="BigNames" type="checkbox" checked="checked" />' . get_text('BigNames','Tournament') ;
 	echo '<br/><input name="IncludeLogo" type="checkbox" checked="checked" />' . get_text('IncludeLogo','BackNumbers') ;
 	echo '<br/><input name="TargetAssign" type="checkbox" checked="checked" />' . get_text('TargetAssignment','Tournament') ;
+	echo '<br/><input name="ColouredPhases" type="checkbox" />' . get_text('ColouredPhases','Tournament') ;
 	echo '</td>';
 	echo '<td class="Center" width="25%" >';
 	echo '<input name="Submit" type="submit" value="' . get_text('Print','Tournament') . '">';

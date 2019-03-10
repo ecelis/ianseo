@@ -179,8 +179,7 @@
 					CoId, CoCode, CoName, EnClass, EnDivision,EnAgeClass,  EnSubClass,
 					if(el.ElElimPhase=0, 'Eliminations_1', if(el.ElElimPhase=1 and EvElim1!=0 and EvElim2!=0, 'Eliminations_2', 'Eliminations')) as roundText,
 					ElScore, ElRank, ElGold, ElXnine, ElHits, ElTiebreak, ToGolds AS GoldLabel, ToXNine AS XNineLabel,
-					/*IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) ,IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo,*/
-					IF(el.ElElimPhase=0,EvElim2,IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2)))) AS QualifiedNo,
+					IF(el.ElElimPhase=0,EvElim2,EvNumQualified) AS QualifiedNo,
 					EvProgr,EvCode,EvEventName,el.ElElimPhase, EvRunning, IF(EvRunning=(el.ElElimPhase+2),(IFNULL(ROUND(ElScore/ElHits,3),0)),0) as RunningScore,
 					sqY.Quanti AS NumCT,
 					(el.ElSO>0) AS isSO,
@@ -202,7 +201,7 @@
 					ON el.ElTournament=ToId
 					INNER JOIN
 						Events
-					ON EvCode=el.ElEventCode AND EvTournament=el.ElTournament AND EvTeamEvent=0
+					ON EvCode=el.ElEventCode AND EvTournament=el.ElTournament AND EvTeamEvent=0 and EvElimType<3
 					LEFT JOIN DocumentVersions DV1 on EvTournament=DV1.DvTournament AND DV1.DvFile = 'ELIM' and DV1.DvEvent=''
 					LEFT JOIN DocumentVersions DV2 on EvTournament=DV2.DvTournament AND DV2.DvFile = 'ELIM' and DV2.DvEvent=EvCode
 					/* contatore ct */
@@ -315,6 +314,14 @@
 						$runningOldScore=$myRow->RunningScore;
 					}
 				// creo un elemento per la sezione
+                    if($myRow->ElRank==255) {
+                        $tmpRank = 'DSQ';
+                    } else if ($myRow->ElRank==254) {
+                        $tmpRank = 'DNS';
+                    } else {
+                        $tmpRank= (($myRow->ElElimPhase==0 && $myRow->EvRunning==2) || ($myRow->ElElimPhase==1 && $myRow->EvRunning==3) ? $runningRank: $myRow->ElRank);
+                    }
+
 					$item=array(
 						'id'  => $myRow->EnId,
 						'bib' => $myRow->EnCode,
@@ -332,7 +339,7 @@
 						'countryId' => $myRow->CoId,
 						'countryCode' => $myRow->CoCode,
 						'countryName' => $myRow->CoName,
-						'rank' => (($myRow->ElElimPhase==0 && $myRow->EvRunning==2) || ($myRow->ElElimPhase==1 && $myRow->EvRunning==3) ? $runningRank: $myRow->ElRank),
+						'rank' => $tmpRank,
 						'rankBeforeSO' => $myRow->RankBeforeSO,
 						'score' => (($myRow->ElElimPhase==0 && $myRow->EvRunning==2) || ($myRow->ElElimPhase==1 && $myRow->EvRunning==3) ? $myRow->RunningScore: $myRow->ElScore),
 						'completeScore' => $myRow->ElScore,

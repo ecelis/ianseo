@@ -7,11 +7,11 @@
 	require_once('Qualification/Fun_Qualification.local.inc.php');
 	require_once('Common/Fun_Various.inc.php');
 /****** Controller ******/
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$tourId=StrSafe_DB($_SESSION['TourId']);
 
@@ -113,7 +113,7 @@
 			}
 
 			$recalc=false;
-			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
+			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
 			//$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
 
 			if (!$dontTouchCl && $noCalc==0)
@@ -130,7 +130,7 @@
 					$x=Params4Recalc($id);
 					if ($x!==false)
 					{
-						list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+						list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld)=$x;
 					}
 				}
 			}
@@ -152,16 +152,16 @@
 			checkAgainstLUE($id);
 			if ($recalc)
 			{
-				$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+				$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 				$x=Params4Recalc($id);
 				if ($x!==false)
 				{
-					list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+					list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 				}
 
 			// ricalcolo il vecchio e il nuovo
-				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
-				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
+				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 			// rank di classe x tutte le distanze
 				$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";

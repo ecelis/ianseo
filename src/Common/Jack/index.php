@@ -9,8 +9,8 @@ if (!CheckTourSession()) {
 }
 
 if(isset($_REQUEST['Event']) &&  isset($_REQUEST['Module']) &&  preg_match("/^[a-z0-9_.-]+$/i", $_REQUEST['Event']) &&  preg_match("/^[a-z0-9_.-]+$/i", $_REQUEST['Module'])) {
-	removeJack($_REQUEST['Event'], $_REQUEST['Module']);
-	CD_redirect($_SERVER["PHP_SELF"]);	
+    removeJack($_REQUEST['Event'], $_REQUEST['Module']);
+	CD_redirect($_SERVER["PHP_SELF"]);
 }
 
 $JS_SCRIPT=array('<script type="text/javascript">
@@ -26,7 +26,6 @@ echo '<table class="Tabella">';
 echo '<tr><th class="Title" colspan="6">'.get_text('MenuLM_JackSettings','Common').'</th></tr>';
 
 $Modules=getModule('Jack', '%', $_SESSION["TourId"]);
-//debug_svela($Modules);
 echo '<tr>
 	<th>'.get_text('JackEvent','Common').'</th>
 	<th colspan="2">'.get_text('JackModule','Common').'</th>

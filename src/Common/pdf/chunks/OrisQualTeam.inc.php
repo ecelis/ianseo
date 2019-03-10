@@ -102,7 +102,6 @@ if(count($rankData['sections'])) {
 					if($item['so']>0) {
 						$dataRow[] = "T. " . $item['gold'] . ";" . $item['xnine'];
 						$dataRow[] = $item['tiebreakDecoded'] ? $pdf->ShotOffShort . ' ' . $item['tiebreakDecoded'] : $pdf->ShotOffShort;
-// 						debug_svela($PdfData);
 
 					} elseif ($item['ct']>1) {
 						$dataRow[] = "T. " . $item['gold'] . ";" . $item['xnine'];
@@ -123,8 +122,10 @@ if(count($rankData['sections'])) {
 				$tmpRow[]=$dataRow;
 			}
 
-			$pdf->samePage(count($tmpRow));
-			foreach($tmpRow as $row) $pdf->printDataRow($row);
+			$pdf->samePage(count($tmpRow), 3.5, $pdf->lastY);
+			foreach($tmpRow as $row) {
+				$pdf->printDataRow($row);
+			}
 
 			$pdf->lastY += 2.5;
 		}

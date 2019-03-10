@@ -2,6 +2,7 @@
 	define('debug',false);	// settare a true per l'output di debug
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	if (!CheckTourSession())
 	{

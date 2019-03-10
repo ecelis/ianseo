@@ -46,7 +46,7 @@ function AddLocation() {
 							Row.id='Row'+num;
 							// insert checkbox
 							var Cell = Row.insertCell(-1);
-							Cell.innerHTML='<input type="checkbox" name="Print['+num+']" checked="checked">';
+							Cell.innerHTML='<input type="checkbox" name="Locations['+num+']" checked="checked">';
 
 							// insert location name
 							var Cell = Row.insertCell(-1);

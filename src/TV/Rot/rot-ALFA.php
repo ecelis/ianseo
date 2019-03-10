@@ -46,7 +46,10 @@ function rotAlfa($TVsettings, $RULE) {
 	$Title2Rows=(in_array('TIT2ROWS', $Columns) ? '<br/>' : ': ');
 
 
-	$ret[]='<div class="Title">'.get_text('StartlistAlfabetical','Tournament').'</div>';
+	$ret[]='<div class="Title">
+		<div class="TitleImg" style="float:left;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
+		<div class="TitleImg" style="float:right;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
+		'.get_text('StartlistAlfabetical','Tournament').'</div>';
 	$ret[]='<div class="StartList Headers">'
 		. '<div class="Target Headers">' . get_text('Target') . '</div>'
 		. ($ViewCode ? '<div class="CountryCode Headers"></div>' : '')
@@ -127,16 +130,16 @@ function getPageDefaults(&$RMain) {
 	global $CFG;
 	$ret=array(
 		'Title' => '',
-		'SubTitle' => 'margin-top:1em; padding:0.25em 0.5em; background: linear-gradient(#1E5799, #7DB9E8);font-size:2.5rem; text-align:center; width:100%; box-sizing:border-box;color: white;',
-		'CountryCode' => 'flex: 1 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-		'FlagDiv' => 'flex: 0 0 3.95rem;',
-		'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-		'Target' => 'flex: 0 0 7rem; font-size:1.25em; text-align:right;',
-		'Athlete' => 'flex: 1 1 15rem;',
-		'CountryDescr' => 'flex: 1 1 10rem;',
-		'Session' => 'flex: 1 1 5rem; text-align:left;',
-		'Category' => 'flex: 1 1 10rem;',
-		'CategoryCode' => 'flex: 0 0 4rem; text-align:center;',
+		'SubTitle' => 'margin-top:1em; padding:0.25em 0.5em; background: linear-gradient(#1E5799, #7DB9E8);font-size:2.5vw; text-align:center; width:100%; box-sizing:border-box;color: white;',
+		'CountryCode' => 'flex: 0 0 3.5vw; font-size:0.8vw; margin-left:-3.75ch',
+		'FlagDiv' => 'flex: 0 0 4.35vw;',
+		'Flag' => 'height:2.8vw; border:0.05vw solid #888;box-sizing:border-box;',
+		'Target' => 'flex: 0 0 6vw; text-align:right;margin-right:0.5em;',
+		'Athlete' => 'flex: 1 1 20vw;white-space:nowrap;overflow:hidden;',
+		'CountryDescr' => 'flex: 0 1 20vw;white-space:nowrap;overflow:hidden;',
+		'Session' => 'flex: 1 1 5vw; text-align:left;white-space:nowrap;overflow:hidden;',
+		'Category' => 'flex: 1 1 10vw;white-space:nowrap;overflow:hidden;',
+		'CategoryCode' => 'flex: 0 0 4vw; text-align:center;',
 		);
 	foreach($ret as $k=>$v) {
 		if(!isset($RMain[$k])) $RMain[$k]=$v;

@@ -8,6 +8,7 @@ $lang['Broadcast']='Elküldés az összes HTT-re';
 $lang['CmdImport']='Importálás';
 $lang['CmdReplace']='Felülír';
 $lang['CmdTruncateHTTData']='Ideiglenes táblázat csonkolása';
+$lang['CmdTruncateMyHTTData']='Az ÉN szakaszom tördelése';
 $lang['Country']='Ország';
 $lang['DateTime']='Dátum/Idő';
 $lang['Distance']='Táv';

@@ -8,6 +8,7 @@
 	$OldOnlineId = $_SESSION['OnlineId'];
 	$OldOnlineEventCode = $_SESSION['OnlineEventCode'];
 	$OnlineAuth = $_SESSION['OnlineAuth'];
+	$OnlineServices = $_SESSION['OnlineServices'];
 
 
 
@@ -267,5 +268,6 @@
 	$_SESSION['OnlineId'] = $OldOnlineId ;
 	$_SESSION['OnlineEventCode'] = $OldOnlineEventCode;
 	$_SESSION['OnlineAuth'] = $OnlineAuth;
+	$_SESSION['OnlineServices'] = $OnlineServices;
 
 ?>

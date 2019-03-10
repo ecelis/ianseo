@@ -1,14 +1,14 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Lib/Fun_Modules.php');
+require_once('Common/Fun_Phases.inc.php');
 
 $JSON=array('error' => 1, 'rows' => array(), 'running'=>'', 'onlytoday'=>'1');
 
 if (empty($_SESSION['TourId'])) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	exit;
+	JsonOut($JSON);
 }
+checkACL(array(AclSpeaker, AclQualification, AclEliminations, AclIndividuals, AclTeams), AclReadOnly);
 
 $Today=date('Y-m-d');
 $UseHHT='';
@@ -25,8 +25,7 @@ if(isset($_REQUEST["onlyToday"]) && $_REQUEST["onlyToday"]) {
 
 if($IskSequence=getModuleParameter('ISK', 'Sequence')) {
 	if(!isset($IskSequence['session'])) {
-		$ttt=each($IskSequence);
-		$IskSequence=$ttt['value'];
+		$IskSequence=current($IskSequence);
 	}
 	// get the running sequence
 	$SelectedEvent="concat(FSScheduledDate,FSScheduledTime) = '{$IskSequence['session']}'";
@@ -40,7 +39,7 @@ if($IskSequence=getModuleParameter('ISK', 'Sequence')) {
 $Select="select distinct
 		FsTeamEvent,
 		concat(FsScheduledDate, ' ',  date_format(FsScheduledTime, '%H:%i')) MyDate,
-		if ((EvFinalFirstPhase=48 or EvFinalFirstPhase = 24) and GrPhase>16, if(GrPhase=64, 48, 24), GrPhase) as Phase,
+		EvFinalFirstPhase, GrPhase,
 		group_concat(distinct FsEvent order by FsEvent separator ', ') Events,
 		$SelectedEvent as SelectedEvent
 	from FinSchedule
@@ -74,12 +73,12 @@ while ($myRow=safe_fetch($Rs)) {
 		$Schedule[$k]=array(
 			'team'=>'',
 			'sel'=>'',
-			'txt'=>'',
+			'txt'=>array(),
 		);
 	}
 	$Schedule[$k]['team']=($myRow->FsTeamEvent ? get_text('Team'):get_text('Individual'));
 	$Schedule[$k]['sel']=($myRow->SelectedEvent ? '1' : '0');
-	$Schedule[$k]['txt'][]=get_text($myRow->Phase.'_Phase') . ' '. $myRow->Events;
+	$Schedule[$k]['txt'][]=get_text(namePhase($myRow->EvFinalFirstPhase,$myRow->GrPhase).'_Phase') . ' '. $myRow->Events;
 }
 
 foreach($Schedule as $MyDate => $Items) {
@@ -90,5 +89,4 @@ foreach($Schedule as $MyDate => $Items) {
 	);
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

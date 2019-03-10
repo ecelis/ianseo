@@ -136,10 +136,24 @@
 				$filter.=" AND EnId=" . intval($this->opts['enid']) . " ";
 			}
 
+			if (!empty($this->opts['encode'])) {
+				if (is_array($this->opts['encode'])) {
+					$tmp=array();
+					foreach ($this->opts['encode'] as $e) $tmp[]=StrSafe_DB($e);
+					sort($tmp);
+					$filter="AND EnCode IN (" . implode(',',$tmp) . ")";
+				} else {
+					$filter="AND EnCode = " . StrSafe_DB($this->opts['encode']) . " ";
+				}
+			}
+
 			if (!empty($this->opts['coid'])) {
 				$filter.=" AND EnCountry=" . intval($this->opts['coid'])  . " " ;
 			}
 
+			if (!empty($this->opts['sessions'])) {
+				$filter.=" AND QuSession in (" . implode($this->opts['sessions'])  . ") " ;
+			}
 
 			return $filter;
 		}
@@ -360,12 +374,22 @@
 					}
 
 					$myPos++;
-					if(!($oldScore==$myRow->OrderScore && $oldGold==$myRow->OrderGold && $oldXnine==$myRow->OrderXnine))
+					if(!($oldScore==$myRow->OrderScore && $oldGold==$myRow->OrderGold && $oldXnine==$myRow->OrderXnine)) {
 						$myRank = $myPos;
+					}
 					$oldScore = $myRow->OrderScore;
 					$oldGold = $myRow->OrderGold;
 					$oldXnine = $myRow->OrderXnine;
 				// creo un elemento per la sezione
+                    if($myRow->Rank==9999) {
+                        $tmpRank = 'DSQ';
+                    } else if ($myRow->Rank==9998) {
+                        $tmpRank = 'DNS';
+                    } else {
+                        $tmpRank= (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRank : $myRow->Rank);
+                    }
+
+
 					$item=array(
 						'id'  => $myRow->EnId,
 						'bib' => $myRow->EnCode,
@@ -386,7 +410,7 @@
 						'contAssoc' => $myRow->FlContAssoc,
 						'countryIocCode' => $myRow->EnIocCode,
 						'countryName' => $myRow->CoName,
-						'rank' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRank : $myRow->Rank),
+						'rank' => $tmpRank,
 						'oldRank' => $myRow->OldRank,
 						'score' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRow->OrderScore : $myRow->Score),
 						'gold' => (!empty($this->opts['runningDist']) && $this->opts['runningDist']>0 ? $myRow->OrderGold : $myRow->Gold),

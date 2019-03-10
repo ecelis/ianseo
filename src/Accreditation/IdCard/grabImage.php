@@ -1,5 +1,6 @@
 <?php
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+    checkACL(AclAccreditation, AclReadWrite, false);
 /*
 
 :sout=#transcode{vcodec=mjpg,fps=5,width=800,height=600}:standard{access=http,mux=mpjpeg,dst=0.0.0.0:8050/stream.mjpg}
@@ -24,7 +25,6 @@ $boundary="\n--";
 $f = @fopen($camurl,"r") ;
 
 if(!$camurl or !$f) {
-// 	debug_svela(error_get_last());
 
 	//**** cannot open
 	$im=imagecreatetruecolor(640,480);

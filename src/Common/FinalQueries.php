@@ -16,11 +16,11 @@ function getTeamBracketsQuery($ORIS=false, 	$EventRequested='') {
 		$MyQuery = "SELECT f.TfTeam, f.TfSubTeam, f.TfEvent AS Event, EvEventName AS EventDescr, f.TfMatchNo, EvFinalFirstPhase, TeRank, TeScore, "
 			. "IF(GrPhase!=0,GrPhase,1) as Phase, (GrPhase=1) as Finalina, "
 			. "CONCAT(CoName, IF(f.TfSubTeam>'1',CONCAT(' (',f.TfSubTeam,')'),'')) as Team, CoCode as Country, IF(EvMatchMode=0,f.TfScore,f.TfSetScore) AS Score, f.TfTie, f.TfTieBreak, IF(EvMatchMode=0,f2.TfScore,f2.TfSetScore) as OppScore, f2.TfTie as OppTie, f.TfSetPoints as SetPoints,  "
-			. "IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) GrPosition, EvFinalPrintHead, FSTarget, IFNULL(NComponenti,0) AS NumComponenti, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
+			. "IF(EvFinalFirstPhase=48, GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) GrPosition, EvFinalPrintHead, FSTarget, IFNULL(NComponenti,0) AS NumComponenti, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
 		$MyQuery .= "FROM TeamFinals as f ";
 		$MyQuery .= "INNER JOIN TeamFinals AS f2 ON f.TfEvent=f2.TfEvent AND f.TfMatchNo=IF((f.TfMatchNo % 2)=0,f2.TfMatchNo-1,f2.TfMatchNo+1) AND f.TfTournament=f2.TfTournament ";
 		$MyQuery .= "INNER JOIN Events ON f.TfEvent=EvCode AND f.TfTournament=EvTournament AND EvTeamEvent=1 ";
-		$MyQuery .= "INNER JOIN Grids ON f.TfMatchNo=GrMatchNo ";
+		$MyQuery .= "INNER JOIN Phases ON PhId=EvFinalFirstPhase and (PhIndTeam & pow(2, EvTeamEvent))>0 ";
 		$MyQuery .= "LEFT JOIN Teams ON f.TfTeam=TeCoId AND f.TfSubTeam=TeSubTeam AND f.TfEvent=TeEvent AND f.TfTournament=TeTournament AND TeFinEvent=1 ";
 		$MyQuery .= "LEFT JOIN Countries ON f.TfTeam=CoId AND f.TfTournament=CoTournament ";
 		$MyQuery .= "LEFT JOIN FinSchedule ON f.TfEvent=FSEvent AND f.TfMatchNo=FSMatchNo AND f.TfTournament=FSTournament AND FSTeamEvent='1' ";
@@ -64,7 +64,7 @@ function getTeamBracketsQuery($ORIS=false, 	$EventRequested='') {
 	$MyQuery = "SELECT TfTeam, TfSubTeam, TfEvent AS Event, EvEventName AS EventDescr, TfMatchNo, EvFinalFirstPhase, "
 		. "IF(GrPhase!=0,GrPhase,1) as Phase, (GrPhase=1) as finalina, "
 		. "CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) as Team, CoCode as Country, IF(EvMatchMode=0,TfScore,TfSetScore) as Score, TfTie, TfTieBreak, "
-		. "IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) GrPosition, EvFinalPrintHead, FSTarget, NumComponenti, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
+		. "IF(EvFinalFirstPhase=48,GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) GrPosition, EvFinalPrintHead, FSTarget, NumComponenti, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
 	$MyQuery .= "FROM TeamFinals ";
 	$MyQuery .= "INNER JOIN Events ON TfEvent=EvCode AND TfTournament=EvTournament AND EvTeamEvent=1 ";
 	$MyQuery .= "INNER JOIN Grids ON TfMatchNo=GrMatchNo ";
@@ -105,7 +105,7 @@ function getIndividualBracketsQuery($ORIS=false) {
 		$MyQuery = "SELECT f.FinEvent AS Event, EvEventName AS EventDescr, f.FinMatchNo, EvFinalFirstPhase, "
 			. "IF(GrPhase!=0,GrPhase,1) as Phase, (GrPhase=1) as Finalina, IndRank, QuScore, "
 			. "EnFirstName as FirstName, EnName as Name, CoCode as Country, IF(EvMatchMode=0,f.FinScore,f.FinSetScore) AS Score, f.FinTie, f.FinTiebreak, IF(EvMatchMode=0,f2.FinScore,f2.FinSetScore) as OppScore, f2.FinTie as OppTie, f.FinSetPoints as SetPoints, "
-			. "IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) GrPosition, EvFinalPrintHead, FSTarget, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
+			. "IF(EvFinalFirstPhase=48,GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) GrPosition, EvFinalPrintHead, FSTarget, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
 		$MyQuery .= "FROM Finals AS f ";
 		$MyQuery .= "INNER JOIN Finals AS f2 ON f.FinEvent=f2.FinEvent AND f.FinMatchNo=IF((f.FinMatchNo % 2)=0,f2.FinMatchNo-1,f2.FinMatchNo+1) AND f.FinTournament=f2.FinTournament ";
 		$MyQuery .= "INNER JOIN Events ON f.FinEvent=EvCode AND f.FinTournament=EvTournament AND EvTeamEvent=0 ";
@@ -126,7 +126,7 @@ function getIndividualBracketsQuery($ORIS=false) {
 		. "f.FinSetPoints, f2.FinSetPoints OppSetPoints, "
 		. "concat(EnFirstName, ' ', EnName) as Atleta, concat(EnFirstName, ' ', Substr(EnName,1,1), '.') as AtletaShort, CoCode as Country, "
 		. "IF(EvMatchMode=0,f.FinScore,f.FinSetScore) AS Score, IF(EvMatchMode=0,f2.FinScore,f2.FinSetScore) AS OppScore, f.FinTie, f2.FinTie as OppTie, f.FinTiebreak, "
-		. "IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24, GrPosition2, GrPosition) as GrPosition, EvFinalPrintHead, FSTarget, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
+		. "IF(EvFinalFirstPhase=48, GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) as GrPosition, EvFinalPrintHead, FSTarget, DATE_FORMAT(FSScheduledDate,'" . get_text('DateFmtDB') . "') as ScheduledDate, DATE_FORMAT(FSScheduledTime,'" . get_text('TimeFmt') . "') AS ScheduledTime ";
 	$MyQuery .= "FROM Finals as f ";
 	$MyQuery .= "INNER JOIN Finals AS f2 ON f.FinEvent=f2.FinEvent AND f.FinMatchNo=IF((f.FinMatchNo % 2)=0,f2.FinMatchNo-1,f2.FinMatchNo+1) AND f.FinTournament=f2.FinTournament ";
 	$MyQuery .= "INNER JOIN Events ON f.FinEvent=EvCode AND f.FinTournament=EvTournament AND EvTeamEvent=0 ";

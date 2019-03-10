@@ -1,5 +1,4 @@
 <?php
-
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Lib/ArrTargets.inc.php');
 require_once('Modules/Bundesliga/Fun_Bundesliga.local.inc.php');

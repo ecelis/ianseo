@@ -9,7 +9,7 @@
 	if(empty($_REQUEST['TourCode']) and empty($_SESSION['TourCode'])) die('No Tournament Selected');
 
 	$TourCode=(empty($_REQUEST['TourCode']) ? $_SESSION['TourCode'] : $_REQUEST['TourCode']);
-
+    checkACL(AclOutput,AclReadOnly, true, getIdFromCode($TourCode));
 //
 //	$ColWidth=100/($cols*2);
 ////	$JS_SCRIPT[]='<meta http-equiv="refresh" content="0.1">';

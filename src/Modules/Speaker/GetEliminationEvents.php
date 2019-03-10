@@ -7,6 +7,7 @@ $viewTeam = (isset($_REQUEST['viewTeam']) && is_numeric($_REQUEST['viewTeam']) ?
 
 if (empty($_SESSION['TourId']) && (!CheckTourSession() || is_null($isEvent) || is_null($viewInd) || is_null($viewTeam)))
 	exit;
+checkACL(AclSpeaker, AclReadOnly, false);
 
 $xml='';
 $error=0;

@@ -15,7 +15,7 @@
 
 
 define ("ProgramName","Ianseo");	// Nome del programma
-define ("ProgramVersion","2017.01.01"); // "Don't just wish for a great 2017, MAKE IT SO!"
+define ("ProgramVersion","2018-09-21"); // "Sei un testone, ma ci piaci lo stesso."
 
 define ("TargetNoPadding",3);		// Padding del targetno
 
@@ -28,7 +28,7 @@ define ("TieBreakArrowsSet_Team",3);// Numero di frecce per il tiebreak dell'oly
 define ("SetPoints6Arrows", 4);		// Numero di punti per vincere il match se si tirano 6 frecce
 define ("SetPoints3Arrows", 6);		// Numero di punti per vincere il match se si tirano 3 frecce
 
-define ("TeamStartPhase",8);		// Fase iniziale delle finali a squadre
+define ("TeamStartPhase",16);		// Fase iniziale delle finali a squadre
 
 define ("BlockExperimental",false);	// settare a true per impedire l'uso delle pagine sperimentali
 
@@ -188,7 +188,7 @@ function get_text($text, $module='Common', $a='', $translate=false, $force=false
 	if(isset($_LANG[$lingua][$module][$text])) {
 		// se esiste il testo manda il testo con i parametri
 		eval("\$result".' = "' . str_replace('"', '\"', $_LANG[$lingua][$module][$text]) . '";');
-		return($result);
+		return $result;
 	} elseif($Verbose) {
 		// oppure un avviso che manca il testo e il modulo
 		return("<b>[[$text]@[$lingua]@[$module]]</b>");
@@ -218,7 +218,8 @@ function set_qual_session_flags() {
 	$r=safe_fetch($q);
 	if(!empty($r->ToOptions)) $ConstToStore=unserialize($r->ToOptions);
 	$ConstToStore['MenuHHT']=$r->ToUseHHT;
-	$ConstToStore['MenuElimDo']=$r->ToElimination;
+	$ConstToStore['MenuElimDo']=false;
+	$ConstToStore['MenuElimPoolDo']=false;
 	$ConstToStore['MenuFinIDo']=false;
 	$ConstToStore['MenuFinTDo']=false;
 	$ConstToStore['MenuElimOn']=false;
@@ -226,28 +227,40 @@ function set_qual_session_flags() {
 	$ConstToStore['MenuFinTOn']=false;
 	$ConstToStore['MenuElim1']=array();
 	$ConstToStore['MenuElim2']=array();
+    $ConstToStore['MenuElimPool']=array();
 	$ConstToStore['MenuFinI']=array();
 	$ConstToStore['MenuFinT']=array();
 
-	$q=safe_r_sql("select EvCode, EvTeamEvent, EvFinalFirstPhase, EvShootOff, EvE1ShootOff, EvE2ShootOff, EvElim1, EvElim2 from Events where EvTournament={$_SESSION['TourId']} AND EvFinalFirstPhase!=0 AND EvCodeParent=''");
+    $q = safe_r_sql("select EvCode, EvTeamEvent, EvShootOff, EvE1ShootOff, EvE2ShootOff, EvElimType, EvElim1, EvElim2
+		from Events 
+		where EvTournament={$_SESSION['TourId']} AND EvFinalFirstPhase!=0 AND EvCodeParent=''");
 	while($r=safe_fetch($q)) {
-		if($ConstToStore['MenuElimDo']) {
-			$ConstToStore['MenuElimOn']=($ConstToStore['MenuElimOn'] or $r->EvE1ShootOff or $r->EvE2ShootOff);
-			if((!$r->EvE1ShootOff and $r->EvElim1>0)) $ConstToStore['MenuElim1'][]=$r->EvCode;
-			if((!$r->EvE2ShootOff and $r->EvElim2>0)) $ConstToStore['MenuElim2'][]=$r->EvCode;
-		}
-		if($r->EvTeamEvent && $r->EvFinalFirstPhase) {
+		$ConstToStore['MenuElimOn']=($ConstToStore['MenuElimOn'] or $r->EvE1ShootOff or $r->EvE2ShootOff);
+        switch($r->EvElimType) {
+            case 1:
+            case 2:
+				if((!$r->EvE1ShootOff and $r->EvElim1>0)) $ConstToStore['MenuElim1'][]=$r->EvCode;
+				if((!$r->EvE2ShootOff and $r->EvElim2>0)) $ConstToStore['MenuElim2'][]=$r->EvCode;
+				$ConstToStore['MenuElimDo']=true;
+                break;
+            case 3:
+            case 4:
+	            if((!$r->EvE2ShootOff and $r->EvElim2>0)) $ConstToStore['MenuElimPool'][]=$r->EvCode;
+				$ConstToStore['MenuElimPoolDo']=true;
+                break;
+        }
+        if ($r->EvTeamEvent == 1) {
 			$ConstToStore['MenuFinTDo']=true;
 			$ConstToStore['MenuFinTOn']=($ConstToStore['MenuFinTOn'] or $r->EvShootOff);
 			if(!$r->EvShootOff) $ConstToStore['MenuFinT'][]=$r->EvCode;
-		} elseif(!$r->EvTeamEvent && $r->EvFinalFirstPhase) {
+        } elseif ($r->EvTeamEvent == 0) {
 			$ConstToStore['MenuFinIDo']=true;
 			$ConstToStore['MenuFinIOn']=($ConstToStore['MenuFinIOn'] or $r->EvShootOff);
 			if(!$r->EvShootOff) $ConstToStore['MenuFinI'][]=$r->EvCode;
 		}
 	}
 
-	if(count($ConstToStore['MenuElim1'])==0 && count($ConstToStore['MenuElim2'])==0 && $ConstToStore['MenuElimOn']==false)
+	if(count($ConstToStore['MenuElim1'])==0 && count($ConstToStore['MenuElim2'])==0 && count($ConstToStore['MenuElimPool'])==0 && $ConstToStore['MenuElimOn']==false)
 		$ConstToStore['MenuElimDo']=false;
 
 	safe_w_sql("update Tournament set ToOptions=".StrSafe_DB(serialize($ConstToStore))." where ToId={$_SESSION['TourId']}");
@@ -338,14 +351,13 @@ function PrintCrackError($popup=false, $errore='CrackError', $Module='Common', $
 */
 function InfoTournament()
 {
-	global $CFG;
+	global $CFG, $INFO, $listACL;
 // E' selezionato un torneo
 	print '<table class="Tabella">';
 	print '<tr style="height:34px">';
 	print '<td>';
-	if (CheckTourSession())
-	{
-		print get_text('SelTour') . ': ' . $_SESSION['TourName'] . ' (' . $_SESSION['TourWhere'] . ' ' . get_text('From','Tournament') . ' ' . $_SESSION['TourWhenFrom'] . ' ' . get_text('To','Tournament') . ' ' . $_SESSION['TourWhenTo'] . ')';
+	if (CheckTourSession()) {
+		print get_text('SelTour') . ': ' . $_SESSION['TourName'] . ' (' . $_SESSION['TourWhere'] . ' ' . get_text('From','Tournament') . ' ' . $_SESSION['TourWhenFrom'] . ' ' . get_text('To','Tournament') . ' ' . $_SESSION['TourWhenTo'] . ') - ' . $_SESSION['TourCode'] ;
 	}
 	else	// Non � selezionato nessun torneo
 	{
@@ -359,6 +371,17 @@ function InfoTournament()
 		print '</a>';
 		print '</td>';
 	}
+	if(!empty($INFO->ACLReqfeatures)) {
+        print '<td width="10%" id="securityBox">';
+        print get_text('MenuLM_Lock manage').": <b>".($INFO->ACLEnabled ? get_text('CmdOn') : get_text('CmdOff')).'</b><br>';
+        if($INFO->ACLReqlevel!=0) {
+            foreach ($INFO->ACLReqfeatures as $feature) {
+                print get_text($listACL[$feature], 'Tournament');
+            }
+            print '&nbsp;<b>' . ($INFO->ACLReqlevel == 1 ? 'r/o' : 'R/W'). '</b>';
+        }
+        print '</td>';
+    }
 	print '<td width="5%" class="Center">';
 	print '<a href="'.$CFG->ROOT_DIR.'credits.php">';
 	print '<img onMouseOver="resizeImg(this, 150, \''.$CFG->ROOT_DIR.'Common/Images/ianseo_dot-30.png\')" onMouseOut="resizeImg(this)" border="0" src="'.$CFG->ROOT_DIR.'Common/Images/ianseo_dot.png" alt="Credits" title="Credits">';
@@ -419,6 +442,7 @@ function CreateTourSession($TourId) {
 		$_SESSION['OnlineId']=0;
 		$_SESSION['OnlineEventCode']=0;
 		$_SESSION['OnlineAuth']=0;
+		$_SESSION['OnlineServices']=0;
 	//Parametro per il Padding dei paglioni
 		$_SESSION['TargetPadding']=2;
 
@@ -500,6 +524,7 @@ function EraseTourSession() {
 	$_SESSION['OnlineId']=0;
 	$_SESSION['OnlineEventCode']=0;
 	$_SESSION['OnlineAuth']=0;
+	$_SESSION['OnlineServices']=0;
 
 	if (isset($_SESSION['AccOp']))
 		unset($_SESSION['AccOp']);
@@ -835,11 +860,12 @@ function AvailableApis() {
 	global $CFG;
 	$ret=array();
 	if(ProgramRelease=='FITARCO') return $ret;
-	foreach(glob($CFG->DOCUMENT_PATH.'Api/*/index.php') as $dir) {
+	foreach(glob($CFG->DOCUMENT_PATH.'Api/*/ApiConfig.php') as $dir) {
 		if(basename(dirname($dir))!='ISK-Lite') {
 			$ret[]=basename(dirname($dir));
 		}
 	}
+	sort($ret);
 	return $ret;
 }
 
@@ -849,10 +875,31 @@ function AvailableApis() {
  * given an array(R,G,B), returns if the background needs white color print or black color print!
  */
 function IsDarkBackground($color=array(0,0,0)) {
-	// Setting the font color to black or white based on the perception of darkness of the background
-	$txt=($color[0]*0.21)+($color[1]*0.71)+($color[2]*0.08);
+	//////////// hexColor RGB
+	$R1 = $color[0];
+	$G1 = $color[1];
+	$B1 = $color[2];
 
-	return $txt<=85;
+	//////////// Calc contrast ratio
+	$L1 = 0.2126 * pow($R1 / 255, 2.2) +
+		0.7152 * pow($G1 / 255, 2.2) +
+		0.0722 * pow($B1 / 255, 2.2);
+
+	$contrastRatio = (int)(($L1 + 0.05) / 0.05);
+
+	return $contrastRatio <= 5;
+
+	////////////// If contrast is more than 5, return black color
+	//if ($contrastRatio > 5) {
+	//	return 'black';
+	//} else { //////////// if not, return white color.
+	//	return 'white';
+	//}
+	//
+	//// Setting the font color to black or white based on the perception of darkness of the background
+	//$txt=($color[0]*0.21)+($color[1]*0.71)+($color[2]*0.08);
+	//
+	//return $txt<=85;
 }
 
 function GetIsParameter($ParameterName) {
@@ -862,8 +909,55 @@ function GetIsParameter($ParameterName) {
 	return '';
 }
 
-function JsonOut($JSON) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
+
+/**
+ * Outputs a JSON object/array
+ * @param mixed $JSON data to be send
+ * @param string $JsonP if false (default) sends the mime type "application/json" otherwise the name of the callback function and mime type is set to "application/javascript"
+ * @param mixed $ExtraHeaders a single or an array of extra headers to send.
+ * @param bool $Straight if true the $JSON object is already stringyfied
+ */
+function JsonOut($JSON, $JsonP=false, $ExtraHeaders=array(), $Straight=false) {
+	if(!is_array($ExtraHeaders)) $ExtraHeaders=array($ExtraHeaders);
+
+	$Answer=($Straight ? $JSON : json_encode($JSON));
+    $Mime='application/json';
+
+    if($JsonP and isset($_REQUEST[$JsonP]) and preg_match('/^[$A-Z_][0-9A-Z_.]*$/i',$_REQUEST[$JsonP])) {
+	    $Answer = $_REQUEST[$JsonP] . '(' . $Answer . ");";
+	    $Mime='application/javascript';
+    }
+
+    header('Access-Control-Allow-Origin: *');
+	header('Cache-Control: no-store, no-cache, must-revalidate');
+    foreach($ExtraHeaders as $h) {
+    	header($h);
+    }
+	header('Content-type: '.$Mime .'; charset=UTF-8');
+    header('Content-Length: '.strlen($Answer));
+	echo $Answer;
 	die();
+}
+
+function deleteArcher($EnId=0, $Division=false, $Limit=false) {
+	$EnId=intval($EnId);
+	if(!$EnId) return;
+
+	if($Where=GetAccBoothEnWhere($EnId, $Division, $Limit)) {
+		LogAccBoothQuerry("delete from Qualifications where QuId=(select EnId from Entries where $Where)");
+		LogAccBoothQuerry("delete from AccEntries where AEId=(select EnId from Entries where $Where)");
+		LogAccBoothQuerry("delete from Photos where PhEnId=(select EnId from Entries where $Where)");
+		LogAccBoothQuerry("DELETE FROM ElabQualifications WHERE EqId=(select EnId from Entries where $Where)");
+		LogAccBoothQuerry("DELETE FROM ExtraData WHERE EdId=(select EnId from Entries where $Where)");
+		LogAccBoothQuerry("delete from Entries where $Where");
+	}
+
+	safe_w_sql("delete from Entries where EnTournament={$_SESSION['TourId']} and EnId=$EnId");
+	if(safe_w_affected_rows()) {
+		safe_w_sql("delete from AccEntries where AEId=$EnId");
+		safe_w_sql("delete from Photos where PhEnId=$EnId");
+		safe_w_sql("DELETE FROM Qualifications WHERE QuId=$EnId");
+		safe_w_sql("DELETE FROM ElabQualifications WHERE EqId=$EnId");
+		safe_w_sql("DELETE FROM ExtraData WHERE EdId=$EnId");
+	}
 }

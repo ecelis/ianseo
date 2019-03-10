@@ -19,6 +19,8 @@ while($r=safe_fetch($q)) $GUYS[]=$r->EnId;
 include_once('Common/CheckPictures.php');
 CheckPictures($TourCode);
 
+$TourType=getTournamentType($TourId);
+
 $ArrowNo=0;
 $SnapDistance=0;
 if(isset($_REQUEST["ArrowNo"]) && is_numeric($_REQUEST["ArrowNo"]))
@@ -59,13 +61,10 @@ $Select
 	. "QuD5Score, QuD5Rank, QuD6Score, QuD6Rank, QuD7Score, QuD7Rank, QuD8Score, QuD8Rank, "
 	. "QuScore, QuGold, QuXnine, ToGolds AS TtGolds, ToXNine AS TtXNine, ";
 
-if($SnapDistance==0)
-{
+if($SnapDistance==0) {
 	$Select .= " QuScore as OrderScore, QuGold as OrderGold, QuXnine as OrderXNine, ";
 	$Select .= "'0' as EqDistance, '0' as EqScore, ";
-}
-else
-{
+} else {
 	for($i=1; $i<$SnapDistance; $i++)
 		$Select .= "QuD" . $i . "Score+";
 	$Select .="IFNULL(EqScore,0) AS OrderScore, ";
@@ -94,10 +93,17 @@ $Select .= "LEFT JOIN TournamentDistances AS td ON t.ToType=td.TdType and TdTour
 	. ($TVsettings->EventFilter ? " AND CONCAT(e.EnDivision,e.EnClass) " . $TVsettings->EventFilter : "") . " "
 	. ($TVsettings->TVPSession ? " AND QuSession = " . StrSafe_DB($TVsettings->TVPSession) : "") . " ";
 
-if(getTournamentType() != 14) //Tutto tranne Las Vegas
-	$Select.= "ORDER BY DivViewOrder, EnDivision, ClViewOrder, EnClass, OrderScore DESC, OrderGold DESC, OrderXNine DESC, FirstName, Name ";
-else
-	$Select.= "ORDER BY DivViewOrder, EnDivision, ClViewOrder, EnClass, (QuD1Score+QuD2Score+QuD3Score) DESC, QuD4Score DESC, QuXnine DESC, FirstName, Name ";
+switch($TourType) {
+	case 14:
+		$Select.= "ORDER BY DivViewOrder, EnDivision, ClViewOrder, EnClass, (QuD1Score+QuD2Score+QuD3Score) DESC, QuD4Score DESC, QuXnine DESC, FirstName, Name ";
+		break;
+	case 32:
+		$Select.= "ORDER BY DivViewOrder, EnDivision, ClViewOrder, EnClass, (QuD1Score+QuD2Score) DESC, (QuD1Xnine + QuD2Xnine) DESC, QuD3Xnine desc, FirstName, Name ";
+		break;
+	default:
+		//Tutto tranne Las Vegas
+		$Select.= "ORDER BY DivViewOrder, EnDivision, ClViewOrder, EnClass, OrderScore DESC, OrderGold DESC, OrderXNine DESC, FirstName, Name ";
+}
 
 $Rs=safe_r_sql($Select);
 
@@ -134,11 +140,22 @@ while ($MyRow=safe_fetch($Rs))
 
 	// Sicuramente devo incrementare la posizione
 	++$MyPos;
+	switch(getTournamentType($TourId)) {
+		case 14:
+			if ($MyRow->OrderScore!=$MyScoreOld) {
+				$MyRank = $MyPos;
+			}
+			break;
+		case 32:
+			if ($MyRow->OrderScore!=$MyScoreOld or $MyRow->OrderXNine!=$MyXNineOld) {
+				$MyRank = $MyPos;
+			}
+			break;
+		default:
+	}
 	// Se non ho parimerito il ranking è uguale alla posizione
-	if(getTournamentType($TourId) == 14) //Tipo Las Vegas
+	if(getTournamentType($TourId) == 14 or getTournamentType($TourId) == 32) //Tipo Las Vegas
 	{
-		if (!($MyRow->OrderScore==$MyScoreOld))
-			$MyRank = $MyPos;
 	}
 	else	//STANDARD
 	{

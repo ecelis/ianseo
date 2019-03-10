@@ -573,7 +573,7 @@ function setTableFields($tableFields)
 		return false;
 	}
 	reset ($tableFields);
-	while (list($key, $value) = each($tableFields)) {
+	foreach($tableFields as $key => $value) {
 		$this->tableFields[$key] = ($value == '') ? "''" : $value;
 	}
 	return true;
@@ -596,7 +596,7 @@ function setTableFields_i18n($tableFields_i18n)
 		return false;
 	}
 	reset ($tableFields_i18n);
-	while (list($key, $value) = each($tableFields_i18n)) {
+	foreach($tableFields_i18n as $key => $value) {
 		$this->tableFields_i18n[$key] = ($value == '') ? "''" : $value;
 	}
 	return true;
@@ -755,7 +755,7 @@ function _getmicrotime()
 function _depthFirstSearch($menu_name, $tmpArray, $parent_id=1, $level=1)
 {
 	reset ($tmpArray);
-	while (list($id, $foobar) = each($tmpArray)) {
+	foreach ($tmpArray as $id => $foobar) {
 		if ($foobar['parent_id'] == $parent_id) {
 			unset($tmpArray[$id]);
 			unset($this->_tmpArray[$id]);

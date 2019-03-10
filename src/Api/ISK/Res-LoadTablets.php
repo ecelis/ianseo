@@ -7,6 +7,7 @@ if(!CheckTourSession()) {
 	header('Content-Type: text/xml');
 	die('<response error="'.$Error.'"/>');
 }
+checkACL(AclISKServer, AclReadOnly,false);
 
 require_once('Common/Lib/Fun_Modules.php');
 
@@ -25,21 +26,22 @@ $AssignedDevices=array();
 switch($Sequence[0]) {
 	case 'Q':
 		// gets the targets
-		$SqlTargets="select distinct left(QuTargetNo, 4) Target from Entries inner join Qualifications on EnId=QuId and QuSession={$Sequence[2]} where EnTournament={$_SESSION['TourId']} order by Target";
+		$SqlTargets="select distinct QuTarget Target from Entries inner join Qualifications on EnId=QuId and QuSession={$Sequence[2]} where EnTournament={$_SESSION['TourId']} order by Target";
 		$q=safe_r_sql($SqlTargets);
 		while($r=safe_Fetch($q)) {
-			$Targets[]=StrSafe_DB($r->Target);
-			$TgtsStatus[intval(substr($r->Target,1))]='';
+			$Targets[]=$r->Target;
+			$TgtsStatus[$r->Target]='';
 		}
 		// prepares an array with all the available ends and the values if any
-		$SQL="select substring(AtTargetNo, -4, 3)+0 Target, right(AtTargetNo, 1) Letter, AtTargetNo
+		$SQL="select AtTarget Target, AtLetter Letter, AtTargetNo
 			from AvailableTarget
 			left join (select QuTargetNo, EnTournament
 					from Qualifications
 					inner join Entries on EnId=QuId and EnTournament={$_SESSION['TourId']}
+			  		where QuSession={$Sequence[2]}
 					) Quals on AtTargetNo=QuTargetNo and AtTournament=EnTournament
-			where AtTournament={$_SESSION['TourId']} and left(AtTargetNo, 4) in (".implode(',', $Targets).")
-			order by AtTargetNo";
+			where AtTournament={$_SESSION['TourId']} and AtSession={$Sequence[2]} and AtTarget in (".implode(',', $Targets).")
+			order by AtTarget";
 		$q=safe_r_sql($SQL);
 		while($r=safe_fetch($q)) {
 			$Ends[$r->Target][$r->Letter]='';
@@ -106,7 +108,7 @@ switch($Sequence[0]) {
 
 // archers class, t= target class, d= devices assigned
 foreach($Ends as $Tgt => $Let) {
-	$Out.='<div class="TargetContainer"><div class="TargetTitle" value="'.$Payloads[$Tgt].'" id="t-'.$Tgt.'" title="'.get_text('IskTargetTitle', 'Api', $Tgt).'" ondblclick="seeTarget(this)">'.get_text('IskTargetTitle', 'Api', $Tgt).'</div>';
+	$Out.='<div class="TargetContainer"><div class="TargetTitle" value="'.$Payloads[$Tgt].'" id="t-'.$Tgt.'" title="'.get_text('IskTargetTitle', 'Api', $Tgt).'" ondblclick="seeTarget(this)"><span class="DisableSelection">'.get_text('IskTargetTitle', 'Api', $Tgt).'</span><img class="TargetInfoImg ContextMenuDiv" onClick="seeTarget(parentNode)"/></div>';
 	$Out.='<div class="TargetDevices">'.get_text('IskDeviceAssigned', 'Api').': <span id="d-'.$Tgt.'"></span></div>';
 	$Out.='<div class="TargetLetters">';
 	foreach($Let as $k => $v) {
@@ -114,7 +116,7 @@ foreach($Ends as $Tgt => $Let) {
 	}
 	$Out.='</div>';
 	$Out.='<div class="TargetMessage" id="m-'.$Tgt.'"></div>';
-	$Out.='<div align="center"><input class="TgtImport" id="i-'.$Tgt.'" type="button" onclick="dataImport(this)" value="'.get_text('CmdImport', 'Api').'"></div>';
+	$Out.='<div align="center"><input class="TgtImport ClickableDiv" id="i-'.$Tgt.'" type="button" onclick="dataImport(this)" value="'.get_text('CmdImport', 'Api').'"></div>';
 	$Out.='</div>';
 }
 
@@ -135,4 +137,7 @@ foreach(range(1, $_REQUEST['maxend']) as $i) {
 
 echo ']]></sticky>';
 echo '<sm><![CDATA['.$m.']]></sm>';
+if(!empty($_SESSION['debug'])) {
+	echo '<debug><![CDATA['.$SQL.']]></debug>';
+}
 echo '</response>';

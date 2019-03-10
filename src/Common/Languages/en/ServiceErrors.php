@@ -1,4 +1,7 @@
 <?php
+$lang['ArcClassified']='Wrong Classified Value';
+$lang['ArcNative']='Wrong First Nation Status';
+$lang['ArcPara']='Wrong Para Status';
 $lang['ErrArcherCodeExists']='Archer ID number already Exists';
 $lang['ErrArcherCodeFree']='Archer ID number is Free';
 $lang['ErrArcherCodeTooLong']='Archer ID number Too Long';
@@ -49,5 +52,7 @@ $lang['ErrPassToSet']='Insert a new password';
 $lang['ErrSubClass']='Invalid subclass';
 $lang['ErrSubClassNotFound']='Subclass Not Found';
 $lang['ErrWronglevel']='Club/Archer wrong Level';
+$lang['InvalidData']='Invalid Data';
 $lang['LoginTooManyArchers']='More than 1 archer has this email. Please use the membership ID';
+$lang['WrongType']='Wrong Type';
 ?>

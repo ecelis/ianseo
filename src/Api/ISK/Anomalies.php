@@ -3,6 +3,7 @@
 require_once(dirname(dirname(__FILE__)).'/config.php');
 
 CheckTourSession(true);
+checkACL(AclISKServer, AclReadOnly);
 
 require_once('Common/Lib/CommonLib.php');
 require_once('Common/Lib/Fun_Modules.php');
@@ -10,7 +11,7 @@ require_once('Common/Lib/Fun_Modules.php');
 $PAGE_TITLE=get_text('ISK-Anomalies', 'Api');
 $JS_SCRIPT=array(
 	phpVars2js(array('msgAreYouSure' => get_text('MsgAreYouSure'), 'Anomalies' => 1)),
-	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-2.1.4.min.js"></script>',
 	'<script type="text/javascript" src="./index.js"></script>',
 	'<script type="text/javascript" src="./Results.js"></script>',
 	'<link href="ISK.css" rel="stylesheet" type="text/css">',
@@ -69,11 +70,12 @@ foreach(array('G', 'R', 'O', 'B', 'C', 'Z', 'Y') as $Let) {
 }
 echo '</div>';
 echo '<div id="PopUp" class="PopUp">
-	<div class="TargetTitle"><img align="right" src="'.$CFG->ROOT_DIR.'Common/Images/status-noshoot.gif" onClick="closeTarget()"><span id="PopUpTitle"></span></div>
+	<div class="TargetTitle"><img class="PopUpCloseImg ClickableDiv" onClick="closeTarget()"><span id="PopUpTitle"></span></div>
 	<div id="PopUpContent"></div>
-	<div id="PopUpCmd"><input type="button" id="PopupRemove" value="'.get_text('CmdDelete', 'Api').'" onclick="popupRemove(this)">
-			<input type="button" id="PopupImport" value="'.get_text('CmdImport', 'Api').'" onclick="popupImport(this)">
-			<input type="button" value="'.get_text('Close').'" onclick="closeTarget()">
-					</div>
+	<div id="PopUpCmd">
+		<input type="button" class="ClickableDiv" id="PopupRemove" value="'.get_text('CmdDelete', 'Api').'" onclick="popupRemove(this)">
+		<input type="button" class="ClickableDiv" id="PopupImport" value="'.get_text('CmdImport', 'Api').'" onclick="popupImport(this)">
+		<input type="button" class="ClickableDiv" value="'.get_text('Close').'" onclick="closeTarget()">
+	</div>
 	</div>';
 include('Common/Templates/tail.php');

@@ -9,11 +9,11 @@
 	$division=(isset($_REQUEST['division']) ? $_REQUEST['division'] : null);
 	$class=(isset($_REQUEST['class']) ? $_REQUEST['class'] : null);
 
-	if (!CheckTourSession() || is_null($code) || is_null($archer) || is_null($country) || is_null($class) || is_null($division))
-	{
+	if (!CheckTourSession() || is_null($code) || is_null($archer) || is_null($country) || is_null($class) || is_null($division)) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$error = 0;
 

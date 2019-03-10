@@ -1,6 +1,7 @@
 <?php
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclParticipants, AclReadOnly);
 require_once('Common/pdf/LabelPDF.inc.php');
 
 require_once('CommonCard.php');

@@ -97,7 +97,7 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 			if(!empty($this->opts['events'])) {
 				$MyQueryNames .= CleanEvents($this->opts['events'], 'TfcEvent');
 			}
-			$MyQueryNames .= " ORDER BY EvProgr, TfcEvent, TfcCoId, TfcSubTeam, EnFirstName, TfcOrder ";
+			$MyQueryNames .= " ORDER BY EvProgr, TfcEvent, TfcCoId, TfcSubTeam, EnSex desc, EnFirstName, TfcOrder ";
 
 			$this->data['sections']=array();
 			$q=safe_r_SQL($MyQueryNames);
@@ -111,6 +111,7 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 					'familyUpperName' => $r->EnUpperName,
 					'givenName' => $r->EnName,
 					'nameOrder' => $r->EnNameOrder,
+					'fullName' => ($r->EnNameOrder ? $r->EnUpperName . ' ' . $r->EnName : $r->EnName . ' ' . $r->EnUpperName),
 					'gender' => $r->EnSex,
 					);
 				if(!empty($this->opts['enid']) and $r->TfcId==$this->opts['enid']) {
@@ -124,21 +125,49 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 				foreach($this->data['sections'] as $ev => $data) if(!in_array($ev, $this->EnIdFound)) unset($this->data['sections'][$ev]);
 			}
 
+			$ExtraFilter=array();
+			if(!empty($this->EnIdFound)) {
+				$ExtraFilter[] = 'Event in ("'.implode('","', $this->EnIdFound).'") AND (Team='.StrSafe_DB($this->TeamFound).' or oppTeam='.StrSafe_DB($this->TeamFound).')';
+			}
+			if(!empty($this->opts['coid'])) {
+				$ExtraFilter[] = "(Team=" . intval($this->opts['coid']) . " or OppTeam=" . intval($this->opts['coid']) . ") ";
+			}
+			if(isset($this->opts['matchno'])) {
+				$ExtraFilter[] = "(MatchNo=" . intval($this->opts['matchno']) . ' or OppMatchNo =' . intval($this->opts['matchno']) . ')';
+			}
+			if(isset($this->opts['matchnoArray'])) {
+				$ExtraFilter[] = "(MatchNo in (" . implode(',', $this->opts['matchnoArray']) . ')';
+			}
+			if(isset($this->opts['liveFlag'])) {
+				$ExtraFilter[] = "LiveFlag=1";
+			}
+			if($ExtraFilter) {
+				$ExtraFilter = 'WHERE ' . implode(' AND ', $ExtraFilter);
+			} else {
+				$ExtraFilter = '';
+			}
+
 			$q = "SELECT f1.*, f2.*,
 					ifnull(concat(DV2.DvMajVersion, '.', DV2.DvMinVersion) ,concat(DV1.DvMajVersion, '.', DV1.DvMinVersion)) as DocVersion,
 					date_format(ifnull(DV2.DvPrintDateTime, DV1.DvPrintDateTime), '%e %b %Y %H:%i UTC') as DocVersionDate,
 					ifnull(DV2.DvNotes, DV1.DvNotes) as DocNotes from ("
 				. "select"
+                . " TfArrowPosition ArrowPosition, TfTiePosition TiePosition,"
 				. " EvCode Event,"
 				. " EvEventName EventDescr,"
-				. " EvFinalFirstPhase,"
+				. " EvFinalFirstPhase, EvNumQualified, "
 				. " EvMaxTeamPerson,"
 				. " EvFinalPrintHead,"
 				. " EvMatchMode,"
+				. " EvWinnerFinalRank,"
+				. " EvFinalFirstPhase=EvNumQualified as NoRealPhase,"
 				. " EvProgr,"
 				. " EvShootOff,"
+                . " EvCodeParent,"
 				. " GrPhase Phase,"
-				. " IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) Position,"
+				. " pow(2, ceil(log2(GrPhase))+1) & EvMatchArrowsNo!=0 as FinElimChooser,"
+				. " GrPosition Position,"
+                . " GrPosition2 Position2,"
 				. " TfTournament Tournament,"
 				. " TfTeam Team,"
 				. " TfSubTeam SubTeam,"
@@ -174,9 +203,11 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 				. " WHERE TfMatchNo%2=0 AND TfTournament = " . $this->tournament . " " . $filter
 				. ") f1 inner join ("
 				. "select"
+                . " TfArrowPosition OppArrowPosition, TfTiePosition OppTiePosition, "
 				. " EvCode OppEvent,"
-				. " IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) OppPosition,"
-				. " TfTournament OppTournament,"
+                . " GrPosition OppPosition,"
+                . " GrPosition2 OppPosition2,"
+                . " TfTournament OppTournament,"
 				. " TfTeam OppTeam,"
 				. " TfSubTeam OppSubTeam,"
 				. " TfMatchNo OppMatchNo,"
@@ -207,15 +238,13 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 				. ") f2 on Tournament=OppTournament and Event=OppEvent and MatchNo=OppMatchNo-1
 				LEFT JOIN DocumentVersions DV1 on Tournament=DV1.DvTournament AND DV1.DvFile = 'B-TEAM' and DV1.DvEvent=''
 				LEFT JOIN DocumentVersions DV2 on Tournament=DV2.DvTournament AND DV2.DvFile = 'B-TEAM' and DV2.DvEvent=Event "
-				. ($this->EnIdFound ? ' where Event in ("'.implode('","', $this->EnIdFound).'") AND (Team='.StrSafe_DB($this->TeamFound).' or oppTeam='.StrSafe_DB($this->TeamFound).')' : '')
-				. (empty($this->opts['coid']) ? '' : " where (Team=" . intval($this->opts['coid'])." or OppTeam=" . intval($this->opts['coid']).") ")
-				. (isset($this->opts['matchno']) ? " where MatchNo=" . intval($this->opts['matchno']).' ' : '')
-				. (isset($this->opts['liveFlag']) ? " where LiveFlag=1 " : '')
+				. " $ExtraFilter "
 				. " ORDER BY EvProgr ASC, event, Phase DESC, MatchNo ASC ";
 
 			$r=safe_r_sql($q);
 
 			$this->data['meta']['title']=get_text('BracketsSq');
+            $this->data['meta']['saved']=get_text('Seeded8th');
 			$this->data['meta']['lastUpdate']='0000-00-00 00:00:00';
 			$this->data['meta']['fields']=array(
 				// qui ci sono le descrizioni dei campi
@@ -279,8 +308,10 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 						'phase' => get_text('Phase'),
 						'eventName' => get_text($myRow->EventDescr,'','',true),
 						'firstPhase' => $myRow->EvFinalFirstPhase,
+						'winnerFinalRank' => $myRow->EvWinnerFinalRank,
 						'printHead' => get_text($myRow->EvFinalPrintHead,'','',true),
 						'maxTeamPerson'=>$myRow->EvMaxTeamPerson,
+                        'parent'=>$myRow->EvCodeParent,
 						'matchMode'=>$myRow->EvMatchMode,
 						'order'=>$myRow->EvProgr,
 						'shootOffSolved'=>$myRow->EvShootOff,
@@ -294,6 +325,7 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 						'elimMaxScore' => $myRow->EvElimArrows*10,
 						'targetType' => $myRow->TarDescr,
 						'targetTypeId' => $myRow->TarId,
+						'targetTypeValues' => GetTarget($this->tournament, $myRow->TarDescr),
 						'targetSize' => $myRow->TargetSize,
 						'distance' => $myRow->Distance,
 						'version' => $myRow->DocVersion,
@@ -301,7 +333,13 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 						'versionNotes' => $myRow->DocNotes,
 						'maxPoint' => $tmp['MaxPoint'],
 						'minPoint' => $tmp['MinPoint'],
+						'noRealPhase' => $myRow->Phase>=$myRow->EvFinalFirstPhase ? $myRow->NoRealPhase : 0,
+						'numSaved' => ($num=SavedInPhase($myRow->EvFinalFirstPhase)) ? $num : 2*$myRow->EvFinalFirstPhase - $myRow->EvNumQualified,
 						);
+					$this->data['sections'][$myRow->Event]['meta']['phaseNames']=array(
+						$myRow->EvFinalFirstPhase => get_text($myRow->EvFinalFirstPhase . "_Phase")
+					);
+
 					$this->data['sections'][$myRow->Event]['phases']=array();
 					if(!empty($this->opts['records'])) {
 						$this->data['sections'][$myRow->Event]['records'] = $this->getRecords($myRow->Event, true, true);
@@ -310,36 +348,56 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 
 				if(!isset($this->data['sections'][$myRow->Event]['phases'][$myRow->Phase])) {
 					$this->data['sections'][$myRow->Event]['phases'][$myRow->Phase]['meta']=array(
-						'phaseName' => get_text($myRow->Phase . "_Phase"),
-						'matchName' => get_text('MatchName-'.$myRow->Phase, 'Tournament')
+						'phaseName' => get_text(namePhase($myRow->EvFinalFirstPhase, $myRow->Phase) . "_Phase"),
+						'matchName' => get_text('MatchName-'.namePhase($myRow->EvFinalFirstPhase, $myRow->Phase), 'Tournament'),
+						'FinElimChooser' => $myRow->FinElimChooser,
 						);
 					$this->data['sections'][$myRow->Event]['phases'][$myRow->Phase]['items']=array();
+					$this->data['sections'][$myRow->Event]['meta']['phaseNames'][namePhase($myRow->EvFinalFirstPhase, $myRow->Phase)]=$this->data['sections'][$myRow->Event]['phases'][$myRow->Phase]['meta']['phaseName'];
 				}
 
 				$tmpArr=array();
 				$oppArr=array();
+				$lastTieL=0;
+				$lastTieR=0;
 				if($myRow->TieBreak) {
 					for($countArr=0; $countArr<strlen(trim($myRow->TieBreak)); $countArr+=$myRow->EvMaxTeamPerson) {
-						$tmp=ValutaArrowString(substr(trim($myRow->TieBreak),$countArr,$myRow->EvMaxTeamPerson));
-						if(!ctype_upper(trim($myRow->TieBreak)))
+						$SubArrow=substr(trim($myRow->TieBreak),$countArr,$myRow->EvMaxTeamPerson);
+						$tmp=ValutaArrowString($SubArrow);
+						if(!ctype_upper($SubArrow)) {
 							$tmp .=  "*";
+						}
 						$tmpArr[] = $tmp;
-					}
-				}
-				if($myRow->OppTieBreak) {
-					for($countArr=0; $countArr<strlen(trim($myRow->OppTieBreak)); $countArr+=$myRow->EvMaxTeamPerson) {
-						$tmp=ValutaArrowString(substr(trim($myRow->OppTieBreak),$countArr,$myRow->EvMaxTeamPerson));
-						if(!ctype_upper(trim($myRow->OppTieBreak)))
-							$tmp .=  "*";
-						$oppArr[] = $tmp;
+						$lastTieL++;
 					}
 				}
 
-				$this->data['sections'][$myRow->Event]['phases'][$myRow->Phase]['items'][]=array(
+				if($myRow->OppTieBreak) {
+					for($countArr=0; $countArr<strlen(trim($myRow->OppTieBreak)); $countArr+=$myRow->EvMaxTeamPerson) {
+						$SubArrow=substr(trim($myRow->OppTieBreak),$countArr,$myRow->EvMaxTeamPerson);
+						$tmp=ValutaArrowString($SubArrow);
+						if(!ctype_upper($SubArrow)) {
+							$tmp .=  "*";
+						}
+						$oppArr[] = $tmp;
+						$lastTieR++;
+					}
+				}
+
+				if($lastTieL and $lastTieR and $lastTieL == $lastTieR and $tmpArr[$lastTieL-1] === $oppArr[$lastTieR-1]) {
+					if($myRow->Tie==1) {
+						$tmpArr[$lastTieL-1] .= '*';
+					} elseif($myRow->OppTie==1) {
+						$oppArr[$lastTieR-1] .= '*';
+					}
+				}
+
+				$item=array(
 					// qui ci sono le descrizioni dei campi
 					'liveFlag' => $myRow->LiveFlag,
 					'scheduledDate' => $myRow->ScheduledDate,
 					'scheduledTime' => $myRow->ScheduledTime,
+					'lastUpdated' => $myRow->LastUpdated,
 					'matchNo' => $myRow->MatchNo,
 					'target' => $myRow->Target,
 					'countryCode' => $myRow->CountryCode,
@@ -357,12 +415,15 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 					'tie'=> $myRow->Tie,
 				 	'tiebreak'=> $myRow->TieBreak,
 				 	'tiebreakDecoded'=> implode(',', $tmpArr),
+					'arrowpositionAvailable'=>($myRow->ArrowPosition != ''),
 					'status'=>$myRow->Status,
 					'shootFirst'=>$myRow->ShootFirst,
-				 	'position'=> $myRow->QualRank ? $myRow->QualRank : $myRow->Position,
+				 	'position'=> $myRow->QualRank ? $myRow->QualRank : (useGrPostion2($myRow->EvFinalFirstPhase, $myRow->Phase) ? ($myRow->Position2 ? $myRow->Position2:'') : $myRow->Position),
+                    'saved'=> ($myRow->Position>0 and $myRow->Position<=SavedInPhase($myRow->EvFinalFirstPhase)),
 				 	'teamId'=> $myRow->Team,
 				 	'subTeam'=> $myRow->SubTeam,
 //
+					'oppLastUpdated' => $myRow->OppLastUpdated,
 					'oppMatchNo' => $myRow->OppMatchNo,
 					'oppTarget' => $myRow->OppTarget,
 					'oppCountryCode' => $myRow->OppCountryCode,
@@ -380,14 +441,23 @@ require_once('Common/Lib/Fun_PrintOuts.php');
 					'oppTie'=> $myRow->OppTie,
 				 	'oppTiebreak'=> $myRow->OppTieBreak,
 				 	'oppTiebreakDecoded'=> implode(',', $oppArr),
+                    'oppArrowpositionAvailable'=>($myRow->OppArrowPosition != ''),
 					'oppStatus'=>$myRow->OppStatus,
 					'oppShootFirst'=>$myRow->OppShootFirst,
-				 	'oppPosition'=> $myRow->OppQualRank ? $myRow->OppQualRank : $myRow->OppPosition,
-				 	'oppTeamId'=> $myRow->OppTeam,
+				 	'oppPosition'=> $myRow->OppQualRank ? $myRow->OppQualRank : (useGrPostion2($myRow->EvFinalFirstPhase, $myRow->Phase) ? ($myRow->OppPosition2 ? $myRow->OppPosition2:'') : $myRow->OppPosition),
+                    'oppSaved'=> ($myRow->OppPosition>0 and $myRow->OppPosition<=SavedInPhase($myRow->EvFinalFirstPhase)),
+                    'oppTeamId'=> $myRow->OppTeam,
 				 	'oppSubTeam'=> $myRow->OppSubTeam,
 					);
 
+                if(!empty($this->opts['extended'])) {
+                    $item['arrowPosition']= ($myRow->ArrowPosition == '' ? array() : json_decode($myRow->ArrowPosition, true));
+                    $item['tiePosition']= ($myRow->TiePosition != '' and $tmp=json_decode($myRow->TiePosition, true)) ? $tmp : array();
+                    $item['oppArrowPosition']= ($myRow->OppArrowPosition == '' ? array() : json_decode($myRow->OppArrowPosition, true));
+                    $item['oppTiePosition']= ($myRow->OppTiePosition != '' and $tmp=json_decode($myRow->OppTiePosition, true)) ? $tmp : array();
+                }
 
+                $this->data['sections'][$myRow->Event]['phases'][$myRow->Phase]['items'][] = $item;
 			}
 		}
 

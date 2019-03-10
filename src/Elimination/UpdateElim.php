@@ -4,8 +4,6 @@
 	Aggiorna la tabella Qualifications
 */
 
-define('debug',false);
-
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Qualification/Fun_Qualification.local.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
@@ -25,6 +23,7 @@ if (!CheckTourSession()) {
 	$JSON['msg']= get_text('CrackError');
 	JsonOut($JSON);
 }
+checkACL(AclEliminations, AclReadWrite, false);
 
 foreach ($_REQUEST as $Key => $Value) {
 	if (substr($Key,0,2)=='d_') {
@@ -47,9 +46,10 @@ foreach ($_REQUEST as $Key => $Value) {
 			default:
 				$JSON['msg']= 'Wrong field';
 				JsonOut($JSON);
-
 		}
-		$Sel = "SELECT $Field AS OldValue, ElScore, ElGold, ElXnine, ElHits, ToGolds, ToXNine, ToCategory, EvFinalTargetType, EvElimArrows as Arrows, if(ElElimPhase=0, EvElimEnds, EvElim2) as Ends
+
+		$Sel = "SELECT $Field AS OldValue, ElScore, ElGold, ElXnine, ElHits, ToGolds, ToXNine, ToCategory, EvFinalTargetType, 
+			if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) as Arrows, if(ElElimPhase=0, EvE1Ends, EvE2Ends) as Ends
 			FROM Eliminations
 			inner join Events on EvCode=ElEventCode and EvTeamEvent=0 and EvTournament=ElTournament
 			inner join Tournament on ToId=ElTournament
@@ -90,20 +90,14 @@ foreach ($_REQUEST as $Key => $Value) {
 				}
 				break;
 			case 'ElXnine':
-				if($rr->ToCategory==8) {
-					// 3D
-					$Error = ($Value>floor((($rr->ElScore - ($Gtmp*$rr->ElGold))/$Xtmp)));
-				} else {
-					// Field
-					$Error = ($Value>$rr->ElGold);
-				}
+				$Error = ($Value>floor((($rr->ElScore - ($Gtmp*$rr->ElGold))/$Xtmp)));
 				if(!$Error) {
 					$JSON['xnine'] = $Value;
 					$JSON['value'] = $Value;
 				}
 				break;
 			case 'ElHits':
-				$Error = ($Value<floor($rr->ElScore/($Gtmp*$rr->ElGold )) OR $Value<$rr->ElGold or $Value<$rr->ElXnine);
+				$Error = ($rr->ElGold and $Value<floor($rr->ElScore/($Gtmp*$rr->ElGold )) OR $Value<$rr->ElGold or $Value<$rr->ElXnine);
 				if(!$Error) {
 					$JSON['hits' ] = $Value;
 					$JSON['value'] = $Value;

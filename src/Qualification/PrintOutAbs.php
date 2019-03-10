@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
 
 	$PAGE_TITLE=get_text('PrintList', 'Tournament');
@@ -57,11 +58,11 @@
 	echo '<tr>';
 	//Eventi
 	echo '<td class="Center" width="50%">';
-	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY EvProgr";
+	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='0' and EvCodeParent='' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY EvProgr";
 	$Rs = safe_r_sql($MySql);
 	if(safe_num_rows($Rs)>0)
 	{
-		echo get_text('Event') . '<br><select name="Event[]" multiple="multiple" size="'.(safe_num_rows($Rs)+1).'">';
+		echo get_text('Event') . '<br><select name="Event[]" multiple="multiple" size="'.min(15,safe_num_rows($Rs)+1).'">';
 		echo '<option value=".">' . get_text('AllEvents')  . '</option>';
 		while($MyRow=safe_fetch($Rs))
 			echo '<option value="' . $MyRow->EvCode . '">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';
@@ -108,11 +109,11 @@
 	echo '<tr>';
 	//Eventi
 	echo '<td class="Center" width="50%">';
-	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY EvProgr";
+	$MySql = "SELECT EvCode, EvEventName FROM Events WHERE EvTeamEvent='1' and EvCodeParent='' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY EvProgr";
 	$Rs = safe_r_sql($MySql);
 	if(safe_num_rows($Rs)>0)
 	{
-		echo get_text('Event') . '<br><select name="Event[]" multiple="multiple" rows="'.(safe_num_rows($Rs)+1).'">';
+		echo get_text('Event') . '<br><select name="Event[]" multiple="multiple" size="'.min(15,safe_num_rows($Rs)+1).'">';
 		echo '<option value=".">' . get_text('AllEvents')  . '</option>';
 		while($MyRow=safe_fetch($Rs))
 			echo '<option value="' . $MyRow->EvCode . '">' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true)  . '</option>';

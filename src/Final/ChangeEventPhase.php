@@ -17,6 +17,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(array(AclIndividuals,AclTeams, AclOutput), AclReadOnly, false);
 
 	$Errore=0;
 
@@ -27,6 +28,12 @@
 
 	if (!$rs)
 		$Errore=1;
+
+	if($Ph==-1) {
+		require_once('Common/Lib/CommonLib.php');
+		$MatchNames=getPoolMatches();
+		$MatchNamesWA=getPoolMatchesWA();
+	}
 
 	if (!debug)
 		header('Content-Type: text/xml');
@@ -40,10 +47,20 @@
 			{
 				$Target= ltrim($row->target1, '0');
 				if($row->target1!=$row->target2) $Target.='/'.ltrim($row->target2, '0');
+				$title=$Target;
+				if($Ph==-1) {
+					if($row->elimType==3 and isset($MatchNames[$row->match1])) {
+						$title=$MatchNames[$row->match1];
+					} elseif($row->elimType==4 and isset($MatchNamesWA[$row->match1])) {
+						$title=$MatchNamesWA[$row->match1];
+					} else {
+						$title=get_text( $row->phase . '_Phase');
+					}
+				}
 				$xml
 					.='<match>' . "\n"
 						. '<matchno1>' .  $row->match1 . '</matchno1>' . "\n"
-						. '<name1><![CDATA[' . $Target . ' - ' . $row->name1 . ']]></name1>' . "\n"
+						. '<name1><![CDATA[' . $title . ' - ' . $row->name1 . ']]></name1>' . "\n"
 						. '<matchno2>' .  $row->match2 . '</matchno2>' . "\n"
 						. '<name2><![CDATA[' . $row->name2 . ']]></name2>' . "\n"
 					. '</match>' . "\n";

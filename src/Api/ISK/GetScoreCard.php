@@ -8,8 +8,7 @@ $json_array = Array();
 $tmp=explode('|', $QuTarget);
 if(count($tmp)==3) {
 	// ELIMINATION
-	$NumEnds=($tmp[0][1]=='1' ? 12 : 8);
-	$SQL="select 'E' as Type, ElArrowString DiArrowstring, '' DiDistance, $NumEnds DiEnds, EvElimArrows DiArrows, '' DiName, ToGoldsChars, ToXNineChars, ToGolds, ToXNine
+	$SQL="select 'E' as Type, ElArrowString DiArrowstring, '' DiDistance, if(ElElimPhase=0, EvE1Ends, EvE2Ends) DiEnds, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) DiArrows, '' DiName, ToGoldsChars, ToXNineChars, ToGolds, ToXNine
 		FROM Eliminations
 		INNER JOIN Entries on EnId = ElId and EnTournament=$CompId
 		INNER JOIN Tournament ON ToId=$CompId
@@ -51,13 +50,13 @@ if(count($tmp)==3) {
 				}
 			}
 		}
-		
+
 		$RealEnds=array();
 		while(strlen($ArrowString)) {
 			$RealEnds[]=substr($ArrowString, 0, $Arrows);
 			$ArrowString=substr($ArrowString, $Arrows);
 		}
-		
+
 		if($Arrows>3 and $Arrows%3) {
 			// arrows per end are more than 6 and not multiple of 3
 			// so ends will be reduced to max 6 arrows

@@ -10,6 +10,7 @@ if (!CheckTourSession()) {
 	print get_text('CrackError');
 	exit;
 }
+checkACL(AclAccreditation, AclReadWrite,false);
 
 $Errore = 1;
 $Answer='';
@@ -30,14 +31,25 @@ if(!empty($_REQUEST["Id"]) && $EnId=intval($_REQUEST["Id"])) {
 	}
 
 	// gets the tourcode and TourId from the EnId (because of multiple codes!)
-	$q=safe_r_sql("select ToId, ToCode from Tournament inner join Entries on EnTournament=ToId and EnId=$EnId");
+	$q=safe_r_sql("select ToId, ToCode, EnBadgePrinted, (EnBadgePrinted+0 and PhEnId IS NULL) or PhToRetake=1 as NoPrintout 
+		from Tournament 
+		inner join Entries on EnTournament=ToId and EnId=$EnId
+		LEFT JOIN Photos ON PhEnId=EnId");
 	$r=safe_fetch($q);
+
 	$TourCode=$r->ToCode;
 	$TourId=$r->ToId;
+	$NoPrintout=$r->NoPrintout;
+	$DatePrinted=$r->EnBadgePrinted;
 
 	$im=false;
 	if(!empty($_REQUEST["picEncoded"])) {
 		$picEncoded=str_replace(array('data:image/png;base64,',' '),array('','+'),$_REQUEST["picEncoded"]);
+		$im = imagecreatefromstring(base64_decode($picEncoded));
+	}
+	if(!empty($_REQUEST["picJpgEncoded"])) {
+		$JSON=array('error' => 1, 'pic' => '');
+		$picEncoded=str_replace(array('data:image/jpeg;base64,',' '),array('','+'),$_REQUEST["picJpgEncoded"]);
 		$im = imagecreatefromstring(base64_decode($picEncoded));
 	}
 	if(!empty($_REQUEST["picURL"])) {
@@ -112,7 +124,11 @@ if(!empty($_REQUEST["Id"]) && $EnId=intval($_REQUEST["Id"])) {
 				require_once('Common/CheckPictures.php');
 				require_once('Common/PhotoResize.php');
 				if($imgtoSave=photoresize($image_data, true, true)) {
-					InsertPhoto($EnId, $imgtoSave, $Booth);
+					if($NoPrintout) {
+						InsertPhoto($EnId, $imgtoSave, $Booth, $DatePrinted, $DatePrinted);
+					} else {
+						InsertPhoto($EnId, $imgtoSave, $Booth);
+					}
 				}
 			}
 		}
@@ -133,6 +149,13 @@ if(!empty($_REQUEST["Id"]) && $EnId=intval($_REQUEST["Id"])) {
 			. '<cat><![CDATA[' . $row->Category . ']]></cat>'
 			. '<pic><![CDATA[' . ($row->Photo ? "data:image/jpeg;base64,".$row->Photo:'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==') . ']]></pic>'
 			. '</athlete>';
+
+		if(!empty($JSON)) {
+			$JSON['error']=$Errore;
+			$JSON['pic']=($row->Photo ? "data:image/jpeg;base64,".$row->Photo : 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+			$JSON['ok']=($row->Photo ? 1 : 0);
+			JsonOut($JSON);
+		}
 	}
 }
 

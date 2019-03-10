@@ -15,6 +15,8 @@ this file is used by the ScoreCard printout routines.
 require_once(dirname(dirname(__FILE__)).'/config.php');
 
 CheckTourSession(true);
+checkACL(AclISKServer, AclReadWrite);
+
 
 if(!empty($_REQUEST['remove'])) {
 	safe_w_sql("delete from IskData where IskDtDevice=".StrSafe_DB($_REQUEST['remove']));
@@ -26,18 +28,27 @@ require_once('Common/Lib/CommonLib.php');
 
 $PAGE_TITLE=get_text('ISK-Configuration');
 $JS_SCRIPT=array(
-		phpVars2js(array(
-			'TourId'=>$_SESSION["TourId"],
-			'MsgConfirm'=>htmlspecialchars(get_text('MsgAreYouSure')),
-			'MsgOk'=>get_text('CmdOk'),
-			'msgRemove'=>htmlspecialchars(get_text('ISK-Remove', 'Api')),
-			'Lite'=>get_text('ISK-Lite-Name', 'Api'),
-			'Pro'=>get_text('ISK-Pro-Name', 'Api'),
-			'imgPath'=>$CFG->ROOT_DIR.'Common/Images/',
-			)),
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
-		'<script type="text/javascript" src="./index.js"></script>',
-		'<link href="ISK.css" rel="stylesheet" type="text/css">',
+	phpVars2js(array(
+		'TourId'=>$_SESSION["TourId"],
+		'MsgConfirm'=>htmlspecialchars(get_text('MsgAreYouSure')),
+		'MsgOk'=>get_text('CmdOk'),
+		'msgRemove'=>htmlspecialchars(get_text('ISK-Remove', 'Api')),
+		'Lite'=>get_text('ISK-Lite-Name', 'Api'),
+		'Pro'=>get_text('ISK-Pro-Name', 'Api'),
+		'msgIskRequiresApproval'=>htmlspecialchars(get_text('ISK-RequiresApproval', 'Api')),
+		'msgIskDenyAccess'=>htmlspecialchars(get_text('ISK-DenyAccess', 'Api')),
+		'msgIskReloadConfig'=>htmlspecialchars(get_text('ISK-ReloadConfig', 'Api')),
+		'msgIskForceConfirm'=>htmlspecialchars(get_text('ISK-ForceConfirm', 'Api')),
+		'msgIskApproveConfig'=>htmlspecialchars(get_text('ISK-ApproveConfig', 'Api')),
+		'msgIskStatusNoShoot'=>htmlspecialchars(get_text('ISK-StatusNoShoot', 'Api')),
+		'msgIskStatusReloading'=>htmlspecialchars(get_text('ISK-StatusReloading', 'Api')),
+		'msgIskStatusWaitConfirm'=>htmlspecialchars(get_text('ISK-StatusWaitConfirm', 'Api')),
+		'msgIskStatusOK'=>htmlspecialchars(get_text('ISK-StatusOK', 'Api')),
+		'imgPath'=>$CFG->ROOT_DIR.'Common/Images/',
+		)),
+	'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-2.1.4.min.js"></script>',
+	'<script type="text/javascript" src="./index.js"></script>',
+	'<link href="ISK.css" rel="stylesheet" type="text/css">',
 );
 
 $ONLOAD=' onload="loadDevices()"';
@@ -71,15 +82,15 @@ echo '</tr>';
 echo '<tr class="divider"><td colspan="12"></td></tr>';
 
 echo '<tr>';
-echo '<th width="7%">' . get_text('Target') . '</th>';
+echo '<th width="7%" id="tgtOrder" onclick="loadDevicesOrdered(this)" ordertype="ordasc">' . get_text('Target') . '</th>';
 echo '<th width="7%">' . get_text('ISK-AuthRequest', 'Api') . '</th>';
 echo '<th width="8%">' . get_text('Tournament', 'Tournament') . '</th>';
-echo '<th colspan="3" widht="10%">' . get_text('ISK-DeviceCode', 'Api') . '</th>';
-echo '<th>' . get_text('ISK-DeviceId', 'Api') . '</th>';
+echo '<th colspan="3" widht="10%" id="codeOrder" onclick="loadDevicesOrdered(this)">' . get_text('ISK-DeviceCode', 'Api') . '</th>';
+echo '<th id="idOrder" onclick="loadDevicesOrdered(this)">' . get_text('ISK-DeviceId', 'Api') . '</th>';
 echo '<th>' . get_text('ISK-DeviceAlive', 'Api') . '</th>';
 echo '<th>' . get_text('ISK-DeviceStatus', 'Api') . '</th>';
 echo '<th>' . get_text('ISK-DeviceStatusWanted', 'Api') . '</th>';
-echo '<th>' . get_text('ISK-DeviceBattery', 'Api') . '</th>';
+echo '<th id="batteryOrder" onclick="loadDevicesOrdered(this)">' . get_text('ISK-DeviceBattery', 'Api') . '</th>';
 echo '<th>' . get_text('ISK-DeviceIpAddress', 'Api') . '</th>';
 echo '<th>' . get_text('ISK-DeviceLastSeen', 'Api') . '</th>';
 echo '<th>' . get_text('ISK-Remove', 'Api') . '</th>';
@@ -88,6 +99,37 @@ echo '<tbody id="tablets">';
 echo '</tbody>';
 echo '</table>';
 
-//echo '<div id="TabletInfo" />';
+$tmp='';
+foreach(range('A','Z') as $k) {
+	$tmp.='<option value="'.(ord($k)-65).'">'.$k.'</option>';
+}
+echo '<div id="PopUp" class="PopUp">
+	<div class="TargetTitle"><img align="right" src="'.$CFG->ROOT_DIR.'Common/Images/status-noshoot.gif" onClick="closePopup()">'.get_text('ManageGroupTarget', 'Api').'</div>
+	<table align="center">
+		<tr>
+			<td>Device</td>
+			<td id="PopDevice"></td>
+		</tr>
+		<tr>
+			<td>Group</td>
+			<td id="PopGroup"></td>
+		</tr>
+		<tr>
+			<td>Target</td>
+			<td id="PopTarget"></td>
+		</tr>';
+//echo '<tr>
+//			<th>New Group</th>
+//			<td><select id="NewGroup">'.$tmp.'</select></td>
+//		</tr>';
+echo '<tr>
+			<th>New Target</th>
+			<td><input type="number" id="NewTarget" min="1" max="255"></td>
+		</tr>
+	</table>
+	<div id="PopUpCmd"><input type="button" id="PopupImport" value="'.get_text('CmdOk').'" onclick="AssignGroupTarget()">
+			<input type="button" value="'.get_text('Close').'" onclick="closePopup()">
+					</div>
+	</div>';
 
 include('Common/Templates/tail.php');

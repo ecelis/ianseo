@@ -8,13 +8,13 @@ body
 	padding: 0px;
 	background-attachment:fixed;
 	background-color:#F0F8FF;
-	
+
 /*	background-image:url(./images/sfondo.jpg);
 	background-position:bottom;
 	background-repeat:repeat-x; */
 }
 
-@media screen 
+@media screen
 {
 	#Header
 	{
@@ -29,9 +29,9 @@ body
 		height: 65px;
 		color: #000099;
 		letter-spacing: 0.1em;
-		
+
 	}
-	
+
 	#OverAllMenu {
 		position:absolute;
 		overflow:auto;
@@ -43,7 +43,7 @@ body
 		padding:5px;
 		cursor: pointer;
 	}
-	
+
 	#TourInfo
 	{
 		position: absolute;
@@ -59,7 +59,7 @@ body
 		color: #000099;
 		z-index:0;
 	}
-	
+
 	#Menu
 	{
 		position: absolute;
@@ -71,8 +71,8 @@ body
 		background-color: #F0F8FF;
 		z-index:0;
 	}
-	
-	#Content 
+
+	#Content
 	{
 		position: absolute;
 		top: /*160px;*/  0px;
@@ -81,19 +81,19 @@ body
 		overflow: auto;
 		/*height: 648px;*/
 		padding:5px;
-		padding-bottom:30px;	
+		padding-bottom:30px;
 		background-color: #F0F8FF;
 		z-index:0;
 	}
-	
-	#PopupContent 
+
+	#PopupContent
 	{
 		position: absolute;
 		top: 0px;
 		left: 0px;
 		width: 99%;
 		padding:5px;
-		padding-bottom:30px;	
+		padding-bottom:30px;
 		background-color: #F0F8FF;
 		z-index:0;
 	}
@@ -193,3 +193,7 @@ table.Griglia td.wLeft { border-left: 1px solid white; padding-left: 1px; color:
 /********************************Fine Tabelle griglia ************************************/
 
 table.Tabella td.Winner {font-size:150%; padding:5px 0; font-weight:bold;text-align:center;background-color:#99FF99;}
+
+.Target {width:15vw;height:15vw;}
+
+table.Tabella td div.Semafori {height:80vh; overflow: hidden; overflow-y: scroll}

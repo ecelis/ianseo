@@ -57,12 +57,13 @@ function export_tournament($TourId, $Complete=false, $InfoSystem='') {
 		'F2FFinal' => 'F2F',
 		'FinalReportA' => 'Fra',
 		'Finals' => 'Fin',
+		'FinOdfTiming' => 'FinOdf',
 		'FinSchedule' => 'FS',
-		'FinTraining' => 'Ft',
-		'FinTrainingEvent' => 'Fte',
 		'FinWarmup' => 'Fw',
+        'GateLog' => 'GL',
 		'GuessWho'=>'Gw',
 		'GuessWhoData'=>'Gwd',
+		'HeartBeat'=>'Hb',
 		'HhtData' => 'Hd',
 		'HhtEvents' => 'He',
 		'HhtSetup' => 'Hs',
@@ -111,6 +112,7 @@ function export_tournament($TourId, $Complete=false, $InfoSystem='') {
 			'F2FEntries' => 'F2FEnId',
 			'F2FFinal' => 'F2FEnId',
 			'Finals' => 'FinAthlete',
+            'GateLog' => 'GLEntry',
 			'GuessWhoData'=>array('GwdAthlete1','GwdAthlete2'),
 			'HhtData' => 'HdEnId',
 			'Individuals' => 'IndId',
@@ -241,7 +243,7 @@ function export_tournament($TourId, $Complete=false, $InfoSystem='') {
 					or (empty($switches['C'][$Entry['EnCountry2']]) and $Entry['EnCountry2'])
 					or (empty($switches['C'][$Entry['EnCountry3']]) and $Entry['EnCountry3'])
 					) {
-				unset($switches['E'][$Id]); // missing country, deletes the entry
+				unset($switches['E'][$Id]); // missing entry, deletes the entry
 				continue; // skip the new entries
 			}
 			$Entry['EnId']=$switches['E'][$Id];
@@ -257,7 +259,10 @@ function export_tournament($TourId, $Complete=false, $InfoSystem='') {
 		// adjust Countries
 		$NewEntries=array();
 		foreach($Gara['Countries'] as $Id => $Entry) {
-			if(empty($switches['C'][$Id])) continue; // skip the new entries
+			if(empty($switches['C'][$Id])) {
+				unset($switches['C'][$Id]); // missing country, deletes the entry
+				continue; // skip the new entries
+			}
 			$Entry['CoId']=$switches['C'][$Id];
 			$Entry['CoOnlineId']=$switches['C'][$Id];
 			$Entry['CoTournament']=$switches['T'][$_SESSION['TourId']];

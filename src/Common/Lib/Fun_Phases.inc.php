@@ -1,24 +1,23 @@
 <?php
 
-function getStandardPhases()
-{
+function getStandardPhases() {
+	$TourLocRule=empty($_SESSION['TourLocRule']) ? 'default' : $_SESSION['TourLocRule'];
+
 	$myPhases=array();
-	$MyQuery = "SELECT PhId FROM Phases WHERE  PhLevel IN(0,-1) ORDER BY PhId DESC";
+	$MyQuery = "SELECT PhId FROM Phases WHERE  PhLevel IN(0,-1) and PhRuleSets in ('', '$TourLocRule') ORDER BY PhId DESC";
 	$Rs=safe_r_sql($MyQuery);
-	if(safe_num_rows($Rs)>0)
-	{
-		while($MyRow=safe_fetch($Rs))
-			$myPhases[] = $MyRow->PhId;
-		safe_free_result($Rs);
+	while($MyRow=safe_fetch($Rs)) {
+		$myPhases[] = $MyRow->PhId;
 	}
+	safe_free_result($Rs);
 	return $myPhases;
 }
 
-function getPhaseArray()
-{
+function getPhaseArray(){
+	$TourLocRule=empty($_SESSION['TourLocRule']) ? 'default' : $_SESSION['TourLocRule'];
 //Carico le fasi in un array
 	$myPhases=array();
-	$MyQuery = "SELECT PhId, PhDescr FROM Phases WHERE  PhLevel=-1 ORDER BY PhId DESC";
+	$MyQuery = "SELECT PhId, PhDescr FROM Phases WHERE  PhLevel=-1 and PhRuleSets in ('', '$TourLocRule') ORDER BY PhId DESC";
 	$Rs=safe_r_sql($MyQuery);
 	if(safe_num_rows($Rs)>0)
 	{
@@ -35,39 +34,37 @@ function getPhaseTV($PhaseId, $OrderNo) {
 		return $codedPhases[$PhaseId];
 	} elseif($OrderNo >= 1 && $OrderNo <= 4) {
 		return $OrderNo."R";
-	} 
+	}
 	return false;
-	
+
 }
 
-function getPhasesId($startPhase=64)
-{
+function PhaseLog($Phase) {
+	if(!$Phase) return -1;
+	return ceil(log($Phase, 2));
+}
+
+function getPhasesId($startPhase=64) {
+	$TourLocRule=empty($_SESSION['TourLocRule']) ? 'default' : $_SESSION['TourLocRule'];
 	$myPhases=array();
 	$where="";
-	if ($startPhase==-1) {
-		$where=" 1=1 ";
-	} else {
-		$where=" PhId<=" . StrSafe_DB($startPhase) . " ";
+	if ($startPhase!=-1) {
+		$where=" AND PhLevel<=0 AND PhId<=" . StrSafe_DB(bitwisePhaseId($startPhase));
 	}
-	$MyQuery = "SELECT PhId FROM Phases WHERE {$where} ORDER BY PhId DESC";
+	$MyQuery = "SELECT PhId FROM Phases where PhRuleSets in ('', '$TourLocRule') {$where} ORDER BY PhId DESC";
 	$Rs=safe_r_sql($MyQuery);
 	if(safe_num_rows($Rs)>0) {
 		while($MyRow=safe_fetch($Rs)) {
-			if ($startPhase==-1) {
-				$myPhases[] = $MyRow->PhId;
-			} else {
-				if(!(($MyRow->PhId==32 && $startPhase==48) || ($MyRow->PhId==24 && $startPhase==32) || ($MyRow->PhId==48 && $startPhase==64) || ($MyRow->PhId==24 && $startPhase==64)))
-					$myPhases[] = $MyRow->PhId;
-			}
+		    $myPhases[] = $MyRow->PhId;
 		}
 		safe_free_result($Rs);
 	}
 	return $myPhases;
 }
 
-function numPhases($phase)
-{
-	$MyQuery = "SELECT PhId FROM Phases  WHERE PhId<{$phase} AND PhLevel=-1";
+function numPhases($phase) {
+	$TourLocRule=empty($_SESSION['TourLocRule']) ? 'default' : $_SESSION['TourLocRule'];
+	$MyQuery = "SELECT PhId FROM Phases  WHERE PhId<{$phase} AND PhLevel=-1 and PhRuleSets in ('', '$TourLocRule')";
 	$Rs=safe_r_sql($MyQuery);
 
 	return (safe_num_rows($Rs)+1);
@@ -76,65 +73,109 @@ function numPhases($phase)
 function getPhase($matchno) {
 	$SQL = "SELECT GrPhase FROM Grids WHERE GrMatchNo={$matchno}";
 	$q=safe_r_sql($SQL);
-	if($r = safe_fetch($q))
-		return $r->GrPhase;
-	else
-		return 0;
+	if($r = safe_fetch($q)) {
+        return $r->GrPhase;
+    } else {
+        return 0;
+    }
 }
 
-function maxPhaseRank($phase)
-{
+function maxPhaseRank($phase) {
 	$max=0;
-
-	$q="SELECT MAX(GrPosition" . ($phase==valueFirstPhase($phase) ? "":"2")  .") AS `max` FROM Grids WHERE GrPhase=" . valueFirstPhase($phase);
+	$q="SELECT MAX(GrPosition" . ($phase==valueFirstPhase($phase) ? "" : "2")  .") AS `max` FROM Grids WHERE GrPhase=" . valueFirstPhase($phase);
 	$r=safe_r_sql($q);
-	if ($r && safe_num_rows($r)==1)
-		$max=safe_fetch($r)->max;
-
+	if ($r && safe_num_rows($r)==1) {
+        $max = safe_fetch($r)->max;
+    }
 	return $max;
 }
 
-function bitwisePhaseId($phase)
-{
-	if($phase==48)
-		return 64;
-	else if($phase==24)
-		return 32;
-	else
-		return $phase;
+function numQualifiedByPhase($phase) {
+	switch($phase) {
+		case 48: return 104; break;
+		case 24: return 56; break;
+		case 14: return 28; break;
+		case 12: return 24; break;
+		case 7: return 14; break;
+	}
+    return $phase*2;
 }
 
-function valueFirstPhase($startPhase)
-{
-	if($startPhase==48)
-		return 64;
-	elseif($startPhase==24)
-		return 32;
-	else
-		return $startPhase;
+function numMatchesByPhase($phase) {
+	switch($phase) {
+		case 48: return 48; break;
+		case 24: return 24; break;
+		case 14: return 12; break;
+		case 12: return 8; break;
+		case 7: return 6; break;
+	}
+    return $phase;
+}
+
+function bitwisePhaseId($phase) {
+	switch($phase) {
+		case 48: return 64; break;
+		case 24: return 32; break;
+		case 14: return 16; break;
+		case 12: return 16; break;
+		case 7: return 8; break;
+	}
+    return $phase;
+}
+
+function SavedInPhase($phase) {
+	switch($phase) {
+		case 48: return 8; break;
+		case 24: return 8; break;
+		case 14: return 4; break;
+		case 12: return 8; break;
+		case 7: return 2; break;
+	}
+    return 0;
+}
+
+function valueFirstPhase($startPhase) {
+	switch($startPhase) {
+		case 48: return 64; break;
+		case 24: return 32; break;
+		case 14: return 16; break;
+		case 12: return 16; break;
+		case 7: return 8; break;
+	}
+    return $startPhase;
 }
 
 
-function namePhase($startPhase, $curPhase)
-{
-	if($startPhase==48 && $curPhase==64)
-		return 48;
-	elseif(($startPhase==48 || $startPhase==24) && $curPhase==32)
-		return 24;
-	else
-		return $curPhase;
+function namePhase($startPhase, $curPhase) {
+	switch(true) {
+		case ($startPhase==48 && $curPhase==64): return 48; break;
+		case (($startPhase==48 || $startPhase==24) && $curPhase==32): return 24; break;
+		case ($startPhase==14 && $curPhase==16): return 14; break;
+		case ($startPhase==12 && $curPhase==16): return 12; break;
+		case ($startPhase==7 && $curPhase==8): return 7; break;
+		case ($curPhase==6): return 8; break; // dirty hack for the phase following 1/12!!!
+	}
+    return $curPhase;
 }
 
-function isFirstPhase($startPhase, $curPhase)
-{
-	if($startPhase==$curPhase || ($startPhase==24 && $curPhase==32) || ($startPhase==48 && $curPhase==64))
-		return true;
-	else
-		return false;
+function useGrPostion2($startPhase, $curPhase) {
+    return (($startPhase==24 AND $curPhase==32) OR ($startPhase==48 AND ($curPhase==64 OR $curPhase==32)) OR ($startPhase==12 AND $curPhase==16));
 }
 
-function getFirstPhase($evCode, $isTeamEvent)
-{
+function isFirstPhase($startPhase, $curPhase) {
+	switch(true) {
+		case ($startPhase==$curPhase):
+		case ($startPhase== 7 AND $curPhase== 8):
+		case ($startPhase==12 AND $curPhase==16):
+		case ($startPhase==14 AND $curPhase==16):
+		case ($startPhase==24 AND $curPhase==32):
+		case ($startPhase==48 AND $curPhase==64):
+			return true;
+	}
+	return false;
+}
+
+function getFirstPhase($evCode, $isTeamEvent){
 	$firstPhase=0;
 
 	$q="SELECT EvFinalFirstPhase FROM Events
@@ -159,8 +200,7 @@ function getFirstPhase($evCode, $isTeamEvent)
  * 		StdClass::so: numero di frecce tie,
  * 		StdClass::winAt: numero di set x vincere (se cumulativo vale 0)
  */
-function getEventArrowsParams($event,$phase,$team, $TourId=0)
-{
+function getEventArrowsParams($event,$phase,$team, $TourId=0) {
 	$ee=StrSafe_DB($event);
 	$tt=StrSafe_DB($team);
 	$tour = $TourId;
@@ -171,37 +211,31 @@ function getEventArrowsParams($event,$phase,$team, $TourId=0)
 
 	$p=($phase>0 ? 2*bitwisePhaseId($phase) : 1);
 
-	//IF(EvMatchMode=1,(FLOOR(IF(@bit=0,EvFinEnds,EvElimEnds)/2)+1)*2,-1) AS `winAt`
-
-	$q="
-		SELECT
+	$q="SELECT
 			@bit:=IF(({$p} & EvMatchArrowsNo)={$p},1,0),
-
 			IF(@bit=0,EvFinEnds,EvElimEnds) AS `ends`,
 			IF(@bit=0,EvFinArrows,EvElimArrows) AS `arrows`,
 			IF(@bit=0,EvFinSO,EvElimSO) AS `so`,
 			EvMaxTeamPerson as MaxTeam,
-			IF(EvMatchMode=1,IF(@bit=0,EvFinEnds,EvElimEnds)+1,0) AS `winAt`
-		FROM
-			Events
-		WHERE
-			EvCode={$ee} AND EvTeamEvent={$tt} AND EvTournament={$tour}
+			IF(EvMatchMode=1,IF(@bit=0,EvFinEnds,EvElimEnds)+1,0) AS `winAt`,
+			EvMatchMode
+		FROM Events
+		WHERE EvCode={$ee} AND EvTeamEvent={$tt} AND EvTournament={$tour}
 	";
-	//print $q;exit;
+
 	$rs=safe_r_sql($q);
 
-	$r=new StdClass();
-		$r->ends=0;
-		$r->arrows=0;
-		$r->so=0;
-		$r->winAt=0;
-		$r->MaxTeam=0;
-
-	if ($rs && safe_num_rows($rs)==1)
-	{
-		$row=safe_fetch($rs);
-		$r=clone $row;
+	if (safe_num_rows($rs)==1) {
+		return safe_fetch($rs);
 	}
+
+	$r=new StdClass();
+	$r->ends=0;
+	$r->arrows=0;
+	$r->so=0;
+	$r->winAt=0;
+	$r->MaxTeam=0;
+	$r->MatchMode=0;
 
 	return $r;
 }
@@ -385,4 +419,187 @@ function eventHasScoreTypes($event,$team,$tour=null)
 
 	return elimFinFromMatchArrowsNo($row->EvFinalFirstPhase,$row->EvMatchArrowsNo);
 }
-?>
+
+/**
+ * Deletes an event and all descending events
+ * @param string $Event The Event to delete
+ * @param int $TeamEvent 0 for individual, 1 for teams
+ * @param int $TourId competition ID, if empty takes the open session
+ * @return array of events that have been deleted
+ */
+function deleteEvent($Event, $TeamEvent=0, $TourId=0) {
+	$ret=array();
+	if(!$TourId) {
+		$TourId=$_SESSION['TourId'];
+	}
+
+	$EventSafe=StrSafe_DB($Event);
+
+	safe_w_sql("DELETE FROM Events WHERE EvCode={$EventSafe} AND EvTeamEvent={$TeamEvent} AND EvTournament={$TourId}");
+	if(safe_w_affected_rows()) {
+        // removes all children events
+        $q = safe_r_sql("select * from Events where EvCodeParent={$EventSafe} AND EvTeamEvent={$TeamEvent} AND EvTournament={$TourId}");
+        while ($r = safe_fetch($q)) {
+            $ret = array_merge($ret, deleteEvent($r->EvCode, $TeamEvent, $TourId));
+        }
+
+        // deletes schedule
+        safe_w_sql("delete from FinSchedule where FsTournament={$TourId} and FsTeamEvent={$TeamEvent} and FsEvent={$EventSafe}");
+        // deletes warmup
+        safe_w_sql("delete from FinWarmup where FwTournament={$TourId} and FwTeamEvent={$TeamEvent} and FwEvent={$EventSafe}");
+        //	elimino le righe da EventClass
+        safe_w_sql("DELETE FROM EventClass  WHERE EcTournament={$TourId} AND EcTeamEvent={$TeamEvent} AND EcCode={$EventSafe}");
+
+        if ($TeamEvent) {
+            // elimino le righe da Teams
+            safe_w_sql("DELETE FROM Teams WHERE TeTournament={$TourId} AND TeEvent={$EventSafe} AND TeFinEvent=1 ");
+            // cancello i nomi
+            safe_w_sql("DELETE FROM TeamComponent WHERE TcTournament={$TourId} AND TcFinEvent=1 AND TcEvent={$EventSafe}");
+            safe_w_sql("DELETE FROM TeamFinComponent WHERE TfcTournament={$TourId} AND TfcEvent={$EventSafe}");
+            // elimino le griglie
+            safe_w_sql("DELETE FROM TeamFinals WHERE TfTournament={$TourId} AND TfEvent=$EventSafe");
+        } else {
+            // elimino le righe da Individuals
+            safe_w_sql("DELETE FROM Individuals WHERE IndTournament={$TourId} AND IndEvent=$EventSafe");
+            // elimino le griglie
+            safe_w_sql("DELETE FROM Finals WHERE FinTournament={$TourId} AND FinEvent=$EventSafe");
+            // elimino le griglie eliminatorie
+            $Rs = safe_w_sql("DELETE FROM Eliminations WHERE ElTournament={$TourId} AND ElEventCode=$EventSafe");
+        }
+	}
+
+	$ret[]=$Event;
+	return $ret;
+}
+
+function moveToNextPhaseLoosers($coppie, $TourId) {
+	$ret=array();
+	$phases = getStandardPhases();
+	foreach($coppie as $value) {
+		$subEv = array();
+
+		list($ev,$ph) = explode('@',$value);
+		if($ph==0) {
+			continue;
+		}
+		$phNew = $phases[array_search($ph, $phases)+1];
+		$Sql = "SELECT EvCode FROM Events WHERE EvCodeParent='{$ev}' AND EvFinalFirstPhase='{$phNew}' AND EvTournament='{$TourId}' AND EvTeamEvent=0";
+		$q=safe_r_SQL($Sql);
+		while($r=safe_fetch($q)) {
+			$subEv[] = $r->EvCode;
+			$ret[]=$r->EvCode.'@'.$phNew;
+		}
+
+		if(count($subEv)) {
+			//GetMatchNo of winners
+			$Sql = "SELECT fl.FinMatchNo as Looser, fl.FinAthlete as Athlete
+				FROM Finals fl
+				INNER JOIN Finals fw ON fl.FinEvent=fw.FinEvent AND fl.FinMatchNo=fw.FinMatchNo + IF(fl.FinMatchNo % 2,+1,-1) AND fl.FinTournament=fw.FinTournament
+				INNER JOIN Grids on fl.FinMatchNo=GrMatchNo 
+				WHERE fl.FinEvent='{$ev}' AND GrPhase='{$ph}' AND fl.FinTournament={$TourId} AND fw.FinWinLose=1";
+//			echo $Sql . "<br>";
+			$q=safe_r_SQL($Sql);
+			while($r=safe_fetch($q)) {
+				foreach ($subEv as $subEvent) {
+					$Sql = "UPDATE Finals SET FinAthlete={$r->Athlete}, FinDateTime=NOW() 
+						WHERE FinEvent='{$subEvent}' AND FinMatchNo='". intval($r->Looser/2) . "' AND FinTournament={$TourId}";
+					safe_w_SQL($Sql);
+//					echo $Sql . "<br>";
+				}
+			}
+			$Sql = "UPDATE Events SET EvShootOff = 1 WHERE EvCode IN ('" . implode("','",$subEv). "')  AND EvTournament={$TourId} AND EvTeamEvent=0";
+//			echo $Sql . "<br>";
+			safe_w_SQL($Sql);
+		}
+
+	}
+	return $ret;
+}
+
+function moveToNextPhaseLoosersTeam($coppie, $TourId) {
+	$ret=array();
+	$ToMove=array();
+	$phases = getStandardPhases();
+	foreach($coppie as $value) {
+		$subEv = array();
+		$Byes = array();
+
+		list($ev,$ph) = explode('@',$value);
+		if($ph==0) {
+			continue;
+		}
+
+		if(in_array($ph, $phases)) {
+			$phNew = $phases[array_search($ph, $phases)+1];
+		}
+
+		$Sql = "SELECT kid.EvCode, dad.EvFinalFirstPhase FROM Events kid
+ 			inner join Events dad on kid.EvCodeParent=dad.EvCode and kid.EvTournament=dad.EvTournament and kid.EvTeamEvent=dad.EvTeamEvent
+ 			WHERE kid.EvCodeParent='{$ev}' AND kid.EvFinalFirstPhase='{$phNew}' AND kid.EvTournament='{$TourId}' AND kid.EvTeamEvent=1";
+		$q=safe_r_SQL($Sql);
+		while($r=safe_fetch($q)) {
+			$ret[]=$r->EvCode.'@'.$phNew;
+			$ToMove[]=array($r->EvCode, $phNew);
+			$subEv[$r->EvCode] = ($r->EvFinalFirstPhase>=$ph ? 0 : 2);
+		}
+
+		if(count($subEv)) {
+			//GetMatchNo of winners
+			$Sql = "SELECT fl.TfMatchNo as Looser, fl.TfTeam as Team, fl.TfSubTeam as SubTeam
+				FROM TeamFinals fl
+				INNER JOIN TeamFinals fw ON fl.TfEvent=fw.TfEvent AND fl.TfMatchNo=IF(fl.TfMatchNo % 2, fw.TfMatchNo+1, fw.TfMatchNo-1) AND fl.TfTournament=fw.TfTournament
+				INNER JOIN Grids on fl.TfMatchNo=GrMatchNo 
+				WHERE fl.TfEvent='{$ev}' AND GrPhase='{$ph}' AND fl.TfTournament={$TourId} AND fw.TfWinLose=1";
+			$q=safe_r_SQL($Sql);
+			while($r=safe_fetch($q)) {
+				foreach ($subEv as $subEvent => $LoosersHaveBye) {
+					$Bye=($r->Team ? $LoosersHaveBye : 0);
+					$Sql = "UPDATE TeamFinals SET TfTeam={$r->Team}, TfSubTeam='{$r->SubTeam}', TfDateTime=NOW(), TfTie=$Bye
+						WHERE TfEvent='{$subEvent}' AND TfMatchNo='". intval($r->Looser/2) . "' AND TfTournament={$TourId}";
+					safe_w_SQL($Sql);
+
+					$t=safe_r_sql("select * from Teams where TeCoId=$r->Team and TeSubTeam=$r->SubTeam and TeEvent='$ev' and TeTournament=$TourId and TeFinEvent=1");
+					if($u=safe_fetch($t)) {
+						$u->TeEvent=$subEvent;
+
+						$Sql = array();
+						foreach($u as $k => $v) {
+							$Sql[] = "$k = '$v'";
+						}
+
+						safe_w_SQL("insert ignore into Teams set ".implode(', ', $Sql));
+					}
+				}
+			}
+			$Sql = "UPDATE Events SET EvShootOff = 1 WHERE EvCode IN ('" . implode("','", array_keys($subEv)). "')  AND EvTournament={$TourId} AND EvTeamEvent=1";
+			safe_w_SQL($Sql);
+		}
+
+	}
+	// move to next phase the newly created couples
+	foreach($ToMove as $EvPh) {
+		move2NextPhaseTeam($EvPh[1], $EvPh[0], null, $TourId);
+		if(!empty($subEv[$EvPh[0]])) {
+			move2NextPhaseTeam($EvPh[1]/2, $EvPh[0], null, $TourId);
+			if($EvPh[1]==2) {
+				move2NextPhaseTeam(0, $EvPh[0], null, $TourId);
+			}
+		}
+	}
+	return $ret;
+}
+
+function getChildrenEvents($Events, $Team=0, $TourId=0) {
+	if(!$TourId) $TourId=$_SESSION['TourId'];
+	if(!is_array($Events)) $Events=array($Events);
+	$ret=$Events;
+
+	if($Events) {
+		$q=safe_r_SQL("select * from Events where EvTournament=$TourId and EvTeamEvent=$Team and EvCodeParent in (".implode(',', StrSafe_DB($Events)).")");
+		while($r=safe_fetch($q)) {
+			$ret=array_merge($ret, getChildrenEvents($r->EvCode, $Team, $TourId));
+		}
+	}
+
+	return array_unique($ret);
+}

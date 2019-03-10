@@ -1,6 +1,7 @@
 <?php
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once('Common/pdf/LabelPDF.inc.php');
+require_once('Common/Lib/Fun_Phases.inc.php');
 /*
  *
  * Page / Label Dimensions  	Report Builder Fields  	Avery 5160 (inches)
@@ -22,9 +23,8 @@ $OpDetails = "Accreditation";
 if(isset($_REQUEST["OperationType"]))
 	$OpDetails = $_REQUEST["OperationType"];
 
-if(CheckTourSession())
-{
-
+if(CheckTourSession()) {
+    checkACL(AclIndividuals, AclReadOnly);
 	$pdf = new LabelPDF();
 	//Predefinita per etichette A4
 	$lblW= $pdf->GetPageWidth()/3;
@@ -58,58 +58,26 @@ if(CheckTourSession())
 		$printBarcode=false;
 	}
 
-//	$MyQuery = 'SELECT '
-//        . ' EvCode, EvEventName, EvFinalFirstPhase, EvMatchMode, EvMatchArrowsNo, IndRank, QuScore, '
-//        . ' IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition, EnName Name, EnFirstName FirstName,'
-//        . ' CoCode NationCode, CoName Nation, '
-//        . ' NULLIF(s32.FSTarget,\'\') s32, NULLIF(s16.FSTarget,\'\') s16, NULLIF(s8.FSTarget,\'\') s8, NULLIF(s4.FSTarget,\'\') s4, NULLIF(s2.FSTarget,\'\') s2, NULLIF(sb.FSTarget,\'\') sBr, NULLIF(sg.FSTarget,\'\') sGo, '
-//        . ' NULLIF(s32.FSLetter,\'\') l32, NULLIF(s16.FSLetter,\'\') l16, NULLIF(s8.FSLetter,\'\') l8, NULLIF(s4.FSLetter,\'\') l4, NULLIF(s2.FSLetter,\'\') l2, NULLIF(sb.FSLetter,\'\') lBr, NULLIF(sg.FSLetter,\'\') lGo '
-//        . ' FROM Events'
-//        . ' INNER JOIN Finals ON EvCode=FinEvent AND EvTournament=FinTournament'
-//        . ' INNER JOIN Grids ON FinMatchNo=GrMatchNo AND GrPhase=EvFinalFirstPhase'
-//        . ' INNER JOIN Entries ON FinAthlete=EnId AND FinTournament=EnTournament'
-//        . ' INNER JOIN Qualifications ON QuId=EnId '
-//        . ' INNER JOIN Countries on EnCountry=CoId AND EnTournament=CoTournament'
-//        . ' INNER JOIN Individuals ON FinAthlete=IndId AND FinEvent=IndEvent AND FinTournament=IndTournament'
-//        . ' LEFT JOIN FinSchedule s32 ON EvCode=s32.FSEvent AND EvTeamEvent=s32.FSTeamEvent AND EvTournament=s32.FSTournament AND IF(EvFinalFirstPhase=32 OR EvFinalFirstPhase=48 OR EvFinalFirstPhase=24,FinMatchNo,-256)=s32.FSMatchNo'
-//		. ' LEFT JOIN FinSchedule s16 ON EvCode=s16.FSEvent AND EvTeamEvent=s16.FSTeamEvent AND EvTournament=s16.FSTournament AND IF(EvFinalFirstPhase=16,FinMatchNo,FLOOR(s32.FSMatchNo/2))=s16.FSMatchNo'
-//		. ' LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(EvFinalFirstPhase=8,FinMatchNo,FLOOR(s16.FSMatchNo/2))=s8.FSMatchNo'
-//		. ' LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(EvFinalFirstPhase=4,FinMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo'
-//		. ' LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(EvFinalFirstPhase=2,FinMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo'
-//		. ' LEFT JOIN FinSchedule sb ON EvCode=sb.FSEvent AND EvTeamEvent=sb.FSTeamEvent AND EvTournament=sb.FSTournament AND FLOOR(s2.FSMatchNo/2)=sb.FSMatchNo'
-//		. ' LEFT JOIN FinSchedule sg ON EvCode=sg.FSEvent AND EvTeamEvent=sg.FSTeamEvent AND EvTournament=sg.FSTournament AND FLOOR(s2.FSMatchNo/2)-2=sg.FSMatchNo'
-//        . ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=0 ';
-//		if (isset($_REQUEST['Event'])) {
-//			$events=array();
-//			if(!is_array($_REQUEST['Event'])) $_REQUEST['Event']= array($_REQUEST['Event']);
-//
-//			foreach($_REQUEST['Event'] as $event) {
-//				if(preg_match("/^[0-9A-Z]{1,4}$/i",$event)) $events[]=strSafe_db($event);
-//			}
-//			sort($events);
-//			$MyQuery.= "AND EvCode in (" . implode(',', $events) . ") ";
-//		}
-//        $MyQuery .= ' ORDER BY EvCode, s32, s16, s8, s4, s2';
-
 	$MyQuery = 'SELECT '
         . ' EnId, EvCode, EvEventName, EvFinalFirstPhase, EvMatchMode, EvMatchArrowsNo, IndRank, QuScore, '
-        . ' IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition, EnName Name, upper(EnFirstName) FirstName,'
+        . ' IF(EvFinalFirstPhase=48, GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) as GrPosition, EnName Name, upper(EnFirstName) FirstName,'
         . ' CoCode NationCode, CoName Nation, '
         . ' NULLIF(s64.FSTarget,\'\') s64, NULLIF(s32.FSTarget,\'\') s32, NULLIF(s16.FSTarget,\'\') s16, NULLIF(s8.FSTarget,\'\') s8, NULLIF(s4.FSTarget,\'\') s4, NULLIF(s2.FSTarget,\'\') s2, NULLIF(sb.FSTarget,\'\') sBr, NULLIF(sg.FSTarget,\'\') sGo, '
         . ' NULLIF(s64.FSLetter,\'\') l64, NULLIF(s32.FSLetter,\'\') l32, NULLIF(s16.FSLetter,\'\') l16, NULLIF(s8.FSLetter,\'\') l8, NULLIF(s4.FSLetter,\'\') l4, NULLIF(s2.FSLetter,\'\') l2, NULLIF(sb.FSLetter,\'\') lBr, NULLIF(sg.FSLetter,\'\') lGo '
         . ' FROM Events'
+        . ' INNER JOIN Phases on PhId=EvFinalFirstPhase and (PhIndTeam & 1)=1 '
         . ' INNER JOIN Finals ON EvCode=FinEvent AND EvTournament=FinTournament'
-        . ' INNER JOIN Grids ON FinMatchNo=GrMatchNo AND GrPhase=(IF(EvFinalFirstPhase=24,32, IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase ))) '
+        . ' INNER JOIN Grids ON FinMatchNo=GrMatchNo AND GrPhase=greatest(PhId, PhLevel) '
         . ' INNER JOIN Entries ON FinAthlete=EnId AND FinTournament=EnTournament'
         . ' INNER JOIN Qualifications ON QuId=EnId '
         . ' INNER JOIN Countries on EnCountry=CoId AND EnTournament=CoTournament'
         . ' INNER JOIN Individuals ON FinAthlete=IndId AND FinEvent=IndEvent AND FinTournament=IndTournament'
-        . ' LEFT JOIN FinSchedule s64 ON EvCode=s64.FSEvent AND EvTeamEvent=s64.FSTeamEvent AND EvTournament=s64.FSTournament AND IF(EvFinalFirstPhase=64 OR EvFinalFirstPhase=48 ,FinMatchNo,-256)=s64.FSMatchNo'
-        . ' LEFT JOIN FinSchedule s32 ON EvCode=s32.FSEvent AND EvTeamEvent=s32.FSTeamEvent AND EvTournament=s32.FSTournament AND IF(EvFinalFirstPhase=32 OR EvFinalFirstPhase=24,FinMatchNo,FLOOR(s64.FSMatchNo/2))=s32.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s16 ON EvCode=s16.FSEvent AND EvTeamEvent=s16.FSTeamEvent AND EvTournament=s16.FSTournament AND IF(EvFinalFirstPhase=16,FinMatchNo,FLOOR(s32.FSMatchNo/2))=s16.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(EvFinalFirstPhase=8,FinMatchNo,FLOOR(s16.FSMatchNo/2))=s8.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(EvFinalFirstPhase=4,FinMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo'
-		. ' LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(EvFinalFirstPhase=2,FinMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo'
+        . ' LEFT JOIN FinSchedule s64 ON EvCode=s64.FSEvent AND EvTeamEvent=s64.FSTeamEvent AND EvTournament=s64.FSTournament AND IF(GrPhase=64, FinMatchNo, -256)=s64.FSMatchNo'
+        . ' LEFT JOIN FinSchedule s32 ON EvCode=s32.FSEvent AND EvTeamEvent=s32.FSTeamEvent AND EvTournament=s32.FSTournament AND IF(GrPhase=32, FinMatchNo, FLOOR(s64.FSMatchNo/2))=s32.FSMatchNo'
+		. ' LEFT JOIN FinSchedule s16 ON EvCode=s16.FSEvent AND EvTeamEvent=s16.FSTeamEvent AND EvTournament=s16.FSTournament AND IF(GrPhase=16, FinMatchNo,FLOOR(s32.FSMatchNo/2))=s16.FSMatchNo'
+		. ' LEFT JOIN FinSchedule s8 ON EvCode=s8.FSEvent AND EvTeamEvent=s8.FSTeamEvent AND EvTournament=s8.FSTournament AND IF(GrPhase=8, FinMatchNo,FLOOR(s16.FSMatchNo/2))=s8.FSMatchNo'
+		. ' LEFT JOIN FinSchedule s4 ON EvCode=s4.FSEvent AND EvTeamEvent=s4.FSTeamEvent AND EvTournament=s4.FSTournament AND IF(GrPhase=4, FinMatchNo,FLOOR(s8.FSMatchNo/2))=s4.FSMatchNo'
+		. ' LEFT JOIN FinSchedule s2 ON EvCode=s2.FSEvent AND EvTeamEvent=s2.FSTeamEvent AND EvTournament=s2.FSTournament AND IF(GrPhase=2, FinMatchNo,FLOOR(s4.FSMatchNo/2))=s2.FSMatchNo'
 		. ' LEFT JOIN FinSchedule sb ON EvCode=sb.FSEvent AND EvTeamEvent=sb.FSTeamEvent AND EvTournament=sb.FSTournament AND FLOOR(s2.FSMatchNo/2)=sb.FSMatchNo'
 		. ' LEFT JOIN FinSchedule sg ON EvCode=sg.FSEvent AND EvTeamEvent=sg.FSTeamEvent AND EvTournament=sg.FSTournament AND FLOOR(s2.FSMatchNo/2)-2=sg.FSMatchNo'
         . ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=0 ';
@@ -161,8 +129,7 @@ if(CheckTourSession())
 		/*
 		 * il ?: mi serve perchè 48*2>64 e 24*2>32 e non riuscirei a fare la prima fase se parto dai 1/48 o dai 1/24.
 		 */
-			while($n<=($MyRow->EvFinalFirstPhase==48 ? 64 : ($MyRow->EvFinalFirstPhase==24 ? 32 : $MyRow->EvFinalFirstPhase)))
-			{
+			while($n<=valueFirstPhase($MyRow->EvFinalFirstPhase)) {
 //print $n.'<br>';
 				array_unshift($pos, $n);
 				$n=$n*2;

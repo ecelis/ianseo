@@ -12,8 +12,7 @@ class FileList
 	private $Prefix='';
 
 
-	function __construct($dir2scroll='')
-	{
+	function __construct($dir2scroll='') {
 		$this->BasePath = $dir2scroll;
 		$this->Prefix=strlen($this->BasePath);
 		$this->Exclusion = NULL;
@@ -112,11 +111,13 @@ class FileList
 		$ret = new stdClass();
 
 		$ret->ProgVersion = ProgramVersion;
+		$ret->ProgRelease = ProgramRelease;
+		$ret->ProgBuild = ProgramBuild;
+		$ret->UUID = GetParameter('UUID', false, uniqid('Ianseo-', true));
 		$ret->DbVersion = GetParameter('DBUpdate');
-		$ret->ProgRelease = ProgramRelease; // che tipo di rilascio è
+		$ret->AcceptGPL = GetParameter('AcceptGPL');
 		$ret->Files = $this->Files;
 		return serialize($ret);
 	}
 }
 
-?>

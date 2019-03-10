@@ -3,11 +3,11 @@
 	require_once 'Partecipants-exp/functions/rows.inc.php';
 
 /****** Controller ******/
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$tourId=StrSafe_DB($_SESSION['TourId']);
 

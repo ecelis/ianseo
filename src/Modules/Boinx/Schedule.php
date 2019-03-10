@@ -1,6 +1,7 @@
 <?php
 require_once('../../config.php');
 require_once('Common/Fun_FormatText.inc.php');
+checkACL(AclOutput,AclReadWrite);
 
 $PAGE_TITLE=get_text('BoinxSchedule', 'Boinx');
 

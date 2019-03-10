@@ -3,15 +3,15 @@
 	require_once('Common/Fun_Number.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclTeams, AclReadWrite);
 
 	$combo
-		= '<select name="ev">' . "\n"
-		. '<option value="">--</option>' . "\n";
+		= '<select name="ev">'
+		. '<option value="">--</option>';
 
 	$query
 		= "SELECT "
@@ -28,11 +28,11 @@
 	{
 		while ($MyRow=safe_fetch($rs))
 		{
-			$combo.='<option value="' . $MyRow->EvCode . '">' . get_text($MyRow->EvEventName,'','',true) . '</option>' . "\n";
+			$combo.='<option value="' . $MyRow->EvCode . '">' . get_text($MyRow->EvEventName,'','',true) . '</option>';
 		}
 	}
 
-	$combo.='</select>' . "\n";
+	$combo.='</select>';
 
 
 	$PAGE_TITLE=get_text('ChangeComponents');

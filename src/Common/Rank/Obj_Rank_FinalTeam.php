@@ -123,7 +123,7 @@
 						CoId, TeSubTeam, CoCode, CoName, if(CoNameComplete>'', CoNameComplete, CoName) as CoNameComplete,
 						EvProgr, TeEvent, EvEventName, EvMaxTeamPerson,
 						EvFinalPrintHead as PrintHeader,
-						EvFinalFirstPhase, EvMatchMode, EvMedals,
+						EvFinalFirstPhase, EvMatchMode, EvMedals, EvCodeParent, 
 						EnId,EnCode, EnSex, EnNameOrder,EnFirstName,upper(EnFirstName) EnFirstNameUpper,EnName,tc.TfcOrder AS personOrder,
 						TeRank as QualRank, IF(EvFinalFirstPhase=0, TeRank, TeRankFinal) as FinalRank, TeScore,
 						TeTimestamp,TeTimestampFinal,
@@ -167,7 +167,7 @@
 						CoId,TeSubTeam,CoCode,CoName, if(CoNameComplete>'', CoNameComplete, CoName) as CoNameComplete,
 						EvProgr,TeEvent,EvEventName,EvMaxTeamPerson,
 						EvFinalPrintHead as PrintHeader,
-						EvFinalFirstPhase,EvMatchMode,EvMedals,
+						EvFinalFirstPhase,EvMatchMode,EvMedals, EvCodeParent, 
 						EnId,EnCode, EnSex, EnNameOrder,EnFirstName,upper(EnFirstName) EnFirstNameUpper,EnName,tc.TcOrder,
 						TeRank as QualRank, IF(EvFinalFirstPhase=0, TeRank, TeRankFinal) as FinalRank, TeScore,
 						TeTimestamp,TeTimestampFinal,
@@ -205,10 +205,9 @@
 						{$EnFilter}
 				)
 				ORDER BY
-					EvProgr, TeEvent,/*rowType ASC,*/ FinalRank ASC, CoCode ASC, TeSubTeam, {$Order} EnFirstName, EnName
+					EvProgr, TeEvent,/*rowType ASC,*/ FinalRank ASC, CoCode ASC, TeSubTeam, EnSex desc, {$Order} EnFirstName, EnName
 			";
 
-// 						debug_svela($q);
 			$r=safe_r_sql($q);
 
 			$this->data['meta']['title']=get_text('TeamFinEvent','Tournament');
@@ -258,10 +257,8 @@
 							'finals'=>array()
 						);
 
-						foreach($phases as $k => $v)
-						{
-							if($v<=valueFirstPhase($myRow->EvFinalFirstPhase))
-							{
+						foreach($phases as $k => $v) {
+							if($v<=valueFirstPhase($myRow->EvFinalFirstPhase)) {
 								$fields['finals'][$v]=get_text(namePhase($myRow->EvFinalFirstPhase,$v)  . "_Phase");
 							}
 						}
@@ -282,6 +279,8 @@
 								'printHeader'=>get_text($myRow->PrintHeader, '', '', true),
 								'firstPhase'=>$myRow->EvFinalFirstPhase,
 								'matchMode'=>$myRow->EvMatchMode,
+								'parent'=>$myRow->EvCodeParent,
+								'hasChildren' => getChildrenEvents($myEv, 1,$this->tournament),
 								'maxTeamPerson'=>$myRow->EvMaxTeamPerson,
 								'order'=>$myRow->EvProgr,
 								'lastUpdate'=>'0000-00-00 00:00:00',
@@ -289,7 +288,7 @@
 								'medals' => $myRow->EvMedals,
 								'version' => $myRow->DocVersion,
 								'versionDate' => $myRow->DocVersionDate,
-								'versionNotes' => $myRow->DocNotes
+								'versionNotes' => $myRow->DocNotes,
 							),
 							'items'=>array()
 						);
@@ -297,59 +296,42 @@
 
 
 
-					if ($myTeam!=$myRow->CoId . $myRow->TeSubTeam . $myRow->TeEvent)
-					{
-						//print $myRow->CoId . '.'.$myRow->TeSubTeam . '.'.$myRow->TeEvent.'<br>';
-					//	if ($myRow->rowType==1 && array_key_exists($myRow->CoId .'_'. $myRow->TeSubTeam,$section['items']))
-					//	{
-					//		continue;
-					//	}
+					if ($myTeam!=$myRow->CoId . $myRow->TeSubTeam . $myRow->TeEvent) {
+                        $item=array(
+                            'id' 			=> $myRow->CoId,
+                            'countryCode' 	=> $myRow->CoCode,
+                            'countryName' 	=> $myRow->CoName,
+                            'countryNameLong' 	=> $myRow->CoNameComplete,
+                            'subteam' 		=> $myRow->TeSubTeam,
+                            'athletes'		=> array(),
+                            'qualScore'		=> $myRow->TeScore,
+                            'qualRank'		=> $myRow->QualRank,
+                            'rank'			=> ($myRow->FinalRank == 9999 ? 'DSQ' : $myRow->FinalRank),
+                            'finals'		=> array()
+                        );
 
-						//if ($myRow->rowType==0 || ($myRow->rowType==1 && !array_key_exists($myRow->CoId.'_'.$myRow->TeSubTeam,$section['items'])))
-						{
-							$item=array(
-								'id' 			=> $myRow->CoId,
-								'countryCode' 	=> $myRow->CoCode,
-								'countryName' 	=> $myRow->CoName,
-								'countryNameLong' 	=> $myRow->CoNameComplete,
-								'subteam' 		=> $myRow->TeSubTeam,
-								'athletes'		=> array(),
-								'qualScore'		=> $myRow->TeScore,
-								'qualRank'		=> $myRow->QualRank,
-								'rank'			=> ($myRow->FinalRank == 9999 ? 'DSQ' : $myRow->FinalRank),
-								'finals'		=> array()
-							);
+                        $section['items'][$myRow->CoId.'_'.$myRow->TeSubTeam]=$item;
 
-							$section['items'][$myRow->CoId.'_'.$myRow->TeSubTeam]=$item;
-
-							if ($myRow->TeTimestampFinal>$section['meta']['lastUpdate'])
-								$section['meta']['lastUpdate']=$myRow->TeTimestampFinal;
-							if ($myRow->TeTimestampFinal>$this->data['meta']['lastUpdate'])
-								$this->data['meta']['lastUpdate']=$myRow->TeTimestampFinal;
-
-						}
-
+                        if ($myRow->TeTimestampFinal>$section['meta']['lastUpdate']) {
+                            $section['meta']['lastUpdate'] = $myRow->TeTimestampFinal;
+                        } if ($myRow->TeTimestampFinal>$this->data['meta']['lastUpdate']) {
+                            $this->data['meta']['lastUpdate'] = $myRow->TeTimestampFinal;
+                        }
 						$myTeam=$myRow->CoId . $myRow->TeSubTeam . $myRow->TeEvent;
 					}
 
-					if (!array_key_exists('components',$this->opts) || $this->opts['components'])
-					{
-						//if ($myRow->rowType==0 || ($myRow->rowType==1 && !array_key_exists($myRow->CoId.'_'.$myRow->TeSubTeam,$section['items'])))
-						{
-							$athlete=array(
-								'id' => $myRow->EnId,
-								'bib' => $myRow->EnCode,
-								'athlete'=>$myRow->EnFirstNameUpper . ' ' . $myRow->EnName,
-								'familyname' => $myRow->EnFirstName,
-								'familynameUpper' => $myRow->EnFirstNameUpper,
-								'givenname' => $myRow->EnName,
-								'nameOrder' => $myRow->EnNameOrder,
-								'gender' => $myRow->EnSex,
-							);
-
-							//$section['items'][count($section['items'])-1]['athletes'][]=$athlete;
-							$section['items'][$myRow->CoId.'_'.$myRow->TeSubTeam]['athletes'][]=$athlete;
-						}
+					if (!array_key_exists('components',$this->opts) || $this->opts['components']) {
+                        $athlete=array(
+                            'id' => $myRow->EnId,
+                            'bib' => $myRow->EnCode,
+                            'athlete'=>$myRow->EnFirstNameUpper . ' ' . $myRow->EnName,
+                            'familyname' => $myRow->EnFirstName,
+                            'familynameUpper' => $myRow->EnFirstNameUpper,
+                            'givenname' => $myRow->EnName,
+                            'nameOrder' => $myRow->EnNameOrder,
+                            'gender' => $myRow->EnSex,
+                        );
+                        $section['items'][$myRow->CoId.'_'.$myRow->TeSubTeam]['athletes'][]=$athlete;
 					}
 				}
 

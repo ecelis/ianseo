@@ -539,3 +539,162 @@ function UpdateSessionsFromAgileModule_20160322($ToId=0) {
 		insertSession($ToId,($kSes+1),'F',$vSes[5],0,0,0,0,($vSes[1].' '.$vSes[2]),($vSes[1].' '.$vSes[3]));
 	}
 }
+
+function updateEliminationEvents_20170530($ToId=0) {
+	$q=safe_r_sql("select * from Tournament where ToElimination!=0 and ToId=$ToId");
+	if($r=safe_fetch($q)) {
+		safe_w_sql("update Events set EvElimType=0 where EvTournament=$r->ToId and EvTeamEvent=0 and EvElim1=0 and EvElim2=0 and EvElimType!=3");
+		safe_w_sql("update Events set EvElimType=2, EvE1Ends=EvElimEnds, EvE1Arrows=EvElimArrows, EvE1SO=EvElimSO where EvTournament=$r->ToId and EvTeamEvent=0 and EvElim1>0 and EvElimType!=3");
+		safe_w_sql("update Events set EvElimType=if(EvElim1=0, 1, 2), EvE2Ends=8, EvE2Arrows=3, EvE2SO=1 where EvTournament=$r->ToId and EvTeamEvent=0 and EvElim2>0 and EvElimType!=3");
+	}
+
+}
+
+function updateEliminationEvents_20180114($ToId=0) {
+	$done=array();
+	$q=safe_r_sql("select * from Events where Events.EvFinalFirstPhase>0 and EvTournament=$ToId order by EvFinalFirstPhase desc");
+	while($r=safe_fetch($q)) {
+		switch($r->EvFinalFirstPhase) {
+			case '64': $Selected=128; $Pass=64; break;
+			case '48': $Selected=104; $Pass=56; break;
+			case '32': $Selected= 64; $Pass=32; break;
+			case '24': $Selected= 56; $Pass=32; break;
+			case '16': $Selected= 32; $Pass=16; break;
+			case '14': $Selected= 28; $Pass=16; break;
+			case '12': $Selected= 24; $Pass=16; break;
+			case  '8': $Selected= 16; $Pass= 8; break;
+			case  '7': $Selected= 14; $Pass= 8; break;
+			case  '4': $Selected=  8; $Pass= 4; break;
+			case  '2': $Selected=  4; $Pass= 0; break;
+		}
+
+		// TODO: calculate the first selected based on the outcome of previous phase
+		//$First=1;
+		//$done[$r->EvTeamEvent][$r->EvTeamEvent][$r->EvCode]=$Pass;
+		//if(!empty($done[$r->EvTeamEvent][$r->EvTeamEvent][$r->EvCodeParent])) {
+		//	$done[$r->EvTeamEvent][$r->EvTeamEvent][$r->EvCode]=$done[$r->EvTeamEvent][$r->EvTeamEvent][$r->EvCodeParent]+$Pass;
+		//	$First=$done[$r->EvTeamEvent][$r->EvTeamEvent][$r->EvCodeParent]+1;
+		//}
+		safe_w_sql("update Events set EvNumQualified=$Selected where EvTournament=$ToId and EvTeamEvent=$r->EvTeamEvent and EvCode='$r->EvCode'");
+	}
+}
+
+function updateArrowPositions_20180503($ToId=0) {
+	$q=safe_r_SQL("select * from Finals where FinArrowPosition!=''".($ToId ? " and FinTournament=$ToId" : ''));
+	while($r=safe_fetch($q)) {
+		if($Arrows=@unserialize($r->FinArrowPosition)) {
+			$New=array();
+			foreach($Arrows as $k => $Arrow) {
+				if(count($Arrow)==2) {
+					// old system with only X and Y in 1/10 mm
+					$New[$k] = array(
+						"X" => round($Arrow[0]/10,1),
+						"Y" => round($Arrow[1]/10,1),
+						"R" => 2.5,
+						"D" => round(sqrt($Arrow[0]*$Arrow[0] + $Arrow[1]*$Arrow[1])/10,1),
+					);
+				} elseif(isset($Arrow['X'])) {
+					$New[$k] = array(
+						"X" => round($Arrow['X'],1),
+						"Y" => round($Arrow['Y'],1),
+						"R" => round($Arrow['R'],1),
+						"D" => round($Arrow['D'],1),
+					);
+				}
+			}
+			safe_w_sql("update Finals set FinArrowPosition=".StrSafe_DB(json_encode($New))." where FinEvent='$r->FinEvent' and FinMatchNo=$r->FinMatchNo and FinTournament=$r->FinTournament");
+		}
+	}
+
+	$q=safe_r_SQL("select * from Finals where FinTiePosition!=''".($ToId ? " and FinTournament=$ToId" : ''));
+	while($r=safe_fetch($q)) {
+		if($Arrows=@unserialize($r->FinTiePosition)) {
+			$New=array();
+			foreach($Arrows as $k => $Arrow) {
+				if(count($Arrow)==2) {
+					// old system with only X and Y in 1/10 mm
+					$New[$k] = array(
+						"X" => round($Arrow[0]/10,1),
+						"Y" => round($Arrow[1]/10,1),
+						"R" => 2.5,
+						"D" => round(sqrt($Arrow[0]*$Arrow[0] + $Arrow[1]*$Arrow[1])/10,1),
+					);
+				} elseif(isset($Arrow['X'])) {
+					$New[$k] = array(
+						"X" => round($Arrow['X'],1),
+						"Y" => round($Arrow['Y'],1),
+						"R" => round($Arrow['R'],1),
+						"D" => round($Arrow['D'],1),
+					);
+				}
+			}
+			safe_w_sql("update Finals set FinTiePosition=".StrSafe_DB(json_encode($New))." where FinEvent='$r->FinEvent' and FinMatchNo=$r->FinMatchNo and FinTournament=$r->FinTournament");
+		}
+	}
+
+	$q=safe_r_SQL("select * from TeamFinals where TfArrowPosition!=''".($ToId ? " and TfTournament=$ToId" : ''));
+	while($r=safe_fetch($q)) {
+		if($Arrows=@unserialize($r->TfArrowPosition)) {
+			$New=array();
+			foreach($Arrows as $k => $Arrow) {
+				if(count($Arrow)==2) {
+					// old system with only X and Y in 1/10 mm
+					$New[$k] = array(
+						"X" => round($Arrow[0]/10,1),
+						"Y" => round($Arrow[1]/10,1),
+						"R" => 2.5,
+						"D" => round(sqrt($Arrow[0]*$Arrow[0] + $Arrow[1]*$Arrow[1])/10,1),
+					);
+				} elseif(isset($Arrow['X'])) {
+					$New[$k] = array(
+						"X" => round($Arrow['X'],1),
+						"Y" => round($Arrow['Y'],1),
+						"R" => round($Arrow['R'],1),
+						"D" => round($Arrow['D'],1),
+					);
+				}
+			}
+			safe_w_sql("update TeamFinals set TfArrowPosition=".StrSafe_DB(json_encode($New))." where TfEvent='$r->TfEvent' and TfMatchNo=$r->TfMatchNo and TfTournament=$r->TfTournament");
+		}
+	}
+
+	$q=safe_r_SQL("select * from TeamFinals where TfTiePosition!=''".($ToId ? " and TfTournament=$ToId" : ''));
+	while($r=safe_fetch($q)) {
+		if($Arrows=@unserialize($r->TfTiePosition)) {
+			$New=array();
+			foreach($Arrows as $k => $Arrow) {
+				if(count($Arrow)==2) {
+					// old system with only X and Y in 1/10 mm
+					$New[$k] = array(
+						"X" => round($Arrow[0]/10,1),
+						"Y" => round($Arrow[1]/10,1),
+						"R" => 2.5,
+						"D" => round(sqrt($Arrow[0]*$Arrow[0] + $Arrow[1]*$Arrow[1])/10,1),
+					);
+				} elseif(isset($Arrow['X'])) {
+					$New[$k] = array(
+						"X" => round($Arrow['X'],1),
+						"Y" => round($Arrow['Y'],1),
+						"R" => round($Arrow['R'],1),
+						"D" => round($Arrow['D'],1),
+					);
+				}
+			}
+			safe_w_sql("update TeamFinals set TfTiePosition=".StrSafe_DB(json_encode($New))." where TfEvent='$r->TfEvent' and TfMatchNo=$r->TfMatchNo and TfTournament=$r->TfTournament");
+		}
+	}
+}
+
+function updateArrowTimestamp_20180624($ToId=0)  {
+	$q=safe_r_sql("select * from FinOdfTiming where FinOdfArrows!=''".($ToId ? " and FinOdfTournament=$ToId" : ''));
+	while($r=safe_fetch($q)) {
+		$ar=@unserialize($r->FinOdfArrows);
+		if($ar) {
+			$ab=array();
+			foreach($ar as $k => $v) {
+				$ab["$k"]=$v;
+			}
+			safe_w_sql("update FinOdfTiming set FinOdfArrows=".StrSafe_DB(json_encode($ab))." where FinOdfTournament=$r->FinOdfTournament and FinOdfTeamEvent=$r->FinOdfTeamEvent and FinOdfEvent='$r->FinOdfEvent' and FinOdfMatchno=FinOdfMatchno");
+		}
+	}
+}

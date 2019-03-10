@@ -12,7 +12,7 @@ $PDF_TITLE='';
 $pdf = new ResultPDF($PDF_TITLE);
 
 $Edits=array();
-$Edits['SEPARATOR']='-';
+$Edits['SEPARATOR']='---';
 $Edits['EDIT ARROWS']='EDIT';
 $Edits['EDIT FINAL SCORE']='EDIT2';
 $Edits['REMOVE 10']='REM10';
@@ -21,7 +21,7 @@ $Edits['REMOVE BOTH']='REMALL';
 $Edits['RESET BOTH']='RESET';
 
 foreach($Edits as $Edit => $Bars) {
-	$pdf->sety($pdf->gety()+10);
+	$pdf->Ln(8);
 	$pdf->SetFont($pdf->FontStd,'B',16);
 	$pdf->Cell(50, 20, $Edit, 0, 0, 'R');
 	$pdf->Cell(5, 20, '', 0, 0, 'L', 0);

@@ -14,12 +14,14 @@ require_once('Common/Lib/Fun_Modules.php');
  * Msg  - can be one among ST,AB,SS,AT,AE
  * Side - can be L (left), R (right), <empty> (undefined) for not alternate shooting
  * Time - time in seconds
+ * Color - Color in string (red|yellow|green)
+ * Beep - No. of beep [0-3]
  * 
  * Parameter in the different messages:
  * ST - Msg, Side
  * AB - Msg, Time
  * SS - Msg, Side
- * AT - Msg, Side, Time
+ * AT - Msg, Side, Time, Color, Beep
  * AE - Msg
  *  
  */
@@ -53,7 +55,7 @@ if(isset($_REQUEST['Color']) && preg_match("/^(red|yellow|green)+$/i", $_REQUEST
 }
 
 $beep = 0;
-if(isset($_REQUEST['Beep']) && preg_match("/^[0123]$/", $_REQUEST['Beep'])) {
+if(isset($_REQUEST['Beep']) && preg_match("/^[01235]$/", $_REQUEST['Beep'])) {
 	$beep = $_REQUEST['Beep'];
 }
 

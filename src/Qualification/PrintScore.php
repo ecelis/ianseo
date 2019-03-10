@@ -5,6 +5,7 @@
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Modules.php');
 	CheckTourSession(true);
+    checkACL(AclQualification, AclReadOnly);
 
 	$RowTour=NULL;
 	/*$Select
@@ -25,46 +26,52 @@
 	}
 
 	$JS_SCRIPT=array(
-		phpVars2js(array('MsgAreYouSure' => get_text('MsgAreYouSure'))),
+		phpVars2js(array('MsgAreYouSure' => get_text('MsgAreYouSure'), "nDist"=> $RowTour->TtNumDist)),
 		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>',
 		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>',
 		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Qualification/Fun_AJAX_index.js"></script>',
 		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Qualification/Fun_JS.js"></script>',
-		'<script type="text/javascript">',
-		'function DisableChkOther(NoDist, NumDist)',
-		'{',
-		'	if(NoDist)',
-		'	{',
-		'		if(document.getElementById(\'ChkDist0\').checked)',
-		'		{',
-		'			for(i=1; i<=NumDist; i++)',
-		'				document.getElementById(\'ChkDist\'+i).checked=false;',
-		'			document.getElementById(\'ScoreFilled\').checked=false;',
-		'			document.getElementById(\'ScoreFilled\').disabled=true;',
-		'		}',
-		'	}',
-		'	else',
-		'	{',
-		'		for(i=1; i<=NumDist; i++)',
-		'		{',
-		'			if(document.getElementById(\'ChkDist\'+i).checked)',
-		'				document.getElementById(\'ChkDist0\').checked=false;',
-		'			document.getElementById(\'ScoreFilled\').disabled=false;',
-		'		}',
-		'	}',
-		'}',
-		'
-		function CheckAction() {
-			var action="' . ($RowTour->TtElabTeam==0 ? 'PDFScore.php' : ($RowTour->TtElabTeam==1 ? 'PDFScoreField.php' : 'PDFScore3D.php')) . '";
-			if(document.getElementById("ScoreCollector") && document.getElementById("ScoreCollector").checked) {
-				action="PDFScoreCollect.php";
-				if(document.getElementById("ScoreCollector6").checked) action="PDFScoreCollect.php?arr=6";
-			}
-			if(document.getElementById("ScoreLabels").checked) action="PrnLabels.php";
-			if(document.getElementById("BigNames").checked) action="PDFBigNames.php";
-			document.getElementById("PrnParameters").action=action;
-			return true;
-		}
+		'<script type="text/javascript">
+            function DisableChkOther(NoDist, NumDist) {
+                if(NoDist) {
+                    if(document.getElementById(\'ChkDist0\').checked) {
+                        for(i=1; i<=NumDist; i++)
+                            document.getElementById(\'ChkDist\'+i).checked=false;
+                        document.getElementById(\'ScoreFilled\').checked=false;
+                        document.getElementById(\'ScoreFilled\').disabled=true;
+                    }
+                } else {
+                    for(i=1; i<=NumDist; i++) {
+                        if(document.getElementById(\'ChkDist\'+i).checked)
+                            document.getElementById(\'ChkDist0\').checked=false;
+                        document.getElementById(\'ScoreFilled\').disabled=false;
+                    }
+                }
+    		}
+		
+            function CheckAction() {
+                var action="' . ($RowTour->TtElabTeam==0 ? 'PDFScore.php' : ($RowTour->TtElabTeam==1 ? 'PDFScoreField.php' : 'PDFScore3D.php')) . '";
+                if(document.getElementById("ScoreCollector") && document.getElementById("ScoreCollector").checked) {
+                    action="PDFScoreCollect.php";
+                    if(document.getElementById("ScoreCollector6").checked) action="PDFScoreCollect.php?arr=6";
+                }
+                if(document.getElementById("ScoreLabels").checked) action="PrnLabels.php";
+                if(document.getElementById("BigNames").checked) action="PDFBigNames.php";
+                document.getElementById("PrnParameters").action=action;
+                return true;
+            }
+            
+            function manageDistances(doEnable) {
+                for(i=1; i<=nDist; i++) {
+                    document.getElementById("ChkDist"+i).disabled = (!doEnable);
+                    if(!doEnable && document.getElementById("ChkDist"+i).checked) {
+                        document.getElementById("ChkDist"+i).checked = false;
+                    }
+                }
+                if(!doEnable) {
+                    document.getElementById("ChkDist0").checked = true;
+                }
+            }
 		</script>',
 		);
 
@@ -80,11 +87,14 @@
 	echo '<tr>';
 //Tipo di Score
 	echo '<td width="50%"><br>';
-	echo '<input name="ScoreDraw" type="radio" value="Complete" checked>&nbsp;' . get_text('ScoreComplete','Tournament') . '<br>';
-	echo '<input name="ScoreDraw" type="radio" value="CompleteTotals">&nbsp;' . get_text('ScoreCompleteTotals','Tournament') . '<br>';
-	echo '<input name="ScoreDraw" type="radio" value="Data">&nbsp;' . get_text('ScoreData','Tournament') . '<br>';
-	echo '<input name="ScoreDraw" type="radio" value="TargetNo">&nbsp;' . get_text('ScoreTargetNo','Tournament') . '<br>';
-	echo '<input name="ScoreDraw" type="radio" value="Draw">&nbsp;' . get_text('ScoreDrawing') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="Complete" checked onClick="manageDistances(true);">&nbsp;' . get_text('ScoreComplete','Tournament') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="CompleteTotals" onClick="manageDistances(true);">&nbsp;' . get_text('ScoreCompleteTotals','Tournament') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="Data" onClick="manageDistances(true);">&nbsp;' . get_text('ScoreData','Tournament') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="TargetNo" onClick="manageDistances(true);">&nbsp;' . get_text('ScoreTargetNo','Tournament') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="Draw" onClick="manageDistances(true);">&nbsp;' . get_text('ScoreDrawing') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="Single" onClick="manageDistances(true);">&nbsp;' . get_text('ScoreSingle','Tournament') . '<br>';
+	echo '<input name="ScoreDraw" type="radio" value="FourScoresNFAA" onClick="manageDistances(true);">&nbsp;' . get_text('FourScoresNFAA','Tournament') . '<br>';
+    echo '<input name="ScoreDraw" type="radio" value="SinglAllDistances" onClick="manageDistances(false);">&nbsp;' . get_text('ScoreSingleAllDistances','Tournament') . '<br>';
 	if($RowTour->TtElabTeam==0) {
 		echo '<input name="ScoreCollector" id="ScoreCollector" type="checkbox" value="Collector">&nbsp;' . get_text('ScoreCollector', 'Tournament') ;
 		echo '<input name="ScoreCollectorArrows" id="ScoreCollector6" type="radio" value="6" checked="checked">6 - ';
@@ -175,7 +185,7 @@
 			}
 			echo '</td>';
 			echo '</tr>';
-				
+
 		}
 	}
 	echo '<tr>';

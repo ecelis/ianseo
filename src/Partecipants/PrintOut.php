@@ -3,6 +3,7 @@
 	require_once('Common/Fun_Sessions.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadOnly);
 
 	$SesNo=0;
 	$SmallCellW=0;
@@ -34,13 +35,13 @@
 			$SmallCellW = 4;
 	}
 
-	$ComboSessions= '<select name="Session">' . "\n";
-		$ComboSessions.='<option value="All">' . get_text('AllSessions','Tournament') . '</option>' . "\n";
+	$ComboSessions= '<select name="Session">';
+		$ComboSessions.='<option value="All">' . get_text('AllSessions','Tournament') . '</option>';
 		foreach ($sessions AS $s)
 		{
-			$ComboSessions.='<option value="' . $s->SesOrder. '">' . $s->Descr . '</option>' . "\n";
+			$ComboSessions.='<option value="' . $s->SesOrder. '">' . $s->Descr . '</option>';
 		}
-	$ComboSessions.='</select>' . "\n";
+	$ComboSessions.='</select>';
 
 	$PAGE_TITLE=get_text('PrintList','Tournament');
 

@@ -4,50 +4,45 @@
 	Elimina una coppia DivClass da EventClass
 */
 
-	define('debug',false);
+require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 
-	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
-	require_once('Common/Fun_Sessions.inc.php');
-	require_once('Qualification/Fun_Qualification.local.inc.php');
-	if (!CheckTourSession() || !isset($_REQUEST['EvCode']) || !isset($_REQUEST['DelDiv']) || !isset($_REQUEST['DelCl']))
-	{
-		print get_text('CrackError');
-		exit;
-	}
+$JSON=array('error' => 1, 'msg' => 'Error');
 
-	$Errore=0;
+if(checkACL(AclCompetition, AclNoAccess) != AclReadWrite
+		or !CheckTourSession()
+		or empty($_REQUEST['EvCode'])
+		or empty($_REQUEST['DelDiv'])
+		or empty($_REQUEST['DelCl'])
+		) {
+	JsonOut($JSON);
+}
 
-	if (!IsBlocked(BIT_BLOCK_TOURDATA))
-	{
-		$Delete
-			= "DELETE FROM EventClass "
-			. "WHERE EcCode=" . StrSafe_DB($_REQUEST['EvCode']) . " "
-			. "AND EcTeamEvent='0' "
-			. "AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
-			. "AND EcClass=" . StrSafe_DB($_REQUEST['DelCl']) . " "
-			. "AND EcDivision=" . StrSafe_DB($_REQUEST['DelDiv']) . " ";
-		$Rs=safe_w_sql($Delete);
-		if (debug) print $Delete;
+if(IsBlocked(BIT_BLOCK_TOURDATA)) {
+	$JSN['msg']=get_text('LockedProcedure', 'Errors');
+	JsonOut($JSON);
+}
 
-		if (safe_w_affected_rows() != 1) {
-			$Errore=1;
-		} else {
-			safe_w_sql("UPDATE Events SET EvTourRules='' where EvCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EvTeamEvent='0' AND EvTournament = " . StrSafe_DB($_SESSION['TourId']));
-		// resetto gli shootoff per l'evento
-			ResetShootoff($_REQUEST['EvCode'],0,0);
-			MakeIndAbs();
-		}
-	}
-	else
-		$Errore=1;
+require_once('Common/Fun_Sessions.inc.php');
+require_once('Qualification/Fun_Qualification.local.inc.php');
 
-	if (!debug)
-		header('Content-Type: text/xml');
+$Delete = "DELETE FROM EventClass 
+	WHERE EcCode=" . StrSafe_DB($_REQUEST['EvCode']) . " 
+		AND EcTeamEvent='0' 
+		AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) . " 
+		AND EcClass=" . StrSafe_DB($_REQUEST['DelCl']) . " 
+		AND EcDivision=" . StrSafe_DB($_REQUEST['DelDiv']) . " 
+		AND EcSubClass=" . StrSafe_DB($_REQUEST['DelSubCl']) ;
+$Rs=safe_w_sql($Delete);
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<event>' . $_REQUEST['EvCode'] . '</event>' . "\n";
-	print '<div>' . $_REQUEST['DelDiv'] . '</div>' . "\n";
-	print '<cl>' . $_REQUEST['DelCl'] . '</cl>' . "\n";
-	print '</response>' . "\n";
-?>
+if(safe_w_affected_rows()) {
+	safe_w_sql("UPDATE Events SET EvTourRules='' where EvCode=" . StrSafe_DB($_REQUEST['EvCode']) . " AND EvTeamEvent='0' AND EvTournament = " . StrSafe_DB($_SESSION['TourId']));
+
+	// SO Reset
+	ResetShootoff($_REQUEST['EvCode'],0,0);
+	MakeIndAbs();
+}
+
+$JSON['error']=0;
+
+JsonOut($JSON);
+

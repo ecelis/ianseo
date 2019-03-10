@@ -43,8 +43,9 @@
 	function GetSetupFile($TourId, $ToType=0, $Lang='', $SubRule='1', $useOldRules=false, $subRuleName)
 	{
 		static $ciclo=0;
-		$typeName=''; 
+		$typeName='';
 		global $CFG;
+		global 	$tourDetGolds, $tourDetXNine, $tourDetGoldsChars, $tourDetXNineChars;
 
 		if(!$ciclo) {
 			// reset data if any
@@ -82,7 +83,7 @@
 			safe_w_sql("update Entries set EnAgeClass='' where EnTournament=$TourId and EnAgeClass not in (select ClId from Classes where ClTournament=$TourId)");
 			safe_w_sql("update Entries set EnSubClass='' where EnTournament=$TourId and EnSubClass not in (select ScId from SubClass where ScTournament=$TourId)");
 			safe_w_sql("update Entries set EnTargetFace='' where EnTournament=$TourId and EnTargetFace not in (select TfId from TargetFaces where TfTournament=$TourId)");
-			
+
 			//update Rule/subrule fields in the different tables
 			$ConstToStore=array();
 			$q=safe_r_sql("select ToOptions from Tournament where ToId={$TourId}");

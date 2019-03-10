@@ -6,11 +6,11 @@ include_once('Common/Lib/ArrTargets.inc.php');
 require_once('Common/Lib/Obj_RankFactory.php');
 require_once('Common/OrisFunctions.php');
 require_once('Common/pdf/PdfChunkLoader.php');
+checkACL(AclEliminations, AclReadOnly);
 
 $EventRequested=(!empty($EventRequested) ? $EventRequested : '');
 
-$PdfData=getEliminationIndividual($EventRequested, true);
-
+$PdfData=getEliminationIndividual('', true);
 
 if(!isset($isCompleteResultBook)) {
 	$pdf = new OrisPDF($PdfData->Code, $PdfData->Description);

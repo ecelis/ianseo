@@ -1,139 +1,118 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Various.inc.php');
 	require_once('Common/Fun_Sessions.inc.php');
 
-	$startSession=(isset($_REQUEST['startSession']) ? $_REQUEST['startSession'] : null);
-	$endSession=(isset($_REQUEST['endSession']) ? $_REQUEST['endSession'] : null);
-	$filter=(isset($_REQUEST['filter']) ? $_REQUEST['filter'] : null);
-	$isEvent=(isset($_REQUEST['isEvent']) && $_REQUEST['isEvent']==1 ? $_REQUEST['isEvent'] : 0);
-	$sourceRankFrom=(isset($_REQUEST['sourceRankFrom']) ? $_REQUEST['sourceRankFrom'] : 1);
-	$sourceRankTo=(isset($_REQUEST['sourceRankTo']) ? $_REQUEST['sourceRankTo'] : 9999);
-	$destFrom=(isset($_REQUEST['destFrom']) ? $_REQUEST['destFrom'] : null);
-	$destTo=(isset($_REQUEST['destTo']) ? $_REQUEST['destTo'] : null);
+$startSession=(isset($_REQUEST['startSession']) ? $_REQUEST['startSession'] : null);
+$endSession=(isset($_REQUEST['endSession']) ? $_REQUEST['endSession'] : null);
+$filter=(isset($_REQUEST['filter']) ? $_REQUEST['filter'] : null);
+$isEvent=(isset($_REQUEST['isEvent']) && $_REQUEST['isEvent']==1 ? $_REQUEST['isEvent'] : 0);
+$sourceRankFrom=(isset($_REQUEST['sourceRankFrom']) ? $_REQUEST['sourceRankFrom'] : 1);
+$sourceRankTo=(isset($_REQUEST['sourceRankTo']) ? $_REQUEST['sourceRankTo'] : 9999);
+$destFrom=(isset($_REQUEST['destFrom']) ? $_REQUEST['destFrom'] : null);
+$destTo=(isset($_REQUEST['destTo']) ? $_REQUEST['destTo'] : null);
 
-	$NumSession=0;
-	$Row=null;
+$NumSession=0;
+$Row=null;
 
 // sessioni
-	$sessions=GetSessions('Q');
+$sessions=GetSessions('Q');
 
 	$comboStartSession
-		= '<select name="startSession" id="startSession">' . "\n"
-		. '<option value="0">' . get_text('AllSessions','Tournament') . '</option>' . "\n";
+		= '<select name="startSession" id="startSession">'
+		. '<option value="0">' . get_text('AllSessions','Tournament') . '</option>';
 
 	$comboEndSession
-		= '<select name="endSession" id="endSession">' . "\n"
-		. '<option value="0">--</option>' . "\n";
+		= '<select name="endSession" id="endSession">'
+		. '<option value="0">--</option>';
 
 	foreach ($sessions as $s)
 	{
-		$comboStartSession.='<option value="' . $s->SesOrder. '"' . (!is_null($startSession) && $s->SesOrder==$startSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
-		$comboEndSession.='<option value="' . $s->SesOrder . '"' . (!is_null($endSession) && $s->SesOrder==$endSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
+		$comboStartSession.='<option value="' . $s->SesOrder. '"' . (!is_null($startSession) && $s->SesOrder==$startSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
+		$comboEndSession.='<option value="' . $s->SesOrder . '"' . (!is_null($endSession) && $s->SesOrder==$endSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
 	}
 
-	$comboStartSession.='</select>' . "\n";
-	$comboEndSession.='</select>' . "\n";
+	$comboStartSession.='</select>';
+	$comboEndSession.='</select>';
 
-	$msg='';
+$msg='';
 
-	if (isset($_REQUEST['command']) && $_REQUEST['command']=='OK')
-	{
-		if (!IsBlocked(BIT_BLOCK_PARTICIPANT))
-		{
+if (isset($_REQUEST['command'])) {
+    if (!IsBlocked(BIT_BLOCK_PARTICIPANT)) {
 		/* verifico i campi passati */
 		// sessione . bersagli di destinazione
-			$start=str_pad($destFrom,TargetNoPadding,'0',STR_PAD_LEFT);
-			$end=str_pad($destTo,TargetNoPadding,'0',STR_PAD_LEFT);
-			if ($endSession>count($sessions)
-				|| $sessions[$endSession-1]->SesFirstTarget > $destFrom
-				|| $sessions[$endSession-1]->SesTar4Session+$sessions[$endSession-1]->SesFirstTarget-1 < ($destTo))
-			{
-				$msg=get_text('Error');
-			}
-			else
-			{
-			// la rank iniziale deve essere un numero
-				if (!preg_match('/^[0-9]+$/i',$sourceRankFrom))
-				{
-					$msg=get_text('Error');
-				}
-				else
-				{
-					$err=false;
-					$TargetOrder='ASC';
+        $start=str_pad($destFrom,TargetNoPadding,'0',STR_PAD_LEFT);
+        $end=str_pad($destTo,TargetNoPadding,'0',STR_PAD_LEFT);
+        if ($endSession>count($sessions)
+            || $sessions[$endSession-1]->SesFirstTarget > $destFrom
+            || $sessions[$endSession-1]->SesTar4Session+$sessions[$endSession-1]->SesFirstTarget-1 < ($destTo))
+        {
+            $msg=get_text('Error');
+        } else {
+	        // la rank iniziale deve essere un numero
+            if (!preg_match('/^[0-9]+$/i',$sourceRankFrom)) {
+               $msg=get_text('Error');
+            } else {
+	            $err=false;
+                $TargetOrder='ASC';
 				// e se è settata, la rank finale deve essere maggiore di quella iniziale
-					if ($sourceRankTo!='')
-					{
-						if (!preg_match('/^[0-9]+$/i',$sourceRankTo))
-						{
-							$msg=get_text('Error');
-							$err=true;
-						}
-						else
-						{
-							if ($sourceRankFrom>$sourceRankTo)
-							{
-								$TargetOrder='DESC';
+                if ($sourceRankTo!='') {
+	                if (!preg_match('/^[0-9]+$/i',$sourceRankTo)) {
+		                $msg=get_text('Error');
+                        $err=true;
+                    } else {
+	                    if ($sourceRankFrom>$sourceRankTo) {
+		                    $TargetOrder='DESC';
 //								$msg=get_text('Error');
 //								$err=true;
-							}
-						}
-					}
+                        }
+                    }
+                }
 
-					if (!$err)
-					{
-					// il filtro non deve essere vuoto
-						if (trim($filter)=='')
-						{
-							$msg=get_text('Error');
-						}
-						else
-						{
-						/* qui dovrei avere i parametri a posto */
-							$data2up=array();
+                if (!$err) {
+	                // il filtro non deve essere vuoto
+                    if (trim($filter)=='') {
+	                    $msg=get_text('Error');
+                    } else {
+                        /* qui dovrei avere i parametri a posto */
+                        $data2up=array();
 
 						// tiro fuori i bersagli di destinazione che mi servono
-							$targets=array();
-							$index=0;	// indice di $targets
+                        $targets=array();
+                        $index=0;	// indice di $targets
 
-							$SubStrLen=strlen($endSession . $start);
+                        $SubStrLen=strlen($endSession . $start);
 
-							$query
-								= "SELECT AtTargetNo, substr(AtTargetNo,1,$SubStrLen) Target, substr(AtTargetNo,-1) Letter "
-								. "FROM "
-									. "AvailableTarget "
-								. "WHERE "
-									. "AtTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND "
-									. "AtTargetNo>='" . $endSession . $start . 'A' . "' AND AtTargetNo<='" . $endSession . $end . 'Z' . "' "
-								. "ORDER BY "
-									. "Target $TargetOrder, Letter ASC ";
-							$rs=safe_r_sql($query);
-							if ($rs && safe_num_rows($rs)>0)
-							{
-								while ($row=safe_fetch($rs))
-								{
-									$targets[]=$row->AtTargetNo;
-								}
-							}
+                        $query = "SELECT AtTargetNo, substr(AtTargetNo,1,$SubStrLen) Target, substr(AtTargetNo,-1) Letter "
+                            . "FROM "
+                                . "AvailableTarget "
+                            . "WHERE "
+                                . "AtTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND "
+                                . "AtTargetNo>='" . $endSession . $start . 'A' . "' AND AtTargetNo<='" . $endSession . $end . 'Z' . "' "
+                            . "ORDER BY "
+                                . "Target $TargetOrder, Letter ASC ";
+                        $rs=safe_r_sql($query);
+                        while ($row=safe_fetch($rs)) {
+	                        $targets[]=$row->AtTargetNo;
+                        }
 
-							/*print '<pre>';
-							print_r($targets);
-							print '</pre>';exit;*/
+                        /*print '<pre>';
+                        print_r($targets);
+                        print '</pre>';exit;*/
 
-							$rank1=$sourceRankFrom;
-							$rank2=$sourceRankTo!='' ? $sourceRankTo : 999999;
+                        $rank1=$sourceRankFrom;
+                        $rank2=$sourceRankTo!='' ? $sourceRankTo : 999999;
 
 						/*
 						 * ora faccio la query per tirar fuori la rank.
 						 */
-							$query="";
+                        $query="";
 
-							if ($isEvent==0)
-							{
-							// individuali
+                        if ($isEvent==0) {
+	                        // individuali
 
 							/*
 							 * IMPORTANTE!!!
@@ -141,147 +120,104 @@
 							 * Un eventuale confronto con la classifica di classe potrebbe mostrare discrepanze
 							 * (l'elenco delle persone di questa query ha un numero di righe >= a quello della classifica di classe)
 							 */
-								$query
-									= "SELECT "
-										. "QuId, EnFirstName, EnName, EnWChair, EnDoubleSpace, CONCAT(EnDivision,EnClass) AS `Event`, QuSession, QuTargetNo, QuClRank as Rank "
-									. "FROM "
-										. "Tournament "
-										. "INNER JOIN "
-											. "Entries "
-										. "ON ToId=EnTournament "
-										. "INNER JOIN "
-											. "Qualifications "
-										. "ON EnId=QuId "
-									. "WHERE "
-										. "CONCAT(EnDivision,EnClass) LIKE " . StrSafe_DB($filter) . " AND EnAthlete=1  AND EnStatus<=1 "
-										. "AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND QuScore<>0 "
-									. "ORDER BY "
-										. "QuClRank ASC, EnFirstName, EnName ";
-							}
-							else
-							{
-							// assoluti individuali
-								$query
-									= "SELECT "
-										. "QuId, EnFirstName, EnName,EnWChair, EnDoubleSpace, CONCAT(EnDivision,EnClass) AS `Event`, QuSession, QuTargetNo, IndRank as Rank "
-									. "FROM "
-										. "Tournament "
-										. "INNER JOIN "
-											. "Entries "
-										. "ON ToId=EnTournament "
-										. "INNER JOIN "
-											. "Qualifications "
-										. "ON EnId=QuId "
-										. "INNER JOIN "
-											. "EventClass "
-										. "ON EnClass=EcClass AND EnDivision=EcDivision AND EnTournament=EcTournament AND EcTeamEvent=0 "
-										. "INNER JOIN "
-											. "Events "
-										. "ON EvCode=EcCode AND EvTeamEvent=EcTeamEvent AND EvTournament=EcTournament "
-										. "INNER JOIN "
-											. "Individuals "
-										. "ON IndId=EnId AND IndEvent=EvCode AND IndTournament=EvTournament "
-									. "WHERE "
-										. "EnAthlete=1 AND EnIndFEvent=1 AND EnStatus <= 1  AND QuScore<>'0' AND ToId = " . StrSafe_DB($_SESSION['TourId']) . " "
-										. "AND EvCode LIKE " . StrSafe_DB($filter) . " "
-									. "ORDER BY "
-										. "IndRank ASC, EnFirstName, EnName ";
-							}
-							$Rs=safe_r_sql($query);
+                            $query = "SELECT QuId, EnFirstName, EnName, EnWChair, EnDoubleSpace, CONCAT(EnDivision,EnClass) AS `Event`, QuSession, QuTargetNo, QuClRank as Rank 
+                                FROM Tournament 
+                                INNER JOIN Entries ON ToId=EnTournament 
+                                INNER JOIN Qualifications ON EnId=QuId 
+                                WHERE CONCAT(EnDivision,EnClass) LIKE " . StrSafe_DB($filter) . " AND EnAthlete=1  AND EnStatus<=1 AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND QuScore<>0 
+                                ORDER BY QuClRank ASC, EnFirstName, EnName ";
+                        } else {
+                            // assoluti individuali
+                            $query = "SELECT QuId, EnFirstName, EnName,EnWChair, EnDoubleSpace, CONCAT(EnDivision,EnClass) AS `Event`, QuSession, QuTargetNo, IndRank as Rank 
+                                FROM Tournament 
+                                INNER JOIN Entries ON ToId=EnTournament 
+                                INNER JOIN Qualifications ON EnId=QuId 
+                                INNER JOIN Individuals ON IndId=EnId AND IndTournament=EnTournament 
+                                WHERE EnAthlete=1 AND EnIndFEvent=1 AND EnStatus <= 1  AND QuScore<>'0' AND ToId = " . StrSafe_DB($_SESSION['TourId']) . " AND IndEvent LIKE " . StrSafe_DB($filter) . " 
+                                ORDER BY IndRank ASC, EnFirstName, EnName ";
+                        }
+                        $Rs=safe_r_sql($query);
 
-							$CurrentRow=-1;
+                        $CurrentRow=-1;
 
-							if ($Rs && safe_num_rows($Rs)>0)
-							{
-								while ($MyRow=safe_fetch($Rs))
-								{
-								/*
-								 * Se la persona ha la rank tra quelle selezionate, la sessione è quella selezionata
-								 * E HO ancora bersagli di destinazione aggiungo in $data2up
-								 */
-									if ($index<count($targets))
-									{
-										if ($MyRow->Rank>=$rank1 && $MyRow->Rank<=$rank2 && ($startSession==0 || ($MyRow->QuSession!=0 && $MyRow->QuSession==$startSession)))
-										{
-											$trgt=$targets[0];
-											$index=0;
+                        while ($MyRow=safe_fetch($Rs)) {
+                            /*
+                             * Se la persona ha la rank tra quelle selezionate, la sessione è quella selezionata
+                             * E HO ancora bersagli di destinazione aggiungo in $data2up
+                             */
+                            if ($index<count($targets)) {
+                                if ($MyRow->Rank>=$rank1 && $MyRow->Rank<=$rank2 && ($startSession==0 || ($MyRow->QuSession!=0 && $MyRow->QuSession==$startSession))) {
+                                    $trgt=$targets[0];
+                                    $index=0;
 
-											if($MyRow->EnWChair) {
-												// cerca il target B successivo
-												while($index < count($targets) and substr($targets[$index],-1)!='B') $index++;
-												// se esiste sposta l'arciere su quel bersaglio ed elimina il 'D' relativo
-												if($index < count($targets)) {
-													$trgt=$targets[$index];
-												} else {
-													$index=0;
-												}
-												if(count($targets)>2) array_splice($targets,$index+2,1);
-											}
-											array_splice($targets,$index,1);
+                                    if($MyRow->EnWChair) {
+                                        // cerca il target B successivo
+                                        while($index < count($targets) and substr($targets[$index],-1)!='B') $index++;
+                                        // se esiste sposta l'arciere su quel bersaglio ed elimina il 'D' relativo
+                                        if($index < count($targets)) {
+                                            $trgt=$targets[$index];
+                                        } else {
+                                            $index=0;
+                                        }
+                                        if(count($targets)>2) {
+                                            array_splice($targets,$index+2,1);
+                                        }
+                                    }
 
-											$data2up[]=array
-											(
-												'id'=>$MyRow->QuId,
-												'session'=>$endSession,
-												'target'=> $trgt
-											);
-										}
-									}
-								}
-							}
+                                    array_splice($targets,$index,1);
 
-						// faccio gli update
-							if (count($data2up)>0)
-							{
-								foreach ($data2up as $d)
-								{
-									$query = "UPDATE Qualifications
-										SET QuSession='" . $d['session'] . "',
-											QuTargetNo='" . $d['target'] . "',
-											QuTarget='" . intval($d['target'],1) . "',
-											QuLetter='" . substr($d['target'], -1) . "',
-											QuTimestamp=QuTimestamp
-										WHERE QuId='" . $d['id'] . "' ";
-									//print $query . '<br><br>';
-									$rs=safe_w_SQL($query);
-									if(safe_w_affected_rows()) {
-										safe_w_sql("Update Entries set EnTimestamp='".date('Y-m-d H:i:s')."' where EnId={$d['id']}");
-										safe_w_sql("UPDATE Qualifications SET QuBacknoPrinted=0, QuTimestamp=QuTimestamp WHERE QuId='{$d['id']}'");
-									}
+                                    $data2up[]=array
+                                        (
+                                        'id'=>$MyRow->QuId,
+                                        'session'=>$endSession,
+                                        'target'=> $trgt
+                                        );
+                                }
+                            }
+                        }
 
-									$msg.=get_text('TargetAssigned', 'Tournament',substr($d['target'],1)) . '<br/>';
+                        // faccio gli update
+                        if (count($data2up)>0) {
+                            foreach ($data2up as $d) {
+                                $query = "UPDATE Qualifications
+                                    SET QuSession='" . $d['session'] . "',
+                                        QuTargetNo='" . $d['target'] . "',
+                                        QuTarget='" . intval(substr($d['target'],1)) . "',
+                                        QuLetter='" . substr($d['target'], -1) . "',
+                                        QuTimestamp=QuTimestamp
+                                    WHERE QuId='" . $d['id'] . "' ";
+                                //print $query . '<br><br>';
+                                $rs=safe_w_SQL($query);
+                                if(safe_w_affected_rows()) {
+                                    safe_w_sql("Update Entries set EnTimestamp='".date('Y-m-d H:i:s')."' where EnId={$d['id']}");
+                                    safe_w_sql("UPDATE Qualifications SET QuBacknoPrinted=0, QuTimestamp=QuTimestamp WHERE QuId='{$d['id']}'");
+                                }
 
-								}
+                                $msg.=get_text('TargetAssigned', 'Tournament',substr($d['target'],1)) . '<br/>';
 
-								//exit;
-							}
-							else
-							{
-								$msg.=get_text('NoTargetFound') . '<br/>';
-							}
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			$msg=get_text('Error');
-		}
-	}
+                            }
+                        } else {
+                            $msg.=get_text('NoTargetFound') . '<br/>';
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        $msg=get_text('Error');
+    }
+}
 
+$JS_SCRIPT=array(
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ext-2.2/adapter/ext/ext-base.js"></script>',
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ext-2.2/ext-all-debug.js"></script>',
+    phpVars2js(array(
+        'StrError' => get_text('Error'),
+    )),
+    '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Partecipants/Fun_TargetFromRank.js"></script>'
+);
 
-
-	$JS_SCRIPT=array(
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ext-2.2/adapter/ext/ext-base.js"></script>',
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ext-2.2/ext-all-debug.js"></script>',
-		phpVars2js(array(
-			'StrError' => get_text('Error'),
-		)),
-		'<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Partecipants/Fun_TargetFromRank.js"></script>'
-	);
-
-	include('Common/Templates/head.php');
+include('Common/Templates/head.php');
 ?>
 
 <form id="frm" method="post" action="<?php print $_SERVER['PHP_SELF'];?>">
@@ -332,4 +268,6 @@
 	</table>
 </form>
 
-<?php include('Common/Templates/tail.php');?>
+<?php
+
+include('Common/Templates/tail.php');

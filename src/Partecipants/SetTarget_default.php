@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Fun_Sessions.inc.php');
 
@@ -71,7 +72,7 @@
 	if (isset($_REQUEST['Ses']) && ((is_numeric($_REQUEST['Ses']) && $_REQUEST['Ses']>0 && $_REQUEST['Ses']<=$MaxSession) || (!is_numeric($_REQUEST['Ses']) && $_REQUEST['Ses']=='*')))
 	{
 
-		print '<table class="Tabella">' . "\n";
+		print '<table class="Tabella">';
 		print '<tr>';
 		print '<th class="Title" width="14%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?' . (isset($_REQUEST['Event']) ? 'Event=' . $_REQUEST['Event'] . '&amp;' : '') . 'Ses=' . $_REQUEST['Ses'] . '&amp;ordTarget=' . (isset($_REQUEST['ordTarget']) ? ( $_REQUEST['ordTarget']=='ASC' ? 'DESC' : 'ASC') : 'ASC') . '">' . get_text('Session') . '</a></th>';
 		print '<th class="Title" width="6%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?' . (isset($_REQUEST['Event']) ? 'Event=' . $_REQUEST['Event'] . '&amp;' : '') . 'Ses=' . $_REQUEST['Ses'] . '&amp;ordTarget=' . (isset($_REQUEST['ordTarget']) ? ( $_REQUEST['ordTarget']=='ASC' ? 'DESC' : 'ASC') : 'ASC') . '">' . get_text('Target') . '</a></th>';
@@ -81,7 +82,7 @@
 		print '<th class="Title" width="10%">' . get_text('WheelChair', 'Tournament') . '</th>';
 		print '<th class="Title" width="10%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?' . (isset($_REQUEST['Event']) ? 'Event=' . $_REQUEST['Event'] . '&amp;' : '') . 'Ses=' . $_REQUEST['Ses'] . '&amp;ordDiv=' . (isset($_REQUEST['ordDiv']) ? ($_REQUEST['ordDiv']=='ASC' ? 'DESC' : 'ASC') : 'ASC') . '">' . get_text('Division') . '</a></th>';
 		print '<th class="Title" width="10%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?' . (isset($_REQUEST['Event']) ? 'Event=' . $_REQUEST['Event'] . '&amp;' : '') . 'Ses=' . $_REQUEST['Ses'] . '&amp;ordCl=' . (isset($_REQUEST['ordCl']) ? ($_REQUEST['ordCl']=='ASC' ? 'DESC' : 'ASC') : 'ASC') . '">' . get_text('Class') . '</a></th>';
-		print '</tr>' . "\n";
+		print '</tr>';
 
 		$OrderBy = "QuSession ASC, QuTargetNo ASC, EnDivision, EnClass ";
 
@@ -139,10 +140,10 @@
 				print '<tr id="Row_' . $MyRow->EnId . '" class="' . $RowStyle . '">';
 
 				print '<td class="Center">';
-				print '<select ' . ($MyRow->EnStatus>8 ? ' disabled ' : '') . 'name="d_q_QuSession_' . $MyRow->EnId . '" id="d_q_QuSession_' . $MyRow->EnId . '" onBlur="javascript:UpdateSession(\'d_q_QuSession_' . $MyRow->EnId . '\');	">' . "\n";
+				print '<select ' . ($MyRow->EnStatus>8 ? ' disabled ' : '') . 'name="d_q_QuSession_' . $MyRow->EnId . '" id="d_q_QuSession_' . $MyRow->EnId . '" onBlur="javascript:UpdateSession(\'d_q_QuSession_' . $MyRow->EnId . '\');	">';
 				foreach ($ComboSes as $Key => $Value)
-					print '<option value="' . $Key . '"' . ($MyRow->QuSession==$Key ? ' selected'  : '') . '>' . $Value . '</option>' . "\n";
-				print '</select>' . "\n";
+					print '<option value="' . $Key . '"' . ($MyRow->QuSession==$Key ? ' selected'  : '') . '>' . $Value . '</option>';
+				print '</select>';
 				print '</td>';
 
 				print '<td class="Center">';
@@ -181,7 +182,7 @@
 				print '</tr>';
 			}
 		}
-		print '</table>' . "\n";
+		print '</table>';
 	}
 ?>
 <div id="idOutput"></div>

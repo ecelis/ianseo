@@ -17,6 +17,7 @@
 				$FirstTime=true;
 			}
 			if ($FirstTime || !$pdf->SamePage(4)) {
+				$pdf->SetDefaultColor();
 			   	$pdf->SetFont($pdf->FontStd,'B',7);
 				$pdf->Cell($NatAtlCell, 4, $PdfData->Data['Fields']['Nation'], 1, 0, 'L', 1);
 				$pdf->Cell($SesCell, 4, $PdfData->Data['Fields']['Session'], 1, 0, 'C', 1);

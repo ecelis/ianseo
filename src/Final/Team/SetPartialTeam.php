@@ -1,23 +1,18 @@
 <?php
-	define('debug',false);
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Qualification/Fun_Qualification.local.inc.php');
-
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclCompetition, AclReadWrite, false);
+
 
 	$Errore=0;
 
-	if (!isset($_REQUEST['EvCode']) || !isset($_REQUEST['EvPartial']))
-	{
+	if (!isset($_REQUEST['EvCode']) || !isset($_REQUEST['EvPartial'])) {
 		$Errore=1;
-	}
-	else
-	{
+	} else {
 		$Update
 			= "UPDATE Events SET "
 			. "EvPartialTeam=" . StrSafe_DB($_REQUEST['EvPartial']) . " "
@@ -28,10 +23,9 @@
 			MakeTeamsAbs(null,null,null);
 	}
 
-	if (!debug)
-		header('Content-Type: text/xml');
+	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '</response>';
 ?>

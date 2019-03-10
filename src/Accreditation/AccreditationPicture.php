@@ -1,5 +1,6 @@
 <?php
 require_once(dirname(__FILE__) . '/config.php');
+checkACL(AclAccreditation, AclReadWrite);
 require_once('Common/Lib/CommonLib.php');
 require_once('Common/Fun_Modules.php');
 
@@ -19,6 +20,7 @@ while($r=safe_fetch($q)) $Accreditations[$r->IcNumber]=$r->IcNumber;
 $PAGE_TITLE=get_text('TakePicture', 'Tournament');
 $JS_SCRIPT[] = phpVars2js(array('ROOT_DIR' => $CFG->ROOT_DIR, 'AreYouSure'=>get_text('MsgAreYouSure'), 'msgPictureThere' => get_text('PictureThere', 'Tournament')));
 $JS_SCRIPT[] = '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>';
+$JS_SCRIPT[] = '<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/jQuery/jquery-2.1.4.min.js"></script>';
 $JS_SCRIPT[] = '<script type="text/javascript" src="./Fun_AJAX_AccreditationPicture.js"></script>';
 $JS_SCRIPT[] = phpVars2js($param);
 if($param["source"]==0) {
@@ -100,10 +102,10 @@ echo '<input type="checkbox" class="x_NoPrint" id="x_NoPrint" onChange="searchAt
 			<input type="button" id="stop-button" value="<?php echo get_text('StopCamera', 'Tournament')?>" onClick="stopVideo();" style="display: none;">
 			<input type="button" id="start-button" value="<?php echo get_text('StartCamera', 'Tournament')?>" onClick="startVideo();" style="display: none;">
 			<br><input id="zoom" type="range" min="1" max="15" style="display:none;" value="1" onChange="changeZoom()"/><br>
-			<div id="cameraContainer" style="position: relative;">
-				<video id="CamVideo" crossorigin="anonymous" width="100%" autoplay onClick="takePicture();" style="position: absolute; top: 0px; left: 0px;" ></video>
- 				<img id="ImgCamVideo" width="100%" onClick="takePicture();" style="position: absolute; top: 0px; left: 0px; display:none;">
-				<svg id="face" version="1.1" xmlns="http://www.w3.org/2000/svg" style="position: absolute; display:none; top: 0px; left: 0px; width:400px; height: 400px;" viewBox="0 0 400 400" onClick="takePicture();">
+			<div id="cameraContainer" style="position: relative;" onClick="takePicture();">
+				<video id="CamVideo" crossOrigin="Anonymous" width="100%" autoplay style="position: absolute; top: 0px; left: 0px;" ></video>
+ 				<img id="ImgCamVideo" crossOrigin="Anonymous" width="100%" style="position: absolute; top: 0px; left: 0px; display:none;">
+				<svg id="face" version="1.1" xmlns="http://www.w3.org/2000/svg" style="position: absolute; display:none; top: 0px; left: 0px; width:400px; height: 400px;" viewBox="0 0 400 400" >
 					<rect width="400" height="400"  style="fill:none;stroke:orange;stroke-width:2"/>
 					<rect x="50" width="300" height="400"  style="fill:none;stroke:yellow;stroke-width:2"/>
 					<line x1="125" y1="172" x2="275" y2="172" style="stroke:rgb(255,0,0);stroke-width:1" />

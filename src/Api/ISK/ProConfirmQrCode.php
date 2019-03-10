@@ -37,6 +37,4 @@ if($OrgQrCode and $ChkQrCode) {
 	$JsonResponse["error"]=0;
 }
 
-// if($Resp) debug_svela($Resp, isset($_REQUEST['debug']));
-
 SendResult($JsonResponse);

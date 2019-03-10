@@ -484,7 +484,7 @@ if($TargetList) {
 				EnId,
 				CoCode,
 				ClId, DivId, ClDescription, DivDescription,
-				group_concat(EvEventName order by EvTeamEvent, EvProgr separator ', ') EventName,
+				group_concat(EvEventName order by EvProgr separator ', ') EventName,
 				EvCode
 			FROM Entries
 			INNER JOIN Qualifications ON QuId=EnId AND QuSession in (".implode(',', $TargetList['Q']).")
@@ -492,7 +492,8 @@ if($TargetList) {
 			INNER JOIN Session ON QuSession=SesOrder AND SesType='Q' AND SesTournament='{$TourId}'
 			INNER JOIN Classes ON EnClass=ClId AND ClTournament='{$TourId}'
 			INNER JOIN Divisions ON EnDivision=DivId AND DivTournament='{$TourId}'
-			INNER JOIN EventCategories on EnDivision=EcDivision and EnClass=EcClass and EcTournament='{$TourId}' and EvTeamEvent=0
+			Inner join Individuals on IndId=EnId and IndTournament=EnTournament
+			inner join Events on EvCode=IndEvent and EvTournament=EnTournament and EvTeamEvent=0
 			WHERE EnTournament = '{$TourId}' and EnAthlete=1
 			group by EnId
 			ORDER BY QuTargetNo ";

@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 	require_once('Common/Fun_Sessions.inc.php');
@@ -89,7 +90,7 @@
 		. '<td class="Title" width="5%"><a class="LinkRevert" href="' . $_SERVER['PHP_SELF'] . '?ordSubCl=' . (isset($_REQUEST['ordSubCl']) && $_REQUEST['ordSubCl']=='ASC' ? 'DESC' : 'ASC') . '">' . get_text('SubCl','Tournament') . '</a></td>'
 		. '<td class="Title" width="5%">' . get_text('Target') . '</td>'
 		. '<td class="Title" width="5%">&nbsp;</td>'
-		. '</tr>' . "\n";
+		. '</tr>';
 ?>
 <form name="Frm" method="GET" action="">
 <table class="Tabella" id="idAthList">
@@ -101,12 +102,12 @@
 <?php
 // vedi commento "turni"
 	$ComboSes
-		= '<select id="d_q_QuSession_" onBlur="javascript:SelectSession_Par();">' . "\n"
-		. '<option value="0">--</option>' . "\n";
+		= '<select id="d_q_QuSession_" onBlur="javascript:SelectSession_Par();">'
+		. '<option value="0">--</option>';
 
 	$ComboDiv
-		= '<select id="d_e_EnDivision_" onChange="CheckTargetFaces()">' . "\n"
-		. '<option value="">--</option>' . "\n";
+		= '<select id="d_e_EnDivision_" onChange="CheckTargetFaces()">'
+		. '<option value="">--</option>';
 
 	$Select = "SELECT DivId FROM Divisions WHERE DivTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY DivViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
@@ -114,19 +115,19 @@
 	{
 		while ($Row=safe_fetch($Rs))
 		{
-			$ComboDiv.='<option value="' . $Row->DivId . '">' . $Row->DivId . '</option>' . "\n";
+			$ComboDiv.='<option value="' . $Row->DivId . '">' . $Row->DivId . '</option>';
 		}
 	}
-	$ComboDiv.='</select>' . "\n";
+	$ComboDiv.='</select>';
 
 
 	$ComboCl
-		= '<select id="d_e_EnClass_" onChange="CheckTargetFaces()">' . "\n"
-		. '<option value="">--</option>' . "\n";
+		= '<select id="d_e_EnClass_" onChange="CheckTargetFaces()">'
+		. '<option value="">--</option>';
 
 	$ComboSubCl
-		= '<select id="d_e_EnSubClass_">' . "\n"
-		. '<option value="">--</option>' . "\n";
+		= '<select id="d_e_EnSubClass_">'
+		. '<option value="">--</option>';
 
 	$Select = "SELECT ScId FROM SubClass WHERE ScTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY ScViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
@@ -134,14 +135,14 @@
 	{
 		while ($Row=safe_fetch($Rs))
 		{
-			$ComboSubCl.='<option value="' . $Row->ScId . '">' . $Row->ScId . '</option>' . "\n";
+			$ComboSubCl.='<option value="' . $Row->ScId . '">' . $Row->ScId . '</option>';
 		}
 	}
-	$ComboSubCl.='</select>' . "\n";
+	$ComboSubCl.='</select>';
 
 	$ComboAgeCl
-		= '<select id="d_e_EnAgeClass_" onFocus="javascript:GetClassesByGender_Par();" onBlur="javascript:SelectAgeClass_Par(\'\');">' . "\n"
-		. '<option value="">--</option>' . "\n";
+		= '<select id="d_e_EnAgeClass_" onFocus="javascript:GetClassesByGender_Par();" onBlur="javascript:SelectAgeClass_Par(\'\');">'
+		. '<option value="">--</option>';
 
 	$Select = "SELECT ClId FROM Classes WHERE ClTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY ClViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
@@ -150,12 +151,12 @@
 		while ($Row=safe_fetch($Rs))
 		{
 			$Arr_Cl[$Row->ClId]=$Row->ClId;
-			$ComboAgeCl.='<option value="' . $Row->ClId . '">' . $Row->ClId . '</option>' . "\n";
-		//	$ComboCl.='<option value="' . $Row->ClId . '">' . $Row->ClId . '</option>' . "\n";
+			$ComboAgeCl.='<option value="' . $Row->ClId . '">' . $Row->ClId . '</option>';
+		//	$ComboCl.='<option value="' . $Row->ClId . '">' . $Row->ClId . '</option>';
 		}
 	}
-	$ComboAgeCl.='</select>' . "\n";
-	$ComboCl.='</select>' . "\n";
+	$ComboAgeCl.='</select>';
+	$ComboCl.='</select>';
 
 /*
 	Conto quanti ath ho in elenco in modo da decidere se attivare il warning oppure no
@@ -177,7 +178,7 @@
 	foreach ($sessions as $s)
 	{
 		$MaxRows+=$s->SesAth4Target*$s->SesTar4Session;
-		$ComboSes.='<option value="' . $s->SesOrder . '">' . $s->SesOrder . '</option>' . "\n";
+		$ComboSes.='<option value="' . $s->SesOrder . '">' . $s->SesOrder . '</option>';
 	}
 /*
 	$Sel = "SELECT ToNumSession, ";
@@ -200,21 +201,21 @@
 			$MaxRows+= ($Row->{'ToTar4Session' . $i}*$Row->{'ToAth4Target' . $i});
 
 		// turni
-			$ComboSes.='<option value="' . $i . '">' . $i . '</option>' . "\n";
+			$ComboSes.='<option value="' . $i . '">' . $i . '</option>';
 		}
 	}*/
 
-	$ComboSes.='</select>' . "\n";
+	$ComboSes.='</select>';
 
 	//print '<a class="Link" href="javascript:AddManyRows(' . $MaxRows . ',' . $Warning . ',\'' . urlencode(str_replace('<br>','\n',get_text('MsgAddManyRowsWarning','Tournament'))) . '\');">' . get_text('AddMaxRows','Tournament') . '</a>';
 
 	$ComboSex='<select id="d_e_EnSex_"  onChange="javascript:CheckCtrlCode_Par();">';
-		$ComboSex.='<option value="0">' . get_text('ShortMale','Tournament') . '</option>' . "\n";
-		$ComboSex.='<option value="1">' . get_text('ShortFemale','Tournament') . '</option>' . "\n";
+		$ComboSex.='<option value="0">' . get_text('ShortMale','Tournament') . '</option>';
+		$ComboSex.='<option value="1">' . get_text('ShortFemale','Tournament') . '</option>';
 	$ComboSex.='</select>';
 
 	$ComboTf='<select id="d_e_EnTargetFace_">';
-		$ComboTf.='<option value="0">--</option>' . "\n";
+		$ComboTf.='<option value="0">--</option>';
 	$ComboTf.='</select>';
 ?>
 &nbsp;

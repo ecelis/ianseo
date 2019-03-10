@@ -1,11 +1,11 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
+    checkACL(AclCompetition, AclReadOnly);
 
 	define('debug',true);
 
-	if (!CheckTourSession() || !isset($_REQUEST['Code']) || !isset($_REQUEST['From']) || !isset($_REQUEST['Message']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['Code']) || !isset($_REQUEST['From']) || !isset($_REQUEST['Message'])) {
 		print get_text('CrackError');
 		exit;
 	}

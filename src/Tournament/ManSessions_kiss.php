@@ -8,8 +8,9 @@
 	require_once('Tournament/Fun_Tournament.local.inc.php');
 	require_once('Tournament/Fun_ManSessions.inc.php');
 
-	if (!CheckTourSession())
-	{
+    checkACL(AclCompetition, AclReadWrite);
+
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}

@@ -372,11 +372,12 @@ function GetSessions($type=null,$extend=false,$ids=null,$tour=null)
 function getArrowEnds($Session=1, $Dist=0, $TourId=0) {
 	$TourId=(empty($TourId) ? $_SESSION['TourId'] : $TourId);
 	$ret=array();
-	$q=safe_r_sql("select * from DistanceInformation where DiTournament={$TourId} and DiSession=$Session  and DiType='Q'"
-		. ($Dist ? " and DiDistance=$Dist " : '')
-		);
-	while($r=safe_fetch($q)) {
-		$ret[$r->DiDistance]=array('ends' => ($r->DiEnds ? $r->DiEnds : 12), 'arrows' => ($r->DiArrows ? $r->DiArrows : 3));
-	}
+    $q = safe_r_sql("select * from DistanceInformation where DiTournament={$TourId} and DiSession=$Session  and DiType='Q'"
+        . ($Dist ? " and DiDistance=$Dist " : '')
+    );
+    while ($r = safe_fetch($q)) {
+        $ret[$r->DiDistance] = array('ends' => ($r->DiEnds ? $r->DiEnds : 12), 'arrows' => ($r->DiArrows ? $r->DiArrows : 3));
+    }
+
 	return $ret;
 }

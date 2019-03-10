@@ -16,4 +16,5 @@ $lang['ErrNoStartDate']='Falta data de início';
 $lang['ErrRedCard']='O Comitê lhe deu um Cartão VERMELHO e você não pode mais solicitar que provas sejam hospedadas no Ianseo. Contate codes@ianseo.net para mais explicações.';
 $lang['ErrUnknownNation']='País desconhecido.';
 $lang['ErrYellowCard']='O Comitê lhe deu um Cartão Amarelo porque nenhum resultado foi atualizado no site. Contate codes@ianseo.net para mais explicações.';
+$lang['LockedProcedure']='Este procedimento está BLOQUEADO';
 ?>

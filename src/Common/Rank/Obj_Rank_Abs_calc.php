@@ -99,8 +99,7 @@
 	 * (non-PHPdoc)
 	 * @see ianseo/Common/Rank/Obj_Rank#calculate()
 	 */
-		public function calculate()
-		{
+		public function calculate() {
 			$dd = ($this->opts['dist']>0 ? 'D' . $this->opts['dist'] : '');
 
 			$f=$this->safeFilter();
@@ -117,12 +116,11 @@
 					set $sql
 					where IndTournament={$this->tournament}");
 
-			$q="
-				SELECT
+			$q="SELECT
 					IndId AS `athId`,IndEvent AS `EventCode`,
 					Qu{$dd}Score AS Score,Qu{$dd}Gold AS Gold,Qu{$dd}Xnine AS XNine, Qu{$dd}Hits AS Hits, IndRank as actualRank,
-					EvFinalFirstPhase, EvElim1, EvElim2,
-					IF(EvFinalFirstPhase=0,9999,IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) ,IF(EvElim1=0,EvElim2,EvElim1))) as QualifiedNo
+					EvFinalFirstPhase, EvElim1, EvElim2, EvElimType,
+					IF(EvFinalFirstPhase=0,9999,IF(EvElimType=0, EvNumQualified ,IF(EvElim1=0,EvElim2,EvElim1))) as QualifiedNo
 				FROM
 					Events
 
@@ -148,8 +146,7 @@
 			if (!$r)
 				return false;
 
-			if (safe_num_rows($r)>0)
-			{
+			if (safe_num_rows($r)>0) {
 				$curGroup = "";
 				$myRank = 1;
 				$myPos = 0;
@@ -162,12 +159,10 @@
 				$myGroupStartPos=0;
 				$currentRow=-1;
 
-				while($myRow=safe_fetch($r))
-				{
+				while($myRow=safe_fetch($r)) {
 					++$currentRow;
 
-					if ($curGroup != $myRow->EventCode)
-					{
+					if ($curGroup != $myRow->EventCode) {
 						$curGroup = $myRow->EventCode;
 
 						$myRank = 1;
@@ -183,19 +178,17 @@
 					/*
 					 * If starting phase is 1/48 or 1/24, I check the 8th position for shootoff,
 					 */
-						if(($myRow->EvFinalFirstPhase == 48 || $myRow->EvFinalFirstPhase == 24) && $myRow->EvElim1==0 && $myRow->EvElim2 ==0)
-						{
-							if(safe_num_rows($r) > ($myGroupStartPos + 8))
-							{
-								safe_data_seek($r,$myGroupStartPos + 8 - 1);
+						if($NumSaved=SavedInPhase($myRow->EvFinalFirstPhase ) and $myRow->EvElimType==0) {
+							if(safe_num_rows($r) > ($myGroupStartPos + $NumSaved)) {
+								safe_data_seek($r,$myGroupStartPos + $NumSaved - 1);
 								$tmpMyRow = safe_fetch($r);
-								if($curGroup == $tmpMyRow->EventCode)
-								{
+								if($curGroup == $tmpMyRow->EventCode) {
 									$tmpScore = $tmpMyRow->Score;
 									$tmpMyRow = safe_fetch($r);
 									//Controllo se c'è parimerito per entrare
-									if ($tmpScore == $tmpMyRow->Score && $curGroup == $tmpMyRow->EventCode)
-										$mySoScore[] = $tmpScore;
+									if ($tmpScore == $tmpMyRow->Score AND $curGroup == $tmpMyRow->EventCode) {
+                                        $mySoScore[] = $tmpScore;
+                                    }
 								}
 								$tmpMyRow = NULL;
 							}
@@ -206,17 +199,16 @@
 					 * Carico l'ultimo punteggio per entrare.
 					 * Vado a prendere la riga con l'ultimo Score buono
 					 */
-						if(safe_num_rows($r) > ($myGroupStartPos + $myRow->QualifiedNo))
-						{
+						if(safe_num_rows($r) > ($myGroupStartPos + $myRow->QualifiedNo)) {
 							safe_data_seek($r,$myGroupStartPos + $myRow->QualifiedNo -1);
 							$tmpMyRow = safe_fetch($r);
-							if($curGroup == $tmpMyRow->EventCode)
-							{
+							if($curGroup == $tmpMyRow->EventCode) {
 								$tmpScore = $tmpMyRow->Score;
 								$tmpMyRow = safe_fetch($r);
 								//Controllo se c'è parimerito per entrare
-								if ($tmpScore == $tmpMyRow->Score && $curGroup == $tmpMyRow->EventCode)
-									$mySoScore[] = $tmpScore;
+								if ($tmpScore == $tmpMyRow->Score && $curGroup == $tmpMyRow->EventCode) {
+                                    $mySoScore[] = $tmpScore;
+                                }
 							}
 							$tmpMyRow = NULL;
 						}
@@ -226,30 +218,29 @@
 
 					$so=-1;
 
+
 				// Se non ho parimerito il ranking è uguale alla posizione
-					if(in_array($myRow->Score,$mySoScore))  //so che c'è uno spareggio per come ho caricato $mySoScore
-					{
-						if ($myRow->Score!=$myScoreOld)
-							$myRank = $myPos;
-
-						$so=1;	// rosso
-
+                    //so che c'è uno spareggio per come ho caricato $mySoScore
+                    if(in_array($myRow->Score,$mySoScore)) {
+						if ($myRow->Score!=$myScoreOld) {
+                            $myRank = $myPos;
+                        }
+    					$so=1;	// rosso
+					} else {    //tutti gli altri pareggi...
+						if (!($myRow->Score==$myScoreOld AND $myRow->Gold==$myGoldOld AND $myRow->XNine==$myXNineOld)) {
+                            $myRank = $myPos;
+                        }
 					}
-					else	//tutti gli altri pareggi...
-					{
-						if (!($myRow->Score==$myScoreOld && $myRow->Gold==$myGoldOld && $myRow->XNine==$myXNineOld))
-							$myRank = $myPos;
-					}
-					if($myRank>$myRow->QualifiedNo)
-						$so=0;
+					if($myRank>$myRow->QualifiedNo) {
+                        $so = 0;
+                    }
 
 					$myScoreOld = $myRow->Score;
 					$myGoldOld = $myRow->Gold;
 					$myXNineOld = $myRow->XNine;
 
 					$x = false;
-					if($this->opts['dist']==0 && $myRow->actualRank!=0 && array_key_exists('skipExisting',$this->opts) && $this->opts['skipExisting']==1)
-					{
+					if($this->opts['dist']==0 AND $myRow->actualRank!=0 AND array_key_exists('skipExisting',$this->opts) AND $this->opts['skipExisting']==1) {
 						$x=$this->setRow(array(
 							array(	// passo 1 item alla volta
 								'ath' 		=> $myRow->athId,
@@ -259,9 +250,7 @@
 								'so'		=> ($so * $myRank)
 							)
 						));
-					}
-					else
-					{
+					} else {
 						$x=$this->setRow(array(
 							array(	// passo 1 item alla volta
 								'ath' 		=> $myRow->athId,
@@ -269,6 +258,7 @@
 								'dist'		=> $this->opts['dist'],
 								'hits'		=> $myRow->Hits,
 								'rank'		=> $myRank,
+								'finalrank' => ($myRow->EvFinalFirstPhase ? -1 : $myRank),
 								'tiebreak'	=> '',
 								'so'		=> ($so * $myRank)
 							)
@@ -315,15 +305,13 @@
 	 * @return mixed: ritorna le affected_rows oppure false se c'è qualche errore
 	 * 		(non salva gli eventuali elementi successivi a quello che ha generato l'errore)
 	 */
-		public function setRow($items=array())
-		{
+		public function setRow($items=array()) {
 		// campi mandatory per $item
 			$params=array('ath','event','dist');
 
 			$affected=0;
 
-			foreach ($items as $item)
-			{
+			foreach ($items as $item) {
 				/*print '<pre>';
 				print_r($item);
 				print '</pre>';*/
@@ -335,10 +323,8 @@
 		/*
 		 *  controllo che ci siano i campi mandatory
 		 */
-				foreach ($params as $p)
-				{
-					if (!array_key_exists($p,$item))
-					{
+				foreach ($params as $p) {
+					if (!array_key_exists($p,$item)) {
 						$paramsOk=false;
 						$ret=false;
 						break;
@@ -351,43 +337,34 @@
 
 				$date=date('Y-m-d H:i:s');
 
-				$q
-					= "UPDATE "
-						. "Individuals "
-					. "SET "
-						. "IndTimestamp='{$date}' "
-				;
+				$q = "UPDATE Individuals SET IndTimestamp='{$date}' ";
 
 			/* campi opzionali e basta */
-				if (array_key_exists('rank',$item))
-				{
+				if (array_key_exists('rank',$item))	{
 					$canUp=true;
 					$q.=",Ind{$dd}Rank={$item['rank']}";
+                    if (array_key_exists('finalrank',$item) AND $item['finalrank']!=-1) {
+                        $q.=",IndRankFinal={$item['finalrank']}";
+                    }
 				}
 
 			/*
 			 *  campi opzionali (se dist==0).
 			 *  In ogni caso i valori vengono scritti se e solo se la rank nuova è diversa dalla vecchia!
 			 */
-				if ($item['dist']==0)
-				{
-					if (array_key_exists('tiebreak',$item))
-					{
+				if ($item['dist']==0) {
+					if (array_key_exists('tiebreak',$item)) {
 						$canUp=true;
 						$q.=",IndTiebreak='{$item['tiebreak']}'";
 					}
 
-					if (array_key_exists('so',$item))
-					{
+					if (array_key_exists('so',$item)) {
 						$canUp=true;
 						$q.=",IndSO={$item['so']}";
 					}
 				}
 
-				$q
-					.=" WHERE "
-						. "IndId=" . $item['ath'] . " AND IndEvent='" . $item['event'] . "' AND IndTournament=" . $this->tournament . " ";
-				;
+				$q .= " WHERE IndId=" . $item['ath'] . " AND IndEvent='" . $item['event'] . "' AND IndTournament=" . $this->tournament;
 				//print $q.'<br><br>';
 
 				if (!$canUp) {
@@ -395,13 +372,9 @@
 				}
 				$r=safe_w_sql($q);
 
-				if (!$r) {
-					$affected=false;
-				} else {
-					$affected+=safe_w_affected_rows();
-				}
+				$affected+=safe_w_affected_rows();
 
-				if(empty($item['fist']) && array_key_exists('rank',$item) && array_key_exists('hits',$item) && $item['hits']%3 == 0 ) {
+				if(empty($item['dist']) and array_key_exists('rank',$item) and array_key_exists('hits',$item) and $item['hits']%3 == 0 ) {
 					$q = "INSERT INTO IndOldPositions (IopId, IopEvent, IopTournament, IopHits, IopRank) "
 						. "VALUES(" . $item['ath'] . ",'" . $item['event'] . "'," . $this->tournament . "," . $item['hits'] . "," . $item['rank'] . ") "
 						. "ON DUPLICATE KEY UPDATE IopRank=" . $item['rank'];

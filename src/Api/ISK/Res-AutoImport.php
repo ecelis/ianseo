@@ -7,6 +7,7 @@ if(!CheckTourSession()) {
 	header('Content-Type: text/xml');
 	die('<response error="'.$Error.'"/>');
 }
+checkACL(AclISKServer, AclReadWrite,false);
 
 require_once('Common/Lib/Fun_Modules.php');
 

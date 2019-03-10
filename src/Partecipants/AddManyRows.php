@@ -8,11 +8,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession() || !isset($_REQUEST['Num']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['Num'])) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore = 1;
 
@@ -29,6 +29,6 @@
 	header('Content-Type: text/xml');
 
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '</response>';

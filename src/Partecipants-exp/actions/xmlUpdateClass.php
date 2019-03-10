@@ -5,11 +5,11 @@
 	require_once 'Partecipants-exp/common/config.inc.php';
 
 /****** Controller ******/
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$error=0;
 	$EnAthlete=1;
@@ -60,8 +60,8 @@
 		if ($error==0)
 		{
 			$recalc=false;
-			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
-			$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+			$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
+			$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 		// se la vecchia classe è diversa ricalcolo spareggi,abs ind e squadre per la vecchia e la nuova
 			$query= "SELECT EnClass FROM Entries WHERE EnId=" . StrSafe_DB($id) . " AND EnClass<>" . StrSafe_DB($class) . " ";
@@ -75,7 +75,7 @@
 				$x=Params4Recalc($id);
 				if ($x!==false)
 				{
-					list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+					list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subCl,$zeroOld)=$x;
 				}
 			}
 
@@ -95,12 +95,12 @@
 				$x=Params4Recalc($id);
 				if ($x!==false)
 				{
-					list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+					list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 				}
 
 			// ricalcolo il vecchio e il nuovo
-				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
-				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
+				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 			// rank di classe x tutte le distanze
 				$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";

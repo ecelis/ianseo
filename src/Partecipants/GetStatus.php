@@ -9,11 +9,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$Id = (isset($_REQUEST['Id']) ? $_REQUEST['Id'] : '');
 
@@ -36,10 +36,10 @@
 		while ($MyRow=safe_fetch($Rs))
 		{
 			$xml
-				.= '<ath>' . "\n"
-				 . '<id>' . $MyRow->EnId . '</id>' . "\n"
-				 . '<status>' . $MyRow->EnStatus . '</status>' . "\n"
-				 . '</ath>' . "\n";
+				.= '<ath>'
+				 . '<id>' . $MyRow->EnId . '</id>'
+				 . '<status>' . $MyRow->EnStatus . '</status>'
+				 . '</ath>';
 		}
 	}
 	else
@@ -48,8 +48,8 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print $xml;
-	print '</response>' . "\n";
+	print '</response>';
 ?>

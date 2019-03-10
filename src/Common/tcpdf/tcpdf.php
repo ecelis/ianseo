@@ -9596,7 +9596,9 @@ li><li>$this->pagedim[$this->page]['TrimBox']['lly'] = lower-left y coordinate i
 						$annots .= ' /FT /'.$pl['opt']['ft'];
 						$formfield = true;
 					}
-					$annots .= ' /Contents '.$this->_textstring($pl['txt'], $annot_obj_id);
+					if(!is_numeric($pl['txt'])) {
+						$annots .= ' /Contents '.$this->_textstring($pl['txt'], $annot_obj_id);
+					}
 					$annots .= ' /P '.$this->page_obj_id[$n].' 0 R';
 					$annots .= ' /NM '.$this->_datastring(sprintf('%04u-%04u', $n, $key), $annot_obj_id);
 					$annots .= ' /M '.$this->_datestring($annot_obj_id, $this->doc_modification_timestamp);
@@ -17099,7 +17101,7 @@ copy of the PDF content could be generated. When this is not set, printing is li
 		$k = $this->k;
 		$this->javascript .= sprintf("f".$name."=this.addField('%s','%s',%u,[%F,%F,%F,%F]);", $name, $type, $this->PageNo()-1, $x*$k, ($this->h-$y)*$k+1, ($x+$w)*$k, ($this->h-$y-$h)*$k+1)."\n";
 		$this->javascript .= 'f'.$name.'.textSize='.$this->FontSizePt.";\n";
-		while (list($key, $val) = each($prop)) {
+		foreach($prop as $key => $val) {
 			if (strcmp(substr($key, -5), 'Color') == 0) {
 				$val = $this->_JScolor($val);
 			} else {
@@ -21647,7 +21649,7 @@ out the order of these - also: try and see what's happening) colors: must be 4 c
 					// get attributes
 					preg_match_all('/([^=\s]*)[\s]*=[\s]*"([^"]*)"/', $element, $attr_array, PREG_PATTERN_ORDER);
 					$dom[$key]['attribute'] = array(); // reset attribute array
-					while (list($id, $name) = each($attr_array[1])) {
+					foreach($attr_array[1] as $id => $name) {
 						$dom[$key]['attribute'][strtolower($name)] = $attr_array[2][$id];
 					}
 					if (!empty($css)) {
@@ -21660,7 +21662,7 @@ out the order of these - also: try and see what's happening) colors: must be 4 c
 						// get style attributes
 						preg_match_all('/([^;:\s]*):([^;]*)/', $dom[$key]['attribute']['style'], $style_array, PREG_PATTERN_ORDER);
 						$dom[$key]['style'] = array(); // reset style attribute array
-						while (list($id, $name) = each($style_array[1])) {
+						foreach($style_array[1] as $id => $name) {
 							// in case of duplicate attribute the last replace the previous
 							$dom[$key]['style'][strtolower($name)] = trim($style_array[2][$id]);
 						}
@@ -22833,9 +22835,11 @@ Putting 1 is equivalent to putting 0 and calling Ln() just after. Default value:
 											}
 											// justify block
 											$pmid = preg_replace_callback('/([0-9\.\+\-]*)[\s]('.$strpiece[1][0].')[\s]('.$strpiece[2][0].')([\s]*)/x',
-												create_function('$matches', 'global $spacew;
-												$newx = sprintf("%F",(floatval($matches[1]) + $spacew));
-												return "".$newx." ".$matches[2]." x*#!#*x".$matches[3].$matches[4];'), $pmid, 1);
+												function($matches) {
+													global $spacew;
+													$newx = sprintf("%F",(floatval($matches[1]) + $spacew));
+													return $newx." ".$matches[2]." x*#!#*x".$matches[3].$matches[4];
+												}, $pmid, 1);
 											break;
 										}
 										case 're': {
@@ -22875,10 +22879,12 @@ Putting 1 is equivalent to putting 0 and calling Ln() just after. Default value:
 												}
 											}
 											$pmid = preg_replace_callback('/('.$xmatches[1].')[\s]('.$xmatches[2].')[\s]('.$xmatches[3].')[\s]('.$strpiece[1][0].')[\s](re)([\s]*)/x',
-												create_function('$matches', 'global $x_diff, $w_diff;
-												$newx = sprintf("%F",(floatval($matches[1]) + $x_diff));
-												$neww = sprintf("%F",(floatval($matches[3]) + $w_diff));
-												return "".$newx." ".$matches[2]." ".$neww." ".$matches[4]." x*#!#*x".$matches[5].$matches[6];'), $pmid, 1);
+												function($matches) {
+													global $x_diff, $w_diff;
+													$newx = sprintf("%F", (floatval($matches[1]) + $x_diff));
+													$neww = sprintf("%F", (floatval($matches[3]) + $w_diff));
+													return $newx . " " . $matches[2] . " " . $neww . " " . $matches[4] . " x*#!#*x" . $matches[5] . $matches[6];
+												}, $pmid, 1);
 											break;
 										}
 										case 'c': {
@@ -22887,11 +22893,13 @@ Putting 1 is equivalent to putting 0 and calling Ln() just after. Default value:
 											$currentxpos = $xmatches[1];
 											// justify block
 											$pmid = preg_replace_callback('/('.$xmatches[1].')[\s]('.$xmatches[2].')[\s]('.$xmatches[3].')[\s]('.$xmatches[4].')[\s]('.$xmatches[5].')[\s]('.$strpiece[1][0].')[\s](c)([\s]*)/x',
-												create_function('$matches', 'global $spacew;
-												$newx1 = sprintf("%F",(floatval($matches[1]) + $spacew));
-												$newx2 = sprintf("%F",(floatval($matches[3]) + $spacew));
-												$newx3 = sprintf("%F",(floatval($matches[5]) + $spacew));
-												return "".$newx1." ".$matches[2]." ".$newx2." ".$matches[4]." ".$newx3." ".$matches[6]." x*#!#*x".$matches[7].$matches[8];'), $pmid, 1);
+												function($matches) {
+													global $spacew;
+													$newx1 = sprintf("%F", (floatval($matches[1]) + $spacew));
+													$newx2 = sprintf("%F", (floatval($matches[3]) + $spacew));
+													$newx3 = sprintf("%F", (floatval($matches[5]) + $spacew));
+													return $newx1 . " " . $matches[2] . " " . $newx2 . " " . $matches[4] . " " . $newx3 . " " . $matches[6] . " x*#!#*x" . $matches[7] . $matches[8];
+												}, $pmid, 1);
 											break;
 										}
 									}
@@ -22939,10 +22947,12 @@ Putting 1 is equivalent to putting 0 and calling Ln() just after. Default value:
 									$pmidtemp = preg_replace('/[\\\][\(]/x', '\\#!#OP#!#', $pmidtemp);
 									$pmidtemp = preg_replace('/[\\\][\)]/x', '\\#!#CP#!#', $pmidtemp);
 									$pmid = preg_replace_callback("/\[\(([^\)]*)\)\]/x",
-												create_function('$matches', 'global $spacew;
-												$matches[1] = str_replace("#!#OP#!#", "(", $matches[1]);
-												$matches[1] = str_replace("#!#CP#!#", ")", $matches[1]);
-												return "[(".str_replace(chr(0).chr(32), ") ".sprintf("%F", $spacew)." (", $matches[1]).")]";'), $pmidtemp);
+										function($matches) {
+											global $spacew;
+											$matches[1] = str_replace("#!#OP#!#", "(", $matches[1]);
+											$matches[1] = str_replace("#!#CP#!#", ")", $matches[1]);
+											return "[(" . str_replace(chr(0) . chr(32), ") " . sprintf("%F", $spacew) . " (", $matches[1]) . ")]";
+										}, $pmidtemp);
 									if ($this->inxobj) {
 										// we are inside an XObject template
 										$this->xobjects[$this->xobjid]['outdata'] = $pstart."\n".$pmid."\n".$pend;
@@ -26154,17 +26164,19 @@ Putting 1 is equivalent to putting 0 and calling Ln() just after. Default value:
 		$jfrompage = $frompage;
 		$jtopage = $topage;
 		$this->javascript = preg_replace_callback('/this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/',
-			create_function('$matches', 'global $jfrompage, $jtopage;
-			$pagenum = intval($matches[3]) + 1;
-			if (($pagenum >= $jtopage) AND ($pagenum < $jfrompage)) {
-				$newpage = ($pagenum + 1);
-			} elseif ($pagenum == $jfrompage) {
-				$newpage = $jtopage;
-			} else {
-				$newpage = $pagenum;
-			}
-			--$newpage;
-			return "this.addField(\'".$matches[1]."\',\'".$matches[2]."\',".$newpage."";'), $tmpjavascript);
+			function($matches) {
+				global $jfrompage, $jtopage;
+				$pagenum = intval($matches[3]) + 1;
+				if (($pagenum >= $jtopage) AND ($pagenum < $jfrompage)) {
+					$newpage = ($pagenum + 1);
+				} elseif ($pagenum == $jfrompage) {
+					$newpage = $jtopage;
+				} else {
+					$newpage = $pagenum;
+				}
+				--$newpage;
+				return "this.addField(\'" . $matches[1] . "\',\'" . $matches[2] . "\'," . $newpage . "";
+			}, $tmpjavascript);
 		// return to last page
 		$this->lastPage(true);
 		return true;
@@ -26334,17 +26346,19 @@ Putting 1 is equivalent to putting 0 and calling Ln() just after. Default value:
 		global $jpage;
 		$jpage = $page;
 		$this->javascript = preg_replace_callback('/this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/',
-			create_function('$matches', 'global $jpage;
-			$pagenum = intval($matches[3]) + 1;
-			if ($pagenum >= $jpage) {
-				$newpage = ($pagenum - 1);
-			} elseif ($pagenum == $jpage) {
-				$newpage = 1;
-			} else {
-				$newpage = $pagenum;
-			}
-			--$newpage;
-			return "this.addField(\'".$matches[1]."\',\'".$matches[2]."\',".$newpage."";'), $tmpjavascript);
+			function($matches) {
+				global $jpage;
+				$pagenum = intval($matches[3]) + 1;
+				if ($pagenum >= $jpage) {
+					$newpage = ($pagenum - 1);
+				} elseif ($pagenum == $jpage) {
+					$newpage = 1;
+				} else {
+					$newpage = $pagenum;
+				}
+				--$newpage;
+				return "this.addField(\'" . $matches[1] . "\',\'" . $matches[2] . "\'," . $newpage . "";
+			}, $tmpjavascript);
 		// return to last page
 		$this->lastPage(true);
 		return true;

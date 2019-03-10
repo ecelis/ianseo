@@ -32,6 +32,7 @@ define('debug',false);
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclEliminations, AclReadWrite, false);
 
 	$Errore=0;
 	$xml='';

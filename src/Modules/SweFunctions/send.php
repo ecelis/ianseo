@@ -90,7 +90,7 @@ function prepareIndQualification($data) {
                 'dist_8' => $ivalue['dist_8']
             );
         }
-                
+
         $sektions[] = array('q_class' => $key, 'q_results' => array(
             'q_meta' => array(
                 'descr' => $value['meta']['descr'],

@@ -3,14 +3,14 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Lib/Fun_Scheduler.php');
 require_once('Common/pdf/IanseoPdf.php');
 
-if (defined('hideSchedulerAndAdvancedSession'))
-{
+if (defined('hideSchedulerAndAdvancedSession')) {
 	exit;
 }
+checkACL(AclCompetition, AclReadOnly);
 CheckTourSession(true);
 
 if(!empty($_REQUEST["FinalSchedule"])) {
-	header('Location: OrisSchedule.php');
+	header('Location: OrisSchedule.php'.(isset($_REQUEST['Finalists']) ? '?teamcomponents' : ''));
 	die();
 }
 
@@ -48,9 +48,12 @@ if(isset($_REQUEST['FromDay'])) {
 }
 
 if(!empty($_REQUEST['PageBreaks'])) {
-	require_once('Common/Lib/Fun_Modules.php');
+    require_once('Common/Lib/Fun_Modules.php');
 	setModuleParameter('Schedule', 'PageBreaks', $_REQUEST['PageBreaks']);
 	$Schedule->PageBreaks=explode(',', $_REQUEST['PageBreaks']);
+} else {
+    require_once('Common/Lib/Fun_Modules.php');
+    delModuleParameter('Schedule', 'PageBreaks');
 }
 
 $pdf = $Schedule->getSchedulePDF();

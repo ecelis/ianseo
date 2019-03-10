@@ -4,10 +4,124 @@ require_once('Common/Fun_Phases.inc.php');
 require_once('Fun_ChangePhase.inc.php');
 require_once('Common/Lib/Fun_Modules.php');
 
-function UpdateArrowPosition($MatchNo, $EvCode, $TeamEvent, $ArrowPosX, $ArrowPosY, $ArrowDiam=0, $ArrowPos='')
-{
+function UpdateArrowPosition($MatchNo, $EvCode, $TeamEvent, $ArrowIndex, $ArrowDist=0, $ArrowPosX=0, $ArrowPosY=0, $ArrowDiam=0, $ToId=0){
+    $CompId = $ToId;
+    if(empty($CompId) && !empty($_SESSION['TourId']))
+        $CompId = $_SESSION['TourId'];
+
 	$retValue = null;
-	$Select = '';
+	// $ArrowIndex is 1-based for consistency with UpdateArrowString()
+	$ArrowIndex--;
+	$ArrowTimingIndex=$ArrowIndex;
+
+	$TablePrefix = "Fin";
+	if($TeamEvent) {
+		$TablePrefix = "Tf";
+		$Select = "SELECT 
+			TfEvent as EvCode, TfMatchNo as MatchNo, TfArrowString as ArString, TfTieBreak as TbString, TfArrowPosition as ArPos, TfTiePosition as TbPos, GrPhase, FinOdfArrows 
+			FROM TeamFinals 
+			INNER JOIN Grids ON TfMatchNo=GrMatchNo
+			left JOIN FinOdfTiming ON FinOdfMatchno=TfMatchNo and FinOdfTournament=TfTournament and FinOdfEvent=TfEvent and FinOdfTeamEvent=1
+			WHERE TfTournament={$CompId} AND TfMatchNo=" . StrSafe_DB($MatchNo) . " AND TfEvent=" . StrSafe_DB($EvCode);
+	} else {
+		$Select = "SELECT 
+			FinEvent as EvCode, FinMatchNo as MatchNo, FinArrowString as ArString, FinTieBreak as TbString, FinArrowPosition as ArPos, FinTiePosition as TbPos, GrPhase, FinOdfArrows
+			FROM Finals 
+			INNER JOIN Grids ON FinMatchNo=GrMatchNo 
+			left JOIN FinOdfTiming ON FinOdfMatchno=FinMatchNo and FinOdfTournament=FinTournament and FinOdfEvent=FinEvent and FinOdfTeamEvent=0
+			WHERE FinTournament={$CompId} AND FinMatchNo=" . StrSafe_DB($MatchNo) . " AND FinEvent=" . StrSafe_DB($EvCode);
+	}
+	$Rs=safe_r_sql($Select);
+	if (safe_num_rows($Rs)==1) {
+		$MatchUpdated=false; // server per aggiornare il timestamp
+
+		$MyRow=safe_fetch($Rs);
+
+		$obj=getEventArrowsParams($MyRow->EvCode, $MyRow->GrPhase, $TeamEvent, $CompId);
+		$isShootOff = boolval($ArrowIndex >= ($obj->ends*$obj->arrows));
+		if($isShootOff){
+            $ArrowIndex = $ArrowIndex - intval($obj->ends*$obj->arrows);
+        }
+
+        $ArrowData = ($isShootOff ?  $MyRow->TbPos : $MyRow->ArPos);
+		if(!empty($ArrowData)) {
+            $ArrowData = json_decode($ArrowData, true);
+        } else {
+            $ArrowData = array();
+        }
+
+        // timings
+		if(!empty($MyRow->FinOdfArrows)) {
+			$ArrowTiming=json_decode($MyRow->FinOdfArrows, true);
+		} else {
+			$ArrowTiming=array();
+		}
+		if(!isset($ArrowTiming["$ArrowTimingIndex"]['Ts'])) {
+			// NEVER updates the timestamp of the arrow once it is set
+			$ArrowTiming["$ArrowTimingIndex"]['Ts']=date('Y-m-d H:i:s');
+			ksort($ArrowTiming, SORT_NUMERIC);
+		}
+
+        if($ArrowPosX!=0 OR $ArrowPosY!=0 OR $ArrowDiam!=0 OR $ArrowDist!=0) {
+            $ArrowData[$ArrowIndex] = array(
+            	"X" => round($ArrowPosX,1),
+	            "Y" => round($ArrowPosY,1),
+	            "R" => round($ArrowDiam / 2,1),
+	            "D" => round($ArrowDist,1),
+	            );
+        }
+
+        // Updates the position
+		$Sql = "UPDATE "
+			. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
+			. "SET "
+			. $TablePrefix . ($isShootOff ? "TiePosition" : "ArrowPosition") . "=" . StrSafe_DB(count($ArrowData) ? json_encode($ArrowData) : '') . ", "
+			. "{$TablePrefix}DateTime={$TablePrefix}DateTime "
+			. "WHERE "
+			. "{$TablePrefix}Event = '{$MyRow->EvCode}' "
+			. "AND {$TablePrefix}MatchNo = {$MyRow->MatchNo} "
+			. "AND {$TablePrefix}Tournament={$CompId}";
+		safe_w_sql($Sql);
+
+		// updates the timing
+		$Sql = "Insert into FinOdfTiming
+			SET FinOdfArrows=".StrSafe_DB(json_encode($ArrowTiming)).",
+			FinOdfEvent = '{$MyRow->EvCode}',
+			FinOdfMatchNo = '{$MyRow->MatchNo}',
+			FinOdfTournament='{$CompId}',
+			FinOdfTeamEvent=".($TeamEvent ? 1 : 0)."
+			on duplicate key update FinOdfArrows=".StrSafe_DB(json_encode($ArrowTiming));
+		safe_w_sql($Sql);
+
+
+		$t = microtime(true);
+		$micro = sprintf("%06d",($t - floor($t)) * 1000000);
+		$d = new DateTime( date('Y-m-d H:i:s.'.$micro, $t) );
+
+		if(safe_w_affected_rows()) {
+			$Sql = "UPDATE "
+				. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
+				. "SET "
+				. "{$TablePrefix}DateTime='".$d->format('Y-m-d H:i:s.u')."' "
+				. "WHERE "
+				. " {$TablePrefix}Event = '{$MyRow->EvCode}' "
+				. "AND {$TablePrefix}MatchNo = {$MyRow->MatchNo} "
+				. "AND {$TablePrefix}Tournament={$CompId}";
+			safe_w_sql($Sql);
+		}
+	}
+	return $retValue;
+}
+
+function DeleteArrowPosition($MatchNo, $EvCode, $TeamEvent, $ArrowIndex, $ToId=0){
+    $CompId = $ToId;
+    if(empty($CompId) && !empty($_SESSION['TourId'])) {
+        $CompId = $_SESSION['TourId'];
+    }
+
+	$retValue = null;
+	// $ArrowIndex is 1-based for consistency with UpdateArrowString()
+	$ArrowIndex--;
 
 	$TablePrefix = "Fin";
 	$Select
@@ -15,7 +129,7 @@ function UpdateArrowPosition($MatchNo, $EvCode, $TeamEvent, $ArrowPosX, $ArrowPo
 		. "FinEvent as EvCode, FinMatchNo as MatchNo, FinArrowString as ArString, FinTieBreak as TbString, FinArrowPosition as ArPos, FinTiePosition as TbPos, GrPhase "
 		. "FROM Finals "
 		. "INNER JOIN Grids ON FinMatchNo=GrMatchNo "
-		. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinMatchNo=" . StrSafe_DB($MatchNo) . " AND FinEvent=" . StrSafe_DB($EvCode);
+		. "WHERE FinTournament={$CompId} AND FinMatchNo=" . StrSafe_DB($MatchNo) . " AND FinEvent=" . StrSafe_DB($EvCode);
 	if($TeamEvent) {
 		$TablePrefix = "Tf";
 		$Select
@@ -23,78 +137,57 @@ function UpdateArrowPosition($MatchNo, $EvCode, $TeamEvent, $ArrowPosX, $ArrowPo
 			. "TfEvent as EvCode, TfMatchNo as MatchNo, TfArrowString as ArString, TfTieBreak as TbString, TfArrowPosition as ArPos, TfTiePosition as TbPos, GrPhase "
 			. "FROM TeamFinals "
 			. "INNER JOIN Grids ON TfMatchNo=GrMatchNo "
-			. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfMatchNo=" . StrSafe_DB($MatchNo) . " AND TfEvent=" . StrSafe_DB($EvCode);
+			. "WHERE TfTournament={$CompId} AND TfMatchNo=" . StrSafe_DB($MatchNo) . " AND TfEvent=" . StrSafe_DB($EvCode);
 	}
+
 	$Rs=safe_r_sql($Select);
-	if (safe_num_rows($Rs)==1)
-	{
+	if (safe_num_rows($Rs)==1) {
 		$MatchUpdated=false; // server per aggiornare il timestamp
 
 		$MyRow=safe_fetch($Rs);
 
-		$obj=getEventArrowsParams($MyRow->EvCode,$MyRow->GrPhase,$TeamEvent);
-		$maxArrows=$obj->ends*$obj->arrows;
-		$maxSoArrows=$obj->so;
+		$obj=getEventArrowsParams($MyRow->EvCode,$MyRow->GrPhase,$TeamEvent, $CompId);
+		$isShootOff = boolval($ArrowIndex >= ($obj->ends*$obj->arrows));
+		if($isShootOff){
+            $ArrowIndex = $ArrowIndex - intval($obj->ends*$obj->arrows);
+        }
 
-		$isShootOff = 0;
-		$ArrowNumber = -1;
-		if(preg_match('/^([01])[|]([0-9]+)$/i',$ArrowPos,$found)) {
-			$isShootOff=$found[1];
-			$ArrowNumber = $found[2];
-		} elseif(preg_match('/^([0-9]+)$/i',$ArrowPos)) {
-			if($ArrowPos>$maxArrows) {
-				$isShootOff = 1;
-				$ArrowNumber = $ArrowPos-$maxArrows-1;
-			} else {
-				$isShootOff=0;
-				$ArrowNumber = $ArrowPos-1;
-			}
-		} else {
-			$ArrowNumber = strpos(str_pad($MyRow->ArString,$maxArrows," ",STR_PAD_RIGHT)," ");
-			if($ArrowNumber===false || $ArrowNumber>=$maxArrows) {
-				$isShootOff = 1;
-				$ArrowNumber = strpos(str_pad($MyRow->TbString,$maxSoArrows," ",STR_PAD_RIGHT)," ");
-				if($ArrowNumber===false || $ArrowNumber >= $maxSoArrows)
-					$ArrowNumber = -1;
-			}
-		}
+        $ArrowData = ($isShootOff ?  $MyRow->TbPos : $MyRow->ArPos);
+		if(!empty($ArrowData)) {
+            $ArrowData = json_decode($ArrowData);
+        } else {
+            $ArrowData = array();
+        }
 
-		if($ArrowNumber != -1) {
-			$retValue = $isShootOff . "|" . $ArrowNumber;
-			$arrArrows = unserialize(($isShootOff ? $MyRow->TbPos : $MyRow->ArPos));
-			if(!is_array($arrArrows))
-				$arrArrows = array();
-			if($ArrowPosX == '' || $ArrowPosY == '') {
-				unset($arrArrows[$ArrowNumber]);
-			} else {
-				$arrArrows[$ArrowNumber] = array($ArrowPosX, $ArrowPosY, $ArrowDiam);
-				if(!$ArrowDiam)
-					unset($arrArrows[$ArrowNumber][2]);
-			}
+        if(!empty($ArrowData[$ArrowIndex])) {
+            unset($ArrowData[$ArrowIndex]);
+        }
+
+		$Sql = "UPDATE "
+			. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
+			. "SET "
+			. $TablePrefix . ($isShootOff ? "TiePosition" : "ArrowPosition") . "=" . StrSafe_DB(count($ArrowData) ? json_encode($ArrowData) : '') . ", "
+			. "{$TablePrefix}DateTime={$TablePrefix}DateTime "
+			. "WHERE "
+			. "{$TablePrefix}Event = '{$MyRow->EvCode}' "
+			. "AND {$TablePrefix}MatchNo = {$MyRow->MatchNo} "
+			. "AND {$TablePrefix}Tournament={$CompId}";
+		safe_w_sql($Sql);
+
+		$t = microtime(true);
+		$micro = sprintf("%06d",($t - floor($t)) * 1000000);
+		$d = new DateTime( date('Y-m-d H:i:s.'.$micro, $t) );
+
+		if(safe_w_affected_rows()) {
 			$Sql = "UPDATE "
 				. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
 				. "SET "
-				. $TablePrefix . ($isShootOff==0 ? "ArrowPosition" : "TiePosition") . "=" . StrSafe_DB(count($arrArrows) ? serialize($arrArrows) : '') . ", "
-				. "{$TablePrefix}DateTime={$TablePrefix}DateTime "
+				. "{$TablePrefix}DateTime='".$d->format('Y-m-d H:i:s.u')."' "
 				. "WHERE "
-				. "{$TablePrefix}Event=". StrSafe_DB($MyRow->EvCode) . " "
-				. "AND {$TablePrefix}MatchNo=". StrSafe_DB($MyRow->MatchNo) . " "
-				. "AND {$TablePrefix}Tournament=". StrSafe_DB($_SESSION['TourId']);
+				. " {$TablePrefix}Event = '{$MyRow->EvCode}' "
+				. "AND {$TablePrefix}MatchNo = {$MyRow->MatchNo} "
+				. "AND {$TablePrefix}Tournament={$CompId}";
 			safe_w_sql($Sql);
-
-			$MatchUpdated = ($MatchUpdated or safe_w_affected_rows());
-
-			if($MatchUpdated) {
-				$Sql = "UPDATE "
-					. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
-					. "SET "
-					. "{$TablePrefix}DateTime='".date('Y-m-d H:i:s')."' "
-					. "WHERE "
-					. " {$TablePrefix}Event=". StrSafe_DB($MyRow->EvCode) . " "
-					. "AND {$TablePrefix}MatchNo = ". StrSafe_DB($MyRow->MatchNo). " "
-					. "AND {$TablePrefix}Tournament=". StrSafe_DB($_SESSION['TourId']);
-				safe_w_sql($Sql);
-			}
 		}
 	}
 	return $retValue;
@@ -146,7 +239,9 @@ function UpdateArrowString($MatchNo, $EvCode, $TeamEvent, $ArrowString, $ArrowSt
 		$tmpArrowString=str_pad(($Offset==0 ? $MyRow->ArString : $MyRow->TbString),($Offset==0 ? $maxArrows : $maxSoArrows)," ",STR_PAD_RIGHT);
 		$tmpArrowString=substr_replace($tmpArrowString,$SubArrowString,$ArrowStart-$Offset,$Len);
 
-		$tmpArrowString=substr($tmpArrowString, 0, ($Offset==0 ? $maxArrows : $maxSoArrows));
+		if($Offset==0) {
+            $tmpArrowString = substr($tmpArrowString, 0, $maxArrows);
+        }
 
 		$query="UPDATE "
 			. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
@@ -185,33 +280,6 @@ function UpdateArrowString($MatchNo, $EvCode, $TeamEvent, $ArrowString, $ArrowSt
 					. "AND {$TablePrefix}MatchNo = $m[1] "
 					. "AND {$TablePrefix}Tournament=". StrSafe_DB($CompId));
 			}
-
-/*
-//if match is live writes the xml for boinx!
- 			if($MyRow->LiveMatch) {
-				require_once('Common/Lib/Fun_Modules.php');
-				if(getModuleParameter('Boinx', 'Write', '', $CompId)) {
-					$TourCode=getCodeFromId($CompId);
-					require_once('Common/Lib/Obj_RankFactory.php');
-					require_once('Common/Fun_FormatText.inc.php');
-					$file=$CFG->DOCUMENT_PATH.'Modules/Boinx/XML/'.$TourCode.'-Scores.xml';
-					if($dir=getModuleParameter('Boinx', 'SavePath', '', $CompId) and is_dir($dir) and is_writable($dir)) {
-						$file=$dir.'/'.$TourCode.'-Scores.xml';
-					}
-					$opts=array('tournament' => $CompId, 'liveFlag'=>1);
-					$FILTER=($TeamEvent ? "f.TfLive='1'" : "f.FinLive='1'");
-					$EXCLUDE_HEADER=true; // stops outputting the file!!!!
-					$TourId=$CompId;
-					$TourCodeSafe=$CompId;
-
-					include("Modules/Boinx/IanseoScores-".($TeamEvent ? 1 : 0).".php");
-
-					$XML= $XmlDoc->SaveXML();
-					file_put_contents($file, $XML);
-					chmod($file, 0666);
-				}
-			}
-*/
 		}
 		//print $query;
 		return MatchTotal($MatchNo, $EvCode, $TeamEvent, $CompId);
@@ -280,7 +348,6 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 		$Score=ValutaArrowString(substr($MyRow->ArString, 0, $TotArrows));
 		$OppScore=ValutaArrowString(substr($MyRow->OppArString, 0, $TotArrows));
 
-
 		if($MyRow->EvMatchMode==0) {
 			$SetPointsAth=array();
 			$SetPointsOpp=array();
@@ -324,7 +391,8 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 							$Winner=$MyRow->OppMatchNo;
 							$MatchFinished=true;
 						} else {
-							if( strlen(str_replace(' ', '', $MyRow->TbString))==$obj->so
+							if( strlen(str_replace(' ', '', $MyRow->TbString))!=0
+							    and (strlen(str_replace(' ', '', $MyRow->TbString)) % $obj->so) == 0
 								and strlen(str_replace(' ', '', $MyRow->TbString))==strlen(str_replace(' ', '', $MyRow->OppTbString))
 								) {
 								// Verifico le stringhe CASE INSENSITIVE - in questo momento me ne frego degli "*"
@@ -359,21 +427,17 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 									$WinnerId = $MyRow->OppMatchNo;
 								} else {
 									$MatchFinished=false;
-									foreach($AthArrows as $k => $v) {
-										if($v > $OppArrows[$k]) {
+									if($AthArrows and $OppArrows) {
+										if($AthArrows[0] > $OppArrows[0]) {
 											$Winner = $MyRow->MatchNo;
 											$WinnerId = $MyRow->MatchNo;
 											$MatchFinished=true;
-											break;
-										}
-										if($v < $OppArrows[$k]) {
+										} elseif($AthArrows[0] < $OppArrows[0]) {
 											$Winner = $MyRow->OppMatchNo;
 											$WinnerId = $MyRow->OppMatchNo;
 											$MatchFinished=true;
-											break;
 										}
 									}
-
 								}
 							}
 
@@ -386,6 +450,7 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 					$Winner=-1;
 				}
 			}
+
 			$query="UPDATE "
 				. ($TeamEvent==0 ? "Finals" : "TeamFinals") . " "
 				. "SET "
@@ -436,8 +501,8 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 			$WinnerId=-1;
 			for($i=0; $i<$TotArrows; $i=$i+$obj->arrows) {
 				//Cicla per tutte le volee dell'incontro
-				$AthEndString=substr($MyRow->ArString, $i, $obj->arrows);
-				$OppEndString=substr($MyRow->OppArString, $i, $obj->arrows);
+				$AthEndString=rtrim(substr($MyRow->ArString, $i, $obj->arrows));
+				$OppEndString=rtrim(substr($MyRow->OppArString, $i, $obj->arrows));
 				$MatchString=$AthEndString.$OppEndString;
 				$AthSetPoints=ValutaArrowString($AthEndString);
 				$OppSetPoints=ValutaArrowString($OppEndString);
@@ -445,8 +510,8 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 				$SetPointsOpp[] = $OppSetPoints;
 
 
-				if(strpos($MatchString, ' ')===false and strlen($AthEndString) and strlen($AthEndString)==strlen($OppEndString)) {
-					// All arrows have been shot
+				if(strpos($MatchString, ' ')===false and strlen($AthEndString) and strlen($AthEndString)==strlen($OppEndString) and strlen($AthEndString)==$obj->arrows) {
+					// All arrows of the end have been shot
 					$Proceed=ctype_upper($MatchString); // check if there are stars
 					//Da Remmare dopo ANKARA
 					$Proceed=true;
@@ -459,7 +524,6 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 							// even with all stars as higher points will the score beat the opponent's score
 							$Proceed=true;
 						}
-// 						debug_svela(array($AthSetPoints, $AthSetPointsUpper, ));
 					}
 					if($Proceed) {
 						if($AthSetPoints>$OppSetPoints) {
@@ -488,7 +552,8 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 			}
 
 			if($SetAth==$SetOpp
-				and strlen(str_replace(' ', '', $MyRow->TbString))==$obj->so
+                and strlen(str_replace(' ', '', $MyRow->TbString))!=0
+				and (strlen(str_replace(' ', '', $MyRow->TbString))%$obj->so)==0
 				and strlen(trim($MyRow->TbString))==strlen(trim($MyRow->OppTbString))
 				) {
 				// Verifico le stringhe CASE INSENSITIVE - in questo momento me ne frego degli "*"
@@ -583,8 +648,7 @@ function MatchTotal($MatchNo, $EvCode, $TeamEvent=0, $ToId=0) {
 				. "AND {$TablePrefix}Tournament=". StrSafe_DB($CompId);
 			safe_w_sql($query);
 			$MatchUpdated = ($MatchUpdated or safe_w_affected_rows());
-
-			if($SetAth >= $obj->winAt || $SetOpp >= $obj->winAt) {
+			if($SetAth >= $obj->winAt or $SetOpp >= $obj->winAt) {
 				$MatchFinished=true;
 			}
 		}

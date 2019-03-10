@@ -43,6 +43,9 @@
 		 */
 		protected $HasRecords=array();
 
+		protected $TourOptions=array();
+		protected $TimeZone='UTC';
+
 	/**
 	 * __construct()
 	 * Costruttore.
@@ -58,6 +61,12 @@
 				$this->tournament=$this->opts['tournament'];
 			} else {
 				$this->tournament=$_SESSION['TourId'];
+			}
+
+			$q=safe_r_sql("select ToTimeZone, ToOptions from Tournament where ToId=$this->tournament");
+			if($r=safe_fetch($q)) {
+				$this->TourOptions = unserialize($r->ToOptions);
+				$this->TimeZone = $r->ToTimeZone;
 			}
 
 
@@ -108,8 +117,9 @@
 				inner join Events on RtTournament=EvTournament and EvRecCategory=RtRecCategory and EvTournament={$this->tournament}  and RtRecTeam=EvTeamEvent
 				".($Event ? "and EvCode='{$Event}'" : '')."
 				and EvTeamEvent=".($Team ? '1' : '0')."
-				where RtRecPhase= ".($Match ? '0' : '1')."
+				where ".($Match ? 'RtRecPhase in (0, 3)' : 'RtRecPhase=1')."
 				order by RtRecTotal desc "; // for now we only do on totals
+
 			$q=safe_r_sql($sql);
 			while($r=safe_fetch($q)) {
 				if($r->RtRecExtra) $r->RtRecExtra=unserialize($r->RtRecExtra);
@@ -117,5 +127,17 @@
 				$ret[]=$r;
 			}
 			return $ret;
+		}
+
+		function getHall($target) {
+			$target=intval($target);
+			if(!empty($this->TourOptions['FopLocations'])) {
+				foreach($this->TourOptions['FopLocations'] as $hall) {
+					if($target>=$hall->Tg1 and $target<=$hall->Tg2) {
+						return $hall->Loc;
+					}
+				}
+			}
+			return '';
 		}
 	}

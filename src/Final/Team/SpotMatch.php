@@ -829,7 +829,8 @@
 					else if($MyTargetField)
 						$Tmp.='&amp;FIELD=1';
 
-					$SemaforoSx.='<tr><td class="FontMedium Bold">' . ($i+1) . '</td><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td></tr>';
+					//$SemaforoSx.='<tr><td class="FontMedium Bold">' . ($i+1) . '</td><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td></tr>';
+					$SemaforoSx.='<tr><td class="FontMedium Bold">' . ($i+1) . '</td><td class="Center"></td></tr>';
 				}
 			}
 			else
@@ -851,7 +852,8 @@
 						$Tmp.='&amp;HMOUT=1';
 					else if($MyTargetField)
 						$Tmp.='&amp;FIELD=1';
-					$SemaforoSx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150' . $Tmp . ($MyTargetComplete ? '&amp;complete' : '') . '" class="Target"></td></tr>' . "\n";
+					//$SemaforoSx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150' . $Tmp . ($MyTargetComplete ? '&amp;complete' : '') . '" class="Target"></td></tr>' . "\n";
+					$SemaforoSx.='<tr><td class="Center"></td></tr>' . "\n";
 				}
 			}
 			$SemaforoSx.='</table>' . "\n";
@@ -882,7 +884,8 @@
 						$Tmp.='&amp;HMOUT=1';
 					else if($MyTargetField)
 						$Tmp.='&amp;FIELD=1';
-					$SemaforoDx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td><td class="FontMedium Bold">' . ($i+1) . '</td></tr>';
+					//$SemaforoDx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td><td class="FontMedium Bold">' . ($i+1) . '</td></tr>';
+					$SemaforoDx.='<tr><td class="Center"></td><td class="FontMedium Bold">' . ($i+1) . '</td></tr>';
 				}
 			}
 			else
@@ -907,7 +910,8 @@
 						$Tmp.='&amp;HMOUT=1';
 					else if($MyTargetField)
 						$Tmp.='&amp;FIELD=1';
-					$SemaforoDx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150' . $Tmp . ($MyTargetComplete ? '&amp;complete' : '') . '" class="Target"></td></tr>' . "\n";
+					//$SemaforoDx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150' . $Tmp . ($MyTargetComplete ? '&amp;complete' : '') . '" class="Target"></td></tr>' . "\n";
+					$SemaforoDx.='<tr><td class="Center"></td></tr>' . "\n";
 				}
 
 			}
@@ -974,8 +978,9 @@
 	else if($MyTargetField)
 		$Tmp.='&amp;FIELD=1';
 
+	//echo '<input name="TargetSx" type="image" src="'.$CFG->ROOT_DIR.'Common/target.php?Size=300&amp;'.$Tmp.'&amp;noborder'.($MyTargetComplete ? '&amp;complete': '').'">';
 ?>
-<input name="TargetSx" type="image" src="<?php echo $CFG->ROOT_DIR ?>Common/target.php?Size=300&amp;<?php print $Tmp;?>&amp;noborder<?php echo ($MyTargetComplete ? '&amp;complete': ''); ?>">
+
 </td>
 <td class="Center">
 <?php
@@ -1006,9 +1011,9 @@
 		$Tmp.='&amp;HMOUT=1';
 	else if($MyTargetField)
 		$Tmp.='&amp;FIELD=1';
+//echo '<input name="TargetDSx" type="image" src="'.$CFG->ROOT_DIR.'Common/target.php?Size=300&amp;'.$Tmp.'&amp;noborder'.($MyTargetComplete ? '&amp;complete': '').'">';
 
 ?>
-<input name="TargetDx" type="image" src="<?php echo $CFG->ROOT_DIR ?>Common/target.php?Size=300&amp;<?php print $Tmp;?>&amp;noborder<?php echo ($MyTargetComplete ? '&amp;complete': ''); ?>">
 </td>
 </tr>
 <tr>

@@ -4,8 +4,6 @@
 	Cerca i target doppi e ritorna l'elenco.
 	La funzione ajax si preoccuperà di colorare i doppioni
 */
-	define('debug',false);
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 
 	if (!CheckTourSession() ||
@@ -15,6 +13,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	$xml = '';
 	$Errore=0;
@@ -33,8 +32,6 @@
 		. "WHERE EvTeamEvent='1' AND EvCode=" . StrSafe_DB($_REQUEST['d_Event']) . " "
 		. "AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
 	$Rs=safe_r_sql($Select);
-
-	if (debug) print $Select . '<br><br>';
 
 	if (safe_num_rows($Rs)==1)
 	{
@@ -71,9 +68,6 @@
 		. "ORDER BY GrMatchNo ";
 	$Rs=safe_r_sql($Select);
 
-	if (debug)
-		print $Select . '<br>';
-
 	if ($Rs)
 	{
 		if (safe_num_rows($Rs)>0)
@@ -81,12 +75,12 @@
 			while ($MyRow=safe_fetch($Rs))
 			{
 				$xml
-					.='<match>' . "\n"
-					. '<matchno><![CDATA[' . $MyRow->GrMatchNo . ']]></matchno>' . "\n"
-					. '<targetno><![CDATA[' . $MyRow->FSTarget . ']]></targetno>' . "\n"
-					. '<quanti><![CDATA[' . $MyRow->Quanti . ']]></quanti>' . "\n"
+					.='<match>'
+					. '<matchno><![CDATA[' . $MyRow->GrMatchNo . ']]></matchno>'
+					. '<targetno><![CDATA[' . $MyRow->FSTarget . ']]></targetno>'
+					. '<quanti><![CDATA[' . $MyRow->Quanti . ']]></quanti>'
 
-					. '</match>' . "\n";
+					. '</match>';
 			}
 		}
 		else
@@ -95,15 +89,14 @@
 	else
 		$Errore=1;
 
-	if (!debug)
-		header('Content-Type: text/xml');
+	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<bersagli>' . $Bersagli . '</bersagli>' . "\n";
-	print '<event>' . $_REQUEST['d_Event'] . '</event>' . "\n";
-	print '<phase>' . $_REQUEST['d_Phase'] . '</phase>' . "\n";
-	print '<athfortar><![CDATA[' . $Ath4Tar . ']]></athfortar>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<bersagli>' . $Bersagli . '</bersagli>';
+	print '<event>' . $_REQUEST['d_Event'] . '</event>';
+	print '<phase>' . $_REQUEST['d_Phase'] . '</phase>';
+	print '<athfortar><![CDATA[' . $Ath4Tar . ']]></athfortar>';
 	print $xml;
-	print '</response>' . "\n";
+	print '</response>';
 ?>

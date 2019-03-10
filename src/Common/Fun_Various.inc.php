@@ -4,6 +4,12 @@ if(empty($CFG)) require_once(dirname(dirname(__FILE__)) . '/config.php');
 
 require_once('Common/Lib/CommonLib.php');
 
+
+function Class_In_Division($Class, $AgeClass, $Division) {
+	$q=safe_r_sql("select * from Classes where ClTournament={$_SESSION['TourId']} and ClId=".StrSafe_DB($AgeClass)." and find_in_set(".StrSafe_DB($Class).", ClValidClass) and (ClDivisionsAllowed='' or find_in_set(".StrSafe_DB($Division).", ClDivisionsAllowed))");
+	return safe_num_rows($q);
+}
+
 /**
  * Check Entry in Entries table vs LueEntries and updates status information accordingly
  * @param String $id: EnId to check
@@ -202,7 +208,6 @@ function getLUEChanges($TourId) {
 				) AS sq
 			GROUP BY sqEcCode
 		";
-// 		debug_svela($q);
 		//print $q.'<br><br>';
 		$r=safe_r_sql($q);
 

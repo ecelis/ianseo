@@ -334,6 +334,10 @@ require_once('Common/Lib/CommonLib.php');
 					f2.FinStatus AS status2,
 					f1.FinWinLose AS win1,
 					f2.FinWinLose AS win2,
+					f1.FinArrowPosition as pos1,
+					f2.FinArrowPosition as pos2,
+					f1.FinTiePosition as tiepos1,
+					f2.FinTiePosition as tiepos2,
 					fs1.FSTarget AS target1,
 					fs2.FSTarget AS target2,
 					fs1.FSScheduledDate	AS FsDate1,
@@ -344,6 +348,7 @@ require_once('Common/Lib/CommonLib.php');
 					f1.FinLive AS live,
 					ev1.EvTeamEvent AS teamEvent,
 					ev1.EvMixedTeam AS mixedTeam,
+					ev1.EvElimType AS elimType,
 					IF(f1.FinDateTime>=f2.FinDateTime,f1.FinDateTime,f2.FinDateTime) AS LastUpdate
 			";
 
@@ -400,14 +405,16 @@ require_once('Common/Lib/CommonLib.php');
 					AND (e1.EnFirstName IS NOT NULL OR e2.EnFirstName IS NOT NULL)
 					AND ev1.EvCode=" . StrSafe_DB($Event) . " ";
 
-					if (!is_null($Phase))
+					if ($Phase==-1)
+						$query.= " ";
+					elseif (!is_null($Phase))
 						$query.= "AND g1.GrPhase=" . StrSafe_DB($Phase) . " ";
 					elseif (!is_null($MatchNo))
 						$query.= "AND f1.FinMatchNo=" . StrSafe_DB($MatchNo) . "
 			";
 
 			$query.="
-				ORDER BY EvProgr ASC,GrMatchNo ASC
+				ORDER BY EvProgr".($Phase==-1 ? ', GrPhase desc' : '').", GrMatchNo
 			";
 		}
 		else		// team
@@ -494,6 +501,7 @@ require_once('Common/Lib/CommonLib.php');
 				ORDER BY EvProgr ASC,GrMatchNo ASC
 			";
 		}
+
 		//print $query;exit;
 		$rs=safe_r_sql($query);
 
@@ -509,9 +517,11 @@ require_once('Common/Lib/CommonLib.php');
 		if ($TeamEvent==0)		//individuali
 		{
 			$query= "
-				SELECT
+				SELECT DISTINCTROW
 					e1.EnFirstName familyName1,
 					e2.EnFirstName familyName2,
+					i1.IndRank rank1,
+					i2.IndRank rank2,
 					IF(e1.EnFirstName IS NOT NULL, if(e1.EnNameOrder, CONCAT(upper(e1.EnFirstName),' ',e1.EnName), CONCAT(e1.EnName,' ',upper(e1.EnFirstName))),'') AS name1,
 					IF(e2.EnFirstName IS NOT NULL, if(e2.EnNameOrder, CONCAT(upper(e2.EnFirstName),' ',e2.EnName), CONCAT(e2.EnName,' ',upper(e2.EnFirstName))),'') AS name2,
 					IF(c1.CoCode IS NOT NULL, c1.CoCode,'') AS countryCode1,
@@ -523,18 +533,21 @@ require_once('Common/Lib/CommonLib.php');
 					fs1.FSTarget AS target1,
 					fs2.FSTarget AS target2,
 					f1.FinEvent AS event,
+					f1.FinWinLose AS win1,
+					f2.FinWinLose AS win2,
 					ev1.EvEventName AS eventName,
 					ev1.EvFinalFirstPhase as firstPhase,
 					g1.GrPhase AS phase,
 					ev1.EvTeamEvent AS teamEvent,
+					ev1.EvMatchMode AS matchMode,
+					ev1.EvMatchArrowsNo AS matchArrowsNo,
 					UNIX_TIMESTAMP(IF(f1.FinDateTime>=f2.FinDateTime,f1.FinDateTime,f2.FinDateTime)) AS lastUpdate
 			";
 
 				if ($OnlyNames==false)
 				{
 					$query.="
-						,ev1.EvMatchMode AS matchMode,ev1.EvMatchArrowsNo AS matchArrowsNo,
-						f1.FinScore AS score1,f1.FinSetScore AS setScore1,f1.FinSetPoints AS setPoints1,f1.FinTie AS tie1,f1.FinArrowstring AS arrowString1,f1.FinTiebreak AS tiebreak1,
+						, f1.FinScore AS score1,f1.FinSetScore AS setScore1,f1.FinSetPoints AS setPoints1,f1.FinTie AS tie1,f1.FinArrowstring AS arrowString1,f1.FinTiebreak AS tiebreak1,
 						f2.FinScore AS score2,f2.FinSetScore AS setScore2,f2.FinSetPoints AS setPoints2,f2.FinTie AS tie2,f2.FinArrowstring AS arrowString2,f2.FinTiebreak AS tiebreak2,
 						f1.FinTie AS tie1,f2.FinTie AS tie2
 					";
@@ -558,6 +571,10 @@ require_once('Common/Lib/CommonLib.php');
 					LEFT JOIN
 						Entries AS e1
 					ON f1.FinAthlete=e1.EnId
+					
+					LEFT JOIN
+					    Individuals As i1
+					ON f1.FinEvent=i1.IndEvent AND f1.FinTournament=i1.IndTournament AND f1.FinAthlete=i1.IndId
 
 					LEFT JOIN
 						Countries AS c1
@@ -566,6 +583,10 @@ require_once('Common/Lib/CommonLib.php');
 					LEFT JOIN
 						Entries AS e2
 					ON f2.FinAthlete=e2.EnId
+					
+					LEFT JOIN
+					    Individuals As i2
+					ON f2.FinEvent=i2.IndEvent AND f2.FinTournament=i2.IndTournament AND f2.FinAthlete=i2.IndId
 
 					LEFT JOIN
 						Countries AS c2
@@ -596,9 +617,11 @@ require_once('Common/Lib/CommonLib.php');
 		else		// team
 		{
 			$query= "
-				SELECT
+				SELECT DISTINCTROW
 					c1.CoCode familyName1,
 					c2.CoCode familyName2,
+					t1.TeRank rank1,
+					t2.TeRank rank2,
 					IF(c1.CoName IS NOT NULL,CONCAT(c1.CoName, IF(tf1.TfSubTeam!='0',CONCAT(' - ',tf1.TfSubTeam),''),''),'') AS name1,
 					IF(c1.CoCode IS NOT NULL,c1.CoCode,'') AS countryCode1,
 					IF(c1.CoName IS NOT NULL,Name1,'') AS countryName1,
@@ -614,16 +637,19 @@ require_once('Common/Lib/CommonLib.php');
 					ev1.EvEventName AS eventName,
 					ev1.EvFinalFirstPhase as firstPhase,
 					tf1.TfEvent AS event,
+					tf1.TfWinLose AS win1,
+					tf2.TfWinLose AS win2,
 					g1.GrPhase AS phase,
 					ev1.EvTeamEvent AS teamEvent,
+					ev1.EvMatchMode AS matchMode,
+					ev1.EvMatchArrowsNo AS matchArrowsNo,
 					UNIX_TIMESTAMP(IF(tf1.TfDateTime>=tf2.TfDateTime,tf1.TfDateTime,tf2.TfDateTime)) AS lastUpdate
 			";
 
 				if ($OnlyNames==false)
 				{
 					$query.="
-						,ev1.EvMatchMode AS matchMode,ev1.EvMatchArrowsNo AS matchArrowsNo,
-						tf1.TfScore AS score1,tf1.TfSetScore AS setScore1,tf1.TfSetPoints AS setPoints1,tf1.TfTie AS tie1,tf1.TfArrowstring AS arrowString1,tf1.TfTiebreak AS tiebreak1,
+						,tf1.TfScore AS score1,tf1.TfSetScore AS setScore1,tf1.TfSetPoints AS setPoints1,tf1.TfTie AS tie1,tf1.TfArrowstring AS arrowString1,tf1.TfTiebreak AS tiebreak1,
 						tf2.TfScore AS score2,tf2.TfSetScore AS setScore2,tf2.TfSetPoints AS setPoints2,tf2.TfTie AS tie2,tf2.TfArrowstring AS arrowString2,tf2.TfTiebreak AS tiebreak2,
 						tf1.TfTie AS tie1,tf2.TfTie AS tie2
 					";
@@ -635,6 +661,15 @@ require_once('Common/Lib/CommonLib.php');
 					INNER JOIN
 						TeamFinals AS tf2
 					ON tf1.TfEvent=tf2.TfEvent AND tf1.TfMatchNo=IF((tf1.TfMatchNo % 2)=0,tf2.TfMatchNo-1,tf2.TfMatchNo+1) AND tf1.TfTournament=tf2.TfTournament
+
+                    LEFT JOIN
+					    Teams As t1
+					ON tf1.TfEvent=t1.TeEvent AND tf1.TfTournament=t1.TeTournament AND tf1.TfTeam=t1.TeCoId AND tf1.TfSubTeam=t1.TeSubTeam AND t1.TeFinEvent=1
+
+                    LEFT JOIN
+					    Teams As t2
+					ON tf2.TfEvent=t2.TeEvent AND tf2.TfTournament=t2.TeTournament AND tf2.TfTeam=t2.TeCoId AND tf2.TfSubTeam=t2.TeSubTeam AND t1.TeFinEvent=1
+
 
 					INNER JOIN
 						Events AS ev1
@@ -728,7 +763,7 @@ function setLiveSession($TeamEvent, $event, $match, $TourId=0, $Toggle=true) {
 		$MatchFilter=" ";
 	}
 
-	$sql="select Sch.*, 1+(1/(1+GrPhase)) OrderBy, {$prefix}Live Live from " . ($TeamEvent ? 'Team' : '') . "Finals Fin
+	$sql="select Sch.*, cast(if(EvWinnerFinalRank>1, EvWinnerFinalRank*100 + GrPhase, 1+(1/(1+GrPhase))) as decimal(15,4)) as OrderBy, {$prefix}Live Live from " . ($TeamEvent ? 'Team' : '') . "Finals Fin
 		left join (select * from FinSchedule
 			inner join Events on FsEvent=EvCode and FsTeamEvent=EvTeamEvent and FsTournament=EvTournament
 			inner join Grids on FsMatchNo=GrMatchNo
@@ -762,7 +797,7 @@ function setLiveSession($TeamEvent, $event, $match, $TourId=0, $Toggle=true) {
 					.'|'.substr($r->FSScheduledTime,0,5)
 					.'|'.$r->GrPhase
 					.'|'.$r->EvFinalFirstPhase
-					.'|'.$r->OrderBy;
+					.'|'.round($r->OrderBy, 4);
 				$ActiveSessions=array($key);
 			}
 			Set_Tournament_Option('ActiveSession', $ActiveSessions, false, $TourId);

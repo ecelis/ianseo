@@ -1,6 +1,7 @@
 <?php
 
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+    checkACL(AclCompetition,AclReadWrite);
 	require_once('Common/pdf/SignPDF.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 

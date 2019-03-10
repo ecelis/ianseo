@@ -5,17 +5,15 @@
 	require_once('Common/Lib/Fun_DateTime.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Tournament/Fun_Tournament.local.inc.php');
+    $aclLevel = checkACL(AclCompetition, AclReadOnly);
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
 
-	if (isset($_REQUEST['Command']))
-	{
-		if ($_REQUEST['Command']=='ADD')
-		{
+	if (isset($_REQUEST['Command']) AND $aclLevel==AclReadWrite) {
+		if ($_REQUEST['Command']=='ADD') {
 			$Insert
 				= "INSERT INTO TournamentInvolved (TiTournament,TiType,TiCode,TiName) "
 				. "VALUES("
@@ -25,11 +23,8 @@
 				. StrSafe_DB($_REQUEST['new_Name']) . " "
 				. ") ";
 			$RsIns=safe_w_sql($Insert);
-		}
-		elseif ($_REQUEST['Command']=='DELETE')
-		{
-			if (isset($_REQUEST['IdDel']))
-			{
+		} elseif ($_REQUEST['Command']=='DELETE') {
+			if (isset($_REQUEST['IdDel'])) {
 				$Delete
 					= "DELETE FROM TournamentInvolved WHERE TiId=" . StrSafe_DB($_REQUEST['IdDel']) . " ";
 				$RsDel = safe_w_sql($Delete);
@@ -40,10 +35,7 @@
 		}
 	}
 
-	$TypeOptions = array
-	(
-		0 => '------'
-	);
+	$TypeOptions = array (0 => '------');
 
 	$Sel="
 		SELECT
@@ -74,6 +66,7 @@
 	$PAGE_TITLE=get_text('StaffOnField','Tournament');
 
 	include('Common/Templates/head.php');
+	if($aclLevel==AclReadWrite) {
 ?>
 <form name="Frm" method="post" action="">
 <input type="hidden" name="Command" value="">
@@ -108,6 +101,7 @@
 </tr>
 </table>
 <br>
+    <?php } ?>
 <table class="Tabella">
 <tr><th class="Title" colspan="4"><?php print get_text('PersonList','Tournament'); ?></th></tr>
 <tr class="Divider"><td colspan="4"></td></tr>

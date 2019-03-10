@@ -3,11 +3,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclQualification, AclReadOnly, false);
 
 	$Errore=0;
 	$XmlOut="";
@@ -31,10 +31,10 @@
 			{
 				if($OldTarget != substr($MyRow->QuTargetNo,0,-1) && $OldTarget!='')
 				{
-					$XmlOut .= "<target>\n";
-					$XmlOut .= "<no>" . substr($OldTarget,1) . "</no>\n";
-					$XmlOut .= "<status>" . ($cntKo==0 ? '0' : ($cntOk==0 ? '2' : '1')) . "</status>\n";
-					$XmlOut .= "</target>\n";
+					$XmlOut .= "<target>";
+					$XmlOut .= "<no>" . substr($OldTarget,1) . "</no>";
+					$XmlOut .= "<status>" . ($cntKo==0 ? '0' : ($cntOk==0 ? '2' : '1')) . "</status>";
+					$XmlOut .= "</target>";
 					$cntOk=0;
 					$cntKo=0;
 				}
@@ -44,10 +44,10 @@
 					$cntKo++;
 				$OldTarget = substr($MyRow->QuTargetNo,0,-1);
 			}
-			$XmlOut .= "<target>\n";
-			$XmlOut .= "<no>" . substr($OldTarget,1) . "</no>\n";
-			$XmlOut .= "<status>" . ($cntKo==0 ? '0' : ($cntOk==0 ? '2' : '1')) . "</status>\n";
-			$XmlOut .= "</target>\n";
+			$XmlOut .= "<target>";
+			$XmlOut .= "<no>" . substr($OldTarget,1) . "</no>";
+			$XmlOut .= "<status>" . ($cntKo==0 ? '0' : ($cntOk==0 ? '2' : '1')) . "</status>";
+			$XmlOut .= "</target>";
 
 		}
 		else
@@ -63,10 +63,10 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print $XmlOut;
-	print '</response>' . "\n";
+	print '</response>';
 
 
 ?>

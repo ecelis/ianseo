@@ -57,9 +57,6 @@
 
 		if ($tourType==21)
 		{
-			//$Arr_RotPages[]=array(get_text('StartlistSession','Tournament') . 'F2F','Modules/F2F/TV/StartList_rot.php');
-			//$Arr_RotPages[]=array('Elim Rank ' . 'F2F','Modules/F2F/TV/ElimRank_rot.php');
-
 			$Arr_Pages['F2FLST']=get_text('StartlistSession','Tournament') . ' F2F';
 			$Arr_Pages['F2FABS']='Elim Rank ' . 'F2F';
 		}

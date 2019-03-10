@@ -7,9 +7,20 @@ require_once('Common/Fun_Phases.inc.php');
 require_once('Common/Lib/Fun_PrintOuts.php');
 require_once('Common/OrisFunctions.php');
 require_once('Common/pdf/PdfChunkLoader.php');
+checkACL(AclIndividuals, AclReadOnly);
 
 $Events='';
-if(isset($_REQUEST["Event"]) && $_REQUEST["Event"][0]!=".") $Events = $_REQUEST["Event"];
+if(isset($_REQUEST["Event"]) && $_REQUEST["Event"][0]!=".") {
+	$Events=$_REQUEST["Event"];
+	// select all children and subchildren of these events
+	if(!is_array($Events)) {
+		$Events=array($Events);
+	}
+
+	if(empty($_REQUEST['ShowChildren'])) {
+		$Events = getChildrenEvents($_REQUEST["Event"]);
+	}
+}
 
 $PdfData=getBracketsIndividual($Events,
 	 false,

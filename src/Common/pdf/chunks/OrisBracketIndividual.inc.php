@@ -110,7 +110,7 @@ foreach($rankData['sections'] as $Event => $section) {
 			$Obj1->FSTarget = ($ShowTargetNo ? $item['target'] : '');
 			$Obj1->ScheduledDate = ($ShowSchedule ? $item['scheduledDate'] : '');
 			$Obj1->ScheduledTime = ($ShowSchedule ? $item['scheduledTime'] : '');
-			$Obj1->Saved = $item['oppSaved'] && ($section['meta']['firstPhase']==24 or $section['meta']['firstPhase']==48) ? $rankData['meta']['saved'] : '';
+			$Obj1->Saved = ($item['oppPosition'] and $item['oppPosition']<=$section['meta']['numSaved']) ? $PdfData->rankData['meta']['saved'] : '';
 			$Obj1->DrawMatch=$DrawMatch;
 			$Obj1->ToDo = ($DrawMatch or $item['saved']);
 
@@ -136,7 +136,7 @@ foreach($rankData['sections'] as $Event => $section) {
 			$Obj2->FSTarget = ($ShowTargetNo ? $item['oppTarget'] : '');
 			$Obj2->ScheduledDate = ($ShowSchedule ? $item['scheduledDate'] : '');
 			$Obj2->ScheduledTime = ($ShowSchedule ? $item['scheduledTime'] : '');
-			$Obj2->Saved = $item['saved'] && ($section['meta']['firstPhase']==24 or $section['meta']['firstPhase']==48) ? $rankData['meta']['saved'] : '';
+			$Obj2->Saved = ($item['position'] and $item['position']<=$section['meta']['numSaved']) ? $PdfData->rankData['meta']['saved'] : '';
 			$Obj2->DrawMatch=$DrawMatch;
 			$Obj2->ToDo = ($DrawMatch or $item['oppSaved']);
 

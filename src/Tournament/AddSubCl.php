@@ -4,6 +4,7 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Tournament/Fun_Tournament.local.inc.php');
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	if (!CheckTourSession() ||
 		!isset($_REQUEST['New_ScId']) ||
@@ -22,7 +23,7 @@
 		$Insert
 			= "INSERT INTO SubClass (ScId,ScTournament,ScDescription,ScViewOrder) "
 			. "VALUES("
-			. StrSafe_DB(str_pad($_REQUEST['New_ScId'],2,' ',STR_PAD_LEFT)) . ","
+			. StrSafe_DB($_REQUEST['New_ScId']) . ","
 			. StrSafe_DB($_SESSION['TourId']) . ","
 			. StrSafe_DB($_REQUEST['New_ScDescription']) . ","
 			. StrSafe_DB($_REQUEST['New_ScViewOrder']) . " "

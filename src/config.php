@@ -1,10 +1,16 @@
 <?php
 
 if(!defined('INSTALL')) define('INSTALL', false);
-$newversion='2016-12-24 20:00:00';
+$newversion='2019-01-14 12:29:02';
+
+// mod to force rebuild of release online: change this line to something else if only git submodules are involved
+// 2018-03-01
 
 // definition of the CONFIG object
 $CFG = new StdClass();
+
+// to remove when stable!!!
+$CFG->ISK_PRO_DEBUG = '';
 
 // debug utility, set to false in production
 $CFG->TRACE_QUERRIES = false;
@@ -19,6 +25,9 @@ $CFG->DOCUMENT_PATH = $CFG->INCLUDE_PATH . DIRECTORY_SEPARATOR;
 $CFG->IanseoServer='https://www.ianseo.net/';
 $CFG->WaWrapper='https://api.worldarchery.org/';
 
+//Definition of the INFO object
+$INFO = new StdClass();
+
 
 // Input the distro
 require_once('Common/distro.inc.php');
@@ -30,6 +39,7 @@ $CFG->LANGUAGE_PATH = $CFG->DOCUMENT_PATH . 'Common/Languages/';
 
 require_once($CFG->DOCUMENT_PATH . 'Common/Fun_DB.inc.php');
 require_once($CFG->DOCUMENT_PATH . 'Common/Globals.inc.php');
+require_once($CFG->DOCUMENT_PATH . 'Common/Lib/Fun_Modules.php');
 @include_once($CFG->DOCUMENT_PATH . 'Common/config.inc.php');
 @include_once('Common/DebugOverrides.php');
 
@@ -104,23 +114,3 @@ if(!empty($CFG->ROOT_DIR) and dirname($_SERVER['PHP_SELF'])!=$CFG->ROOT_DIR.'Mod
 	die();
 }
 
-
-// RICONTROLLA TUTTE LE VOLTE GLI SPAREGGI!
-//set_qual_session_flags();
-
-/*
-
-	deposito temporaneo per Chris nelle modifiche degli header :D
-
-	$JS_SCRIPT=array(
-		'',
-		'',
-		'',
-		'',
-		);
-
-	include('Common/Templates/head.php');
-	include('Common/Templates/tail.php');
-
-*/
-?>

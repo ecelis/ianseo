@@ -3,6 +3,7 @@ define('debug',false);	// settare a true per l'output di debug
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
+checkACL(AclEliminations, AclReadWrite);
 if (BlockExperimental) printcrackerror(false,'Blocked');
 
 require_once('Common/Lib/CommonLib.php');
@@ -113,7 +114,7 @@ if($Events and
 		is_numeric($_REQUEST['x_Volee']) && $_REQUEST['x_Volee']>0 ) {
 
 	// check if index of first arrow is in range for that elimination, phase and event
-	$q=safe_r_sql("select distinct EvCode, EvEventName, ElElimPhase, if(ElElimPhase=0, EvElimEnds, EvElim2) Ends, EvElimArrows Arrows, ToGolds, ToXNine
+	$q=safe_r_sql("select distinct EvCode, EvEventName, ElElimPhase, if(ElElimPhase=0, EvE1Ends, EvE2Ends) Ends, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) Arrows, ToGolds, ToXNine
 		from Eliminations
 		inner join Events on EvCode=ElEventCode and EvTeamEvent=0 and EvTournament=ElTournament
 		INNER JOIN Tournament on ToId=ElTournament

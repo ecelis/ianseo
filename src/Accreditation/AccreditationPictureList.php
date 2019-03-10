@@ -5,6 +5,7 @@ if (!CheckTourSession()) {
 	print get_text('CrackError');
 	exit;
 }
+checkACL(AclAccreditation, AclReadWrite, false);
 
 $srcCountry = !empty($_REQUEST["country"]);
 $srcAthlete = !empty($_REQUEST["athlete"]);
@@ -34,14 +35,12 @@ $Sql = "SELECT EnId,
 		CONCAT(EnDivision, '-',EnClass) as Category,
 		CONCAT(CoName, ' (' ,CoCode,')') as Country,
 		CONCAT(UPPER(EnFirstName),' ' ,EnName) as Athlete,
-		(PhEnId IS NOT NULL) as hasPicture,
-		EdEmail as NoPrintout,
-		EdExtra as NoPlastic
+		(PhEnId IS NOT NULL and PhToRetake=0 ) as hasPicture,
+		(EnBadgePrinted+0 and PhEnId IS NULL) or PhToRetake=1 as NoPrintout
 	FROM Entries
 	INNER JOIN Qualifications ON EnId=QuId
 	LEFT JOIN Countries ON EnCountry=CoId
 	LEFT JOIN Photos ON EnId=PhEnId
-	left join ExtraData on EdId=EnId and EdType='A'
 	WHERE  ";
 if(!empty($srcString) && ($srcAthlete || $srcCountry)){
 	$fields = array();
@@ -56,10 +55,10 @@ if(!empty($srcString) && ($srcAthlete || $srcCountry)){
 	$Where .= " AND " . assembleWhereCondition($fields,explode(" ",$srcString)) . " ";
 }
 if($srcNoPhoto) {
-	$Where .= " AND PhEnId IS NULL ";
+	$Where .= " AND (PhEnId IS NULL or PhToRetake=1) ";
 }
 if($srcNoPrint) {
-	$Where .= " AND EdId IS NOT NULL ";
+	$Where .= " AND ((EnBadgePrinted+0 and PhEnId IS NULL) or PhToRetake=1) ";
 }
 
 if(!empty($_REQUEST['x_Sessions'])) {
@@ -74,13 +73,18 @@ $Sql .= $Where . " ORDER BY EnFirstName, EnName";
 $Rs=safe_r_sql($Sql);
 if(safe_num_rows($Rs)) {
 	while ($row = safe_fetch($Rs)) {
-		$Answer .= '<athlete id="' . $row->EnId . '" ath="' . htmlspecialchars($row->Athlete) . '" team="' . htmlspecialchars($row->Country) . '" cat="' . $row->Category . '" pic="' . $row->hasPicture . '">'
-			. '<id>' . $row->EnId . '</id>'
-			. '<ath><![CDATA[' . $row->Athlete . ($row->NoPrintout ? ' - ONLY PHOTO' : '') . ']]></ath>'
-			. '<team><![CDATA[' . $row->Country . ']]></team>'
-			. '<cat><![CDATA[' . $row->Category . ']]></cat>'
-			. '<pic><![CDATA[' . $row->hasPicture . ']]></pic>'
-			. '<prn><![CDATA[' . intval($row->NoPrintout) . ']]></prn>'
+		$Answer .= '<athlete id="' . $row->EnId
+				. '" ath="' . htmlspecialchars($row->Athlete . ($row->NoPrintout ? ' - ONLY PHOTO' : ''))
+				. '" team="' . htmlspecialchars($row->Country)
+				. '" cat="' . htmlspecialchars($row->Category)
+				. '" pic="' . ($row->hasPicture ? 1 : 0)
+				. '" prn="' . ($row->NoPrintout ? 1 : 0) . '">'
+			//. '<id>' . $row->EnId . '</id>'
+			//. '<ath><![CDATA[' . $row->Athlete . ($row->NoPrintout ? ' - ONLY PHOTO' : '') . ']]></ath>'
+			//. '<team><![CDATA[' . $row->Country . ']]></team>'
+			//. '<cat><![CDATA[' . $row->Category . ']]></cat>'
+			//. '<pic><![CDATA[' . $row->hasPicture . ']]></pic>'
+			//. '<prn><![CDATA[' . intval($row->NoPrintout) . ']]></prn>'
 			. '</athlete>';
 	}
 }

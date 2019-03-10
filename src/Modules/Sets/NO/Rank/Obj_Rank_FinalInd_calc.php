@@ -99,7 +99,7 @@
 						Events
 					ON IndEvent=EvCode AND IndTournament=EvTournament
 				SET
-					IndRankFinal=IF(IndRank>IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56,(EvFinalFirstPhase*2))) ,IF(EvElim1=0,EvElim2,EvElim1)),IndRank,0),
+					IndRankFinal=IF(IndRank>IF(EvElim1=0 && EvElim2=0, EvNumQualified ,IF(EvElim1=0,EvElim2,EvElim1)),IndRank,0),
 					IndTimestampFinal='{$date}'
 				WHERE
 					IndTournament={$this->tournament} AND EvCode='{$event}' AND EvTeamEvent=0
@@ -166,7 +166,7 @@
 		 * e copio dentro a IndRankFinal
 		 */
 			$num=0;
-			$q="SELECT IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) AS `Num` FROM Events WHERE EvCode='{$event}' AND EvTournament={$this->tournament} AND EvTeamEvent=0 ";
+			$q="SELECT EvNumQualified AS `Num` FROM Events WHERE EvCode='{$event}' AND EvTournament={$this->tournament} AND EvTeamEvent=0 ";
 			$r=safe_r_sql($q);
 			if ($r && safe_num_rows($r)==1)
 				$num=safe_fetch($r)->Num;

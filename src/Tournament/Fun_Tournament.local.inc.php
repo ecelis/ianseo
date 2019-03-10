@@ -245,7 +245,8 @@ require_once('Common/Fun_Phases.inc.php');
 	{
 		if (isset($_SESSION['OnlineId']) && $_SESSION['OnlineId']!='0' &&
 			isset($_SESSION['OnlineEventCode']) && $_SESSION['OnlineEventCode']!='0' &&
-			isset($_SESSION['OnlineAuth']) && $_SESSION['OnlineAuth']!='0')
+			isset($_SESSION['OnlineAuth']) && $_SESSION['OnlineAuth']!='0' &&
+			isset($_SESSION['OnlineServices']) && $_SESSION['OnlineServices']!='0')
 		{
 			return 1;
 		}
@@ -636,7 +637,6 @@ require_once('Common/Fun_Phases.inc.php');
 
 						$MyPos++;
 					// Se non ho parimerito il ranking � uguale alla posizione
-// 						if($MyRowEv->EvCode=='R') debug_svela($MyRow->CurrentPhase);
 						if($MyPos>$MyRow->CurrentPhase)
 						{
 							$TmpScores=array();
@@ -963,7 +963,7 @@ require_once('Common/Fun_Phases.inc.php');
 				$Tmp="";
 				$NumPhases=0;
 				$NeedTitle=true;
-				while (list($Key, $Value) = each ($myPhases))
+				foreach($myPhases as $Key => $Value)
 				{
 					if($Key<=valueFirstPhase($MyRowEv->EvFinalFirstPhase))
 					{
@@ -1220,7 +1220,7 @@ require_once('Common/Fun_Phases.inc.php');
 	 */
 
 		$MyQuery = "SELECT EnCode as Bib, EnName AS Name, CONCAT(EnFirstName,' ',EnName) AS Name,SUBSTRING(QuTargetNo,1,1) AS Session, SUBSTRING(QuTargetNo,2) AS TargetNo, CoCode AS NationCode, CoName AS Nation, EnClass AS ClassCode, EnAgeClass as AgeClass, EnDivision AS DivCode, EvCode as EventCode, EvEventName as EventName, EvQualPrintHead,";
-		$MyQuery.= "IF(EvElim1=0 && EvElim2=0,(EvFinalFirstPhase*2),IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo, ";
+		$MyQuery.= "IF(EvElim1=0 && EvElim2=0,EvNumQualified,IF(EvElim1=0,EvElim2,EvElim1)) as QualifiedNo, ";
 		$MyQuery.= "ToNumDist AS NumDist, Td1, Td2, Td3, Td4, Td5, Td6, Td7, Td8, ";
 		for ($i=1;$i<=$NumDist;++$i)
 		{
@@ -1261,9 +1261,8 @@ require_once('Common/Fun_Phases.inc.php');
 		$MyQuery.= "INNER JOIN Entries AS e ON t.ToId=e.EnTournament ";
 		$MyQuery.= "INNER JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament ";
 		$MyQuery.= "INNER JOIN Qualifications AS q ON e.EnId=q.QuId ";
-		$MyQuery.= "INNER JOIN EventClass AS ec ON e.EnClass=ec.EcClass AND e.EnDivision=ec.EcDivision AND e.EnTournament=ec.EcTournament AND ec.EcTeamEvent=0 ";
-		$MyQuery.= "INNER JOIN Events AS ev ON ev.EvCode=ec.EcCode AND ev.EvTeamEvent=ec.EcTeamEvent AND ev.EvTournament=ec.EcTournament ";
-		$MyQuery.= "INNER JOIN Individuals i ON i.IndId=e.EnId AND i.IndEvent=ev.EvCode AND i.IndTournament=e.EnTournament ";
+		$MyQuery.= "INNER JOIN Individuals i ON i.IndId=e.EnId AND i.IndTournament=e.EnTournament ";
+		$MyQuery.= "INNER JOIN Events AS ev ON ev.EvCode=IndEvent AND ev.EvTeamEvent=0 AND ev.EvTournament=EnTournament ";
 		$MyQuery.= "LEFT JOIN TournamentDistances AS td ON t.ToType=td.TdType and TdTournament=ToId AND CONCAT(TRIM(e.EnDivision),TRIM(e.EnClass)) LIKE TdClasses ";
 		//Where Normale
 		$MyQuery.= "WHERE EnAthlete=1 AND EnIndFEvent=1 AND EnStatus <= 1  AND QuScore<>'0' AND ToId = " . StrSafe_DB($_SESSION['TourId']) . " ";

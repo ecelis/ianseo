@@ -4,6 +4,7 @@
 	Rieceve Matr,Name,Type e Row per aggiornare la riga
 */
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
+    checkACL(AclCompetition, AclReadWrite, false);
 
 	if (!isset($_REQUEST['Row']) || !isset($_REQUEST['Matr']) || !isset($_REQUEST['Name']) || !isset($_REQUEST['Type']) || !CheckTourSession())
 	{

@@ -8,11 +8,11 @@ define('debug',false);
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$Errore=0;
 	$Id='#';
@@ -99,10 +99,10 @@ define('debug',false);
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<pad_value>' . $PadValue . '</pad_value>' . "\n";
-	print '<id>' . $Id . '</id>' . "\n";
-	print '<ses>' . $_REQUEST['Ses'] . '</ses>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<pad_value>' . $PadValue . '</pad_value>';
+	print '<id>' . $Id . '</id>';
+	print '<ses>' . $_REQUEST['Ses'] . '</ses>';
+	print '</response>';
 ?>

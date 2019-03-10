@@ -106,7 +106,7 @@
 				SELECT
 					TeTournament,TeCoId,TeSubTeam,CoCode,TeEvent,
 					TeScore, TeGold, TeXnine,
-					IF(EvFinalFirstPhase=0,9999,IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2)))) AS QualifiedNo,
+					IF(EvFinalFirstPhase=0,9999,EvNumQualified) AS QualifiedNo,
 					TeRank AS ActualRank
 				 FROM
 				 	Teams

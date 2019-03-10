@@ -13,7 +13,6 @@ $lang['About']='Info...';
 $lang['AlertNoScore']='Uno o più arcieri non ha punti nella volée. Le righe sono in rosso. Clicca sulla riga per inserire i punti o continua se è corretto.';
 $lang['AlertNoScoreTitle']='Punteggi mancanti';
 $lang['All']='Tutti';
-$lang['AppName']='Scorekeeper Lite';
 $lang['ArrowValues']='Valori frecce';
 $lang['AthletesError']='I dati degli atleti non sono una matrice.';
 $lang['AutoEntry']='Automatico';

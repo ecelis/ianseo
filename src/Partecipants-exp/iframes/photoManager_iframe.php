@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	if (!CheckTourSession() || empty($_REQUEST['id']) || !($id=$_REQUEST['id'])) printCrackError();
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$errMsg='';
 

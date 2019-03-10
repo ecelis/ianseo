@@ -142,7 +142,7 @@ function newPHPTreeMenu(
 	$url = $protocol . $this_host . $me;
 	$query = '';
 	reset($_GET);
-	while (list($key, $value) = each($_GET)) {
+	foreach($_GET as $key => $value) {
 		if ($key != 'p' && $value != '') {
 			$query .= '&amp;' . $key . '=' . $value;
 		}
@@ -271,7 +271,7 @@ function newPHPTreeMenu(
 		}
 
 		if ($visible[$cnt]) {
-			$this->_phpTreeMenu[$menu_name] .= '<div class="treemenudiv">' . "\n"; 
+			$this->_phpTreeMenu[$menu_name] .= '<div class="treemenudiv">' . "\n";
 
 			// vertical lines from higher levels
 			for ($i=0; $i<$this->tree[$cnt]['level']-1; $i++) {

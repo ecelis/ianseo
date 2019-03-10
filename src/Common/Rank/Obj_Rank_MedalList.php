@@ -177,8 +177,8 @@ class Obj_Rank_MedalList extends Obj_Rank
 			$this->data['versionDate']='';
 			$this->data['versionNote']='';
 
-			$q=implode(' UNION ALL ',$queries) . " ORDER BY Date ASC, myOrder ASC,Progr ASC, EvCode ASC, Rank ASC";
-			//print $q.'<br><br>';
+			$q=implode(' UNION ALL ',$queries) . " ORDER BY hasFinals desc, Date ASC, myOrder ASC,Progr ASC, EvCode ASC, Rank ASC";
+
 			$r=safe_r_sql($q);
 
 			if (safe_num_rows($r)>0) {
@@ -190,13 +190,13 @@ class Obj_Rank_MedalList extends Obj_Rank
 					}
 
 				// se ho detto di non volere le finali ind senza match skippo (se la riga è una finale ind senza match!)
-					if ($type == '110' && (!isset($this->opts['noMatch']['i']) || $this->opts['noMatch']['i']==false))
+					if ($type == '110' && (isset($this->opts['noMatch']['i']) and $this->opts['noMatch']['i']==false))
 					{
 						continue;
 					}
 
 				// se ho detto di non volere le finali team senza match skippo (se la riga è una finale team senza match!)
-					if ($type == '010' && (!isset($this->opts['noMatch']['t']) || $this->opts['noMatch']['t']==false))
+					if ($type == '010' && (isset($this->opts['noMatch']['t']) and $this->opts['noMatch']['t']==false))
 					{
 						continue;
 					}

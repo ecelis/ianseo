@@ -1,11 +1,11 @@
 <?php
-	require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclRoot, AclReadWrite);
 
-	if (!CheckTourSession())
-	{
-		print get_text('CrackError');
-		exit;
-	}
+if (!CheckTourSession()) {
+    print get_text('CrackError');
+    exit;
+}
 
 if(isset($_REQUEST["CtrlCode"]) && preg_match("/^[0-9A-F]{8}$/i",$_REQUEST["CtrlCode"]) &&
 	isset($_REQUEST["InputCode"]) && preg_match("/^[0-9A-F]{8}$/i",$_REQUEST["InputCode"]) &&
@@ -27,7 +27,7 @@ $CtrlCode = substr(md5(date("r")),0,8);
 <table class="Tabella">
 <tr><th class="Title"><?php print get_text('DeleteTournament','Tournament');?></th></tr>
 <tr>
-<th class="SubTitle"><?php InfoTournament(); ?></th>
+<th class="SubTitle"><?php print get_text('SelTour') . ': ' . $_SESSION['TourName'] . ' (' . $_SESSION['TourWhere'] . ' ' . get_text('From','Tournament') . ' ' . $_SESSION['TourWhenFrom'] . ' ' . get_text('To','Tournament') . ' ' . $_SESSION['TourWhenTo'] . ')'; ?></th>
 </tr>
 <tr><td>
 <?php print get_text('DeleteTourConfirm','Tournament') . " <strong>" . $CtrlCode . "</strong>"; ?>

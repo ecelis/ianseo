@@ -16,26 +16,39 @@ $pdf->Bookmark($PdfData->IndexName, 0);
 $ONLINE=isset($PdfData->HTML);
 
 $AddPage=false;
+$first=true;
 
 if(empty($PdfData->Data['Items'])) {
 	$pdf->printSectionTitle('No data§', $pdf->GetY()+10);
 } else {
+	$pdf->SetDataHeader($PdfData->Header, $PdfData->HeaderWidth);
 	foreach($PdfData->Data['Items'] as $Team => $Rows) {
-		if($AddPage) $pdf->addpage();
+		if($AddPage) {
+			$pdf->addpage();
+			$first=true;
+		}
+		if(!$pdf->samePage(5, 3.5, $pdf->lastY)) {
+			$first=true;
+		}
 		$AddPage=true;
-		$pdf->SamePage(count($Rows) + 2);
-		$pdf->lastY += 3.5;
-		$first=true;
+		$pdf->SamePage(count($Rows), 3.5, $pdf->lastY);
 		$lstPictures = array();
 		$lstDoB = array();
-	// 	$pdf->printSectionTitle('As of '.$PdfData->RecordAs);
+
 		foreach($Rows as $RecType => $MyRows) {
-			$pdf->printSectionTitle($PdfData->SubSections[$Team][$RecType].'§', $pdf->lastY+10);
+			if(!$pdf->samePage(9, 3.5, $pdf->lastY)) {
+				/// must keep at least the space before header, header and captions and 1 line of record, so 9 standard rows is a fair number
+				$first=true;
+			}
+			$pdf->printSectionTitle($PdfData->SubSections[$Team][$RecType].'§', $pdf->lastY+($first ? 0 : 10));
 			$pdf->ln();
-			$pdf->SetDataHeader($PdfData->Header, $PdfData->HeaderWidth);
 			$pdf->PrintHeader($pdf->GetX(), $pdf->GetY()+1);
 			foreach($MyRows as $MyRow) {
-// 				debug_svela($MyRow);
+				if(!$pdf->samePage(5, 3.5, $pdf->lastY)) {
+					$pdf->printSectionTitle($PdfData->SubSections[$Team][$RecType].' (continue...)§', $pdf->lastY);
+					$pdf->ln();
+					$pdf->PrintHeader($pdf->GetX(), $pdf->GetY()+1);
+				}
 				$tmp=array(
 					$MyRow->RtRecDistance,
 					'§'.$MyRow->RtRecTotal.($MyRow->RtRecXNine ? "/$MyRow->RtRecXNine" : '') . ' / ' . $MyRow->NewRecord.($MyRow->RtRecXNine ? "/$MyRow->NewXNine" : ''),
@@ -44,16 +57,8 @@ if(empty($PdfData->Data['Items'])) {
 					$MyRow->RecordDate.'#'
 					);
 				$pdf->printDataRow($tmp);
-
-		// 		$PdfData->HTML['Countries'][$MyRow->NationCode]['Description']=$MyRow->Nation;
-		// 		$PdfData->HTML['Countries'][$MyRow->NationCode]['Archers'][]=array(
-		// 			$MyRow->Athlete,
-		// 			(!empty($PdfData->BisTarget) && (intval(substr($MyRow->TargetNo,1)) > $PdfData->NumEnd) ? 'bis ' . (substr($MyRow->TargetNo,0,-1)-$PdfData->NumEnd) . substr($MyRow->TargetNo,-1,1)  : $MyRow->TargetNo),
-		// 			$MyRow->EvCode ? $MyRow->EventName : ($MyRow->IsAthlete ? $MyRow->DivDescription . ' ' : '') . $MyRow->ClDescription,
-		// 			$MyRow->SesName,
-		// 			);
-
 			}
+			$first=false;
 		}
 	}
 }

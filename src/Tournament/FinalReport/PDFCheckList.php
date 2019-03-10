@@ -3,6 +3,7 @@ require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once('Common/pdf/ResultPDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Various.inc.php');
+checkACL(AclCompetition, AclReadOnly);
 
 $RowTournament = NULL;
 /*$MySql = "SELECT ToCode, ToName, ToCommitee, ToComDescr, ToWhere, UNIX_TIMESTAMP(ToWhenFrom) AS DtFrom, UNIX_TIMESTAMP(ToWhenTo) AS DtTo, TtName "

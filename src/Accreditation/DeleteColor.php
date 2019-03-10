@@ -1,11 +1,11 @@
 <?php
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	
-	if (!CheckTourSession() || !isset($_REQUEST['row']) || !isset($_REQUEST['cl']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['row']) || !isset($_REQUEST['cl']))	{
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclCompetition, AclReadWrite, false);
 	
 	$Errore=0;
 	

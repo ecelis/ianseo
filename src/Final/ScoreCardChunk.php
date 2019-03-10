@@ -14,6 +14,8 @@ $d_Match=isset($_REQUEST['d_Match']) ? $_REQUEST['d_Match'] : null;
 $team=isset($_REQUEST['d_Team']) ? $_REQUEST['d_Team'] : 0;
 $chunkMode=isset($_REQUEST['d_Mode']) ? $_REQUEST['d_Mode'] : 0;
 
+checkACL(($team ? AclTeams : AclIndividuals), AclReadWrite);
+
 if (is_null($d_Event) || is_null($d_Match) || !CheckTourSession())
 	exit;
 
@@ -71,7 +73,7 @@ for($m=1;$m<=2;++$m) {
 				$out .= '<td class="Bold Center" onClick="clickStar(\'spot_' . $myRow->{'match'.$m} . '_0\', false)">' . ($i+1) . '</td>';
 				$out .= '<td id="spot_' . $myRow->{'match'.$m} . '_0" class="Right FontMedium" onClick="clickStar(this.id, true)">&nbsp;</td>';
 				$out .= '<td rowspan="' . $cols . '" colspan="' . (4+$cols). '" class="Center">';
-				$out .= '<img id="tgtImage_'. $myRow->{'match'.$m} . '" style="position:relative; cursor:crosshair;" src="' . $CFG->ROOT_DIR .'Common/target.php?Event=' . $d_Event . '&Match=' . $d_Match . '&Team=' . $team . '&Size=' . $size . '&ts=' . date('U'). '" onclick="javascript:targetClick(' . $myRow->{'match'.$m} . ', ' . $size . ', event);"  height="' . $size . '" width="' . $size . '"/>';
+				//$out .= '<img id="tgtImage_'. $myRow->{'match'.$m} . '" style="position:relative; cursor:crosshair;" src="' . $CFG->ROOT_DIR .'Common/target.php?Event=' . $d_Event . '&Match=' . $d_Match . '&Team=' . $team . '&Size=' . $size . '&ts=' . date('U'). '" onclick="javascript:targetClick(' . $myRow->{'match'.$m} . ', ' . $size . ', event);"  height="' . $size . '" width="' . $size . '"/>';
 				$out .= '</td>';
 				$out .= '</tr>' . "\n";
 				for($i=1;$i<$cols;$i++)
@@ -130,7 +132,7 @@ for($m=1;$m<=2;++$m) {
 						$out.='<td class="Center"><input type="text" id="' . $name . '" size="2" maxlength="3"
 								value="' . (!empty($myRow->{'arrowString'.$m}) && isset($myRow->{'arrowString'.$m}[$idx])  ? DecodeFromLetter($myRow->{'arrowString'.$m}[$idx]) :'') . '"
 								onblur="updateScore(this)"
-								onfocus="this.select()"
+								onfocus="updateSpot(this)"
 								/></td>';
 					}
 
@@ -165,35 +167,36 @@ for($m=1;$m<=2;++$m) {
 			}
 
 		// riga degli so e dei totali
-			$out.='<tr>';
-			$out.='<th'.$ClassAlternate.'><input type="radio" id="first['.$team.']['.$myRow->event.']['.$myRow->{'match' .$m}.']['.$rows.']" name="first[so]" onclick="setShootingFirst(this)"'.(($myRow->{'first'.$m} & pow(2, $rows)) ? 'checked="checked"' : '').'></th>';
-			$out.='<th>S.O.</th>';
-				$out.='<td class="Center" colspan="' . $cols . '">';
-					for ($i=0;$i<max($so, strlen($myRow->{'tiebreak'.$m}));++$i)
-					{
-					/*
-					 * stesse considerazioni per le textbox dei punti
-					 */
-						$name='t_' . $myRow->{'match'.$m} . '_' . $i;
+            for($pSo=0; $pSo<3; $pSo++ ) {
+                $out.='<tr>';
+                if($pSo == 0) {
+                    $out .= '<th' . $ClassAlternate . ' rowspan="3"><input type="radio" id="first[' . $team . '][' . $myRow->event . '][' . $myRow->{'match' . $m} . '][' . ($rows + $pSo) . ']" name="first[so]" onclick="setShootingFirst(this)"' . (($myRow->{'first' . $m} & pow(2, $rows)) ? 'checked="checked"' : '') . '></th>';
+                    $out.='<th rowspan="3">S.O.</th>';
+                }
+                $out.='<td class="Center" colspan="' . $cols . '">';
+                    for ($i = 0; $i < $so; ++$i) {
+                        $ArrI = $i+($pSo*$so);
+                        $name = 't_' . $myRow->{'match' . $m} . '_' . $ArrI;
 
-						$out.='<input type="text" id="' . $name . '" size="2" maxlength="3" tabindex="'.($TabIndex + $rows*2*$cols + $i + $so*($m-1)).'" value="'
-						. (!empty($myRow->{'tiebreak'.$m})  ? DecodeFromLetter(substr($myRow->{'tiebreak'.$m},$i,1)) :'') . '"
-						onblur="updateScore(this)"
-						onfocus="this.select()"
-						/>&nbsp;';
-					}
-				$out.='</td>';
+                        $out .= '<input type="text" id="' . $name . '" size="2" maxlength="3" tabindex="' . ($TabIndex + (2 * $rows * $cols) + (2*$pSo*$so) + $i + ($pSo*$so) * ($m - 1)) . '" value="'
+                            . (!empty($myRow->{'tiebreak' . $m}) ? DecodeFromLetter(substr($myRow->{'tiebreak' . $m}, $ArrI, 1)) : '') . '"
+                        onblur="updateScore(this)"
+                        onfocus="updateSpot(this)"
+                        />&nbsp;';
+                    }
+                $out.='</td>';
 
-				$out.='<td class="Right Bold">' . get_text('Total'). '</td>';
-				$out.='<td class="Right Bold"><span id="tot_' . $myRow->{'match'.$m} . '">' . $totCum . '</span></td>';
+                if($pSo == 0) {
+                    $out .= '<td class="Right Bold" rowspan="3">' . get_text('Total') . '</td>';
+                    $out .= '<td class="Right Bold" rowspan="3"><span id="tot_' . $myRow->{'match' . $m} . '">' . $totCum . '</span></td>';
 
-				if ($myRow->matchMode==1)
-				{
-					$out.='<td class="Right Bold">' . get_text('Total'). '</td>';
-					$out.='<td class="Right Bold"><span id="totsets_' . $myRow->{'match'.$m} . '">{totsets_' . $m . '}</span></td>';
-				}
-
-			$out.='</tr>' . "\n";
+                    if ($myRow->matchMode == 1) {
+                        $out .= '<td class="Right Bold" rowspan="3">' . get_text('Total') . '</td>';
+                        $out .= '<td class="Right Bold" rowspan="3"><span id="totsets_' . $myRow->{'match' . $m} . '">{totsets_' . $m . '}</span></td>';
+                    }
+                }
+                $out.='</tr>';
+            }
 
 			// Row for confirmation
 			$out.='<tr><td align="center" colspan="'.(6+$cols).'"'.$ClassAlternate.'><input disabled="disabled" type="button" id="confirm['.$myRow->{'match'.$m}.']" onclick="ConfirmEnd(this)" value="'.get_text('ConfirmEnd', 'Tournament').'"></td></tr>';

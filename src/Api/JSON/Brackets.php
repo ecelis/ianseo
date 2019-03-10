@@ -37,8 +37,6 @@ if($EvType) {
 $rank->read();
 $Data=$rank->getData();
 
-//debug_svela($Data);
-
 foreach($Data['sections'] as $kSec=>$vSec) {
 	$json_array["EvName"]=$vSec['meta']['eventName'];
 	$fldScore = ($vSec['meta']['matchMode']==1 ?  'setScore': 'score');
@@ -54,14 +52,14 @@ foreach($Data['sections'] as $kSec=>$vSec) {
 					$tmpR += array("Id"=>$vItem["oppBib"], "FamilyName"=>$vItem["oppFamilyName"], "GivenName"=>$vItem["oppGivenName"], "NameOrder"=>$vItem["oppNameOrder"], "Gender"=>$vItem["oppGender"]);
 				}
 				$tmpL += array("TeamCode"=>$vItem["countryCode"], "TeamName"=>$vItem["countryName"],
-					"Score"=>$vItem[($vSec['meta']['matchMode']==1 ?  'setScore': 'score')], 
+					"Score"=>$vItem[($vSec['meta']['matchMode']==1 ?  'setScore': 'score')],
 					"TieBreak"=>$vItem['tiebreakDecoded'],
 					"Winner"=>($vItem['winner']? true:false));
 				$tmpR += array("TeamCode"=>$vItem["oppCountryCode"], "TeamName"=>$vItem["oppCountryName"],
 					"Score"=>$vItem[($vSec['meta']['matchMode']==1 ?  'oppSetScore': 'oppScore')],
 					"TieBreak"=>$vItem['oppTiebreakDecoded'],
 					"Winner"=>($vItem['oppWinner']? true:false));
-				
+
 				$tmpPhase["Matches"][] = Array("MatchId"=>$vItem['matchNo'], "ScheduledDateTime"=>date("Y-m-d H:i",strtotime($vItem["scheduledDate"] . " ". $vItem["scheduledTime"])), "LeftOpponent"=>$tmpL, "RightOpponent"=>$tmpR);
 			}
 			$json_array["Phases"][]=$tmpPhase;
@@ -69,9 +67,6 @@ foreach($Data['sections'] as $kSec=>$vSec) {
 		$cntPhase++;
 	}
 }
-
-//SendResult(Array("matches"=>$json_array));
-
 
 // Return the json structure with the callback function that is needed by the app
 SendResult($json_array);

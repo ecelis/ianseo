@@ -4,6 +4,8 @@
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
 	require_once('Common/Lib/Fun_PrintOuts.php');
+    require_once('Common/Fun_Phases.inc.php');
+	checkACL(AclTeams, AclReadOnly);
 
 	$pdf = new ResultPDF((get_text('IndFinal')),false);
 	$pdf->setBarcodeHeader(70);
@@ -74,35 +76,31 @@
 	}
 	else
 	{
-		$MyQuery = 'SELECT '
-			. ' EvCode, EvEventName, EvFinalFirstPhase, EvMixedTeam, GrPhase, '
-			. ' GrMatchNo, EvMatchMode, EvMatchArrowsNo, '
-			. " CoCode, CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS TeamName, TeRank, FSTarget, "
-			. ' TfArrowString, TfTieBreak, TfSetScore, '
-			. ' IF(EvMatchMode=0,TfScore,TfSetScore) AS Score, TfTie, @elimination:=pow(2, ceil(log2(GrPhase))+1) & EvMatchArrowsNo '
-			. " , if(@elimination, EvElimEnds, EvFinEnds) CalcEnds "
-			. " , if(@elimination, EvElimArrows, EvFinArrows) CalcArrows "
-			. " , if(@elimination, EvElimSO, EvFinSO) CalcSO "
-			. ' FROM Events'
-			. ' INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament'
-			. ' INNER JOIN Grids ON TfMatchNo=GrMatchNo AND GrPhase<=EvFinalFirstPhase'
-			. ' LEFT JOIN Teams ON TfTeam=TeCoId AND TfSubTeam=TeSubTeam AND TfTournament=TeTournament AND TfEvent=TeEvent and TeFinEvent=1 '
-			. ' LEFT JOIN Countries on TfTeam=CoId AND TfTournament=CoTournament'
-			. ' LEFT JOIN FinSchedule ON TfEvent=FSEvent AND TfMatchNo=FSMatchNo AND TfTournament=FSTournament AND FSTeamEvent=\'1\''
-			. ' WHERE EvTournament=' . StrSafe_DB($_SESSION['TourId']) . ' AND EvTeamEvent=1 AND (FSTeamEvent=\'1\' || FSTeamEvent IS NULL) ';
+		$MyQuery = "SELECT EvCode, EvEventName, EvFinalFirstPhase, EvMixedTeam, GrPhase, GrMatchNo, EvMatchMode, EvMatchArrowsNo, 
+			CoCode, CONCAT(CoName, IF(TfSubTeam>'1',CONCAT(' (',TfSubTeam,')'),'')) AS TeamName, TeRank, FSTarget, 
+			TfArrowString, TfTieBreak, TfSetScore, 
+			IF(EvMatchMode=0,TfScore,TfSetScore) AS Score, TfTie, @elimination:=pow(2, ceil(log2(GrPhase))+1) & EvMatchArrowsNo, 
+			if(@elimination, EvElimEnds, EvFinEnds) CalcEnds, if(@elimination, EvElimArrows, EvFinArrows) CalcArrows, if(@elimination, EvElimSO, EvFinSO) CalcSO 
+			FROM Events
+			INNER JOIN TeamFinals ON EvCode=TfEvent AND EvTournament=TfTournament
+			INNER JOIN Phases ON EvFinalFirstPhase=PhId and (PhIndTeam & pow(2, EvTeamEvent))>0
+			INNER JOIN Grids ON TfMatchNo=GrMatchNo AND GrPhase<=greatest(PhId,PhLevel)
+			LEFT JOIN Teams ON TfTeam=TeCoId AND TfSubTeam=TeSubTeam AND TfTournament=TeTournament AND TfEvent=TeEvent and TeFinEvent=1 
+			LEFT JOIN Countries on TfTeam=CoId AND TfTournament=CoTournament
+			LEFT JOIN FinSchedule ON TfEvent=FSEvent AND TfMatchNo=FSMatchNo AND TfTournament=FSTournament AND FSTeamEvent=1
+			WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent=1 AND (FSTeamEvent=1 || FSTeamEvent IS NULL) ";
 			if (isset($_REQUEST['x_Session']) && $_REQUEST['x_Session']!=-1) {
 				$MyQuery .= "AND concat(FSTeamEvent, FSScheduledDate, ' ', FSScheduledTime)=" . strSafe_DB($_REQUEST['x_Session']) . " ";
 			} else {
 				if (!empty($_REQUEST['Event'])) $MyQuery.= CleanEvents($_REQUEST['Event'], "EvCode") . " ";
 				if (isset($_REQUEST['Phase']) && preg_match("/^[0-9]{1,2}$/i",$_REQUEST["Phase"])) $MyQuery.= "AND GrPhase = " . StrSafe_DB($_REQUEST['Phase']) . " ";
 			}
-			$MyQuery .= ' ORDER BY EvCode, GrPhase DESC, TfMatchNo ASC';
+			$MyQuery .= " ORDER BY EvCode, GrPhase DESC, TfMatchNo ASC";
 	 }
 
 	$Rs=safe_r_sql($MyQuery);
 // Se il Recordset è valido e contiene almeno una riga
-	if (safe_num_rows($Rs)>0)
-	{
+	if (safe_num_rows($Rs)>0) {
 		$WhereStartX=array($pdf->getSideMargin(),($pdf->GetPageWidth()+$pdf->getSideMargin())/2);
 		$WhereStartY=array(60,60);
 		$WhereX=NULL;
@@ -164,7 +162,7 @@ function DrawScore(&$pdf, $MyRow, $MyRowOpp) {
 	$NumRows = $MyRow->CalcEnds; // ($Fita3D == 1  ? 8 : $MyRow->CalcEnds);
 	$ColWidth = $ArrowTotW / $MyRow->CalcArrows;
 
-	$TmpCellH = $GridTotH/$NumRows;
+	$TmpCellH = $GridTotH/($NumRows+3);
 
 	if($MyRow->GrMatchNo%2 == 0 && $FollowingRows)
 		$pdf->AddPage();
@@ -209,7 +207,7 @@ function DrawScore(&$pdf, $MyRow, $MyRowOpp) {
    	$pdf->SetFont($pdf->FontStd,'B',10);
 	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]);
 	$pdf->Cell($GoldW,$CellH,'',0,0,'C',0);
-	$pdf->Cell(2*$GoldW+2*$TotalW+$ArrowTotW,$CellH,$MyRow->GrPhase!==''?get_text($MyRow->GrPhase . '_Phase'):'',1,0,'C',1);
+	$pdf->Cell(2*$GoldW+2*$TotalW+$ArrowTotW,$CellH,$MyRow->GrPhase!==''?get_text(namePhase($MyRow->EvFinalFirstPhase ,$MyRow->GrPhase ). '_Phase'):'',1,0,'C',1);
 //	$WhereY[$WhichScore]=$pdf->GetY();
 //Winner Checkbox
 	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]);
@@ -251,7 +249,7 @@ function DrawScore(&$pdf, $MyRow, $MyRowOpp) {
 	$ScoreTotal = 0;
 	$ScoreGold = 0;
 	$ScoreXnine = 0;
-	$SetTotal = '';
+	$SetTotal = 0;
 	for($i=1; $i<=$NumRows; $i++)
 	{
 		$ScoreEndTotal = 0;
@@ -306,25 +304,31 @@ function DrawScore(&$pdf, $MyRow, $MyRowOpp) {
 		}
 		$WhereY[$WhichScore]=$pdf->GetY();
 	}
+
 //Tie Break
 	$closeToCenter=false;
 	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]+($CellH/4));
 	$pdf->SetFont($pdf->FontStd,'B',8);
-	$pdf->Cell($GoldW, $TmpCellH+1+$GoldW, (get_text('TB')),1,0,'C',1);
+	$pdf->Cell($GoldW, $TmpCellH*3 + 1 + $GoldW, (get_text('TB')),1,0,'C',1);
 	$pdf->SetFont($pdf->FontStd,'',10);
-	for($j=0; $j<$MyRow->CalcSO; $j++)
-	{
-		$pdf->Cell($ArrowTotW/$MyRow->CalcSO, $TmpCellH,($FillWithArrows ? DecodeFromLetter(substr($MyRow->TfTieBreak,$j,1)) : ''),1,0,'C',0);
-		if(substr(($FillWithArrows ? DecodeFromLetter(substr($MyRow->TfTieBreak,$j,1)) : ''),-1,1)=="*") {
-			$closeToCenter=true;
+	$StartX=$pdf->getx();
+	for($i=0; $i<3; $i++) {
+		$pdf->setx($StartX);
+		for($j=0; $j<$MyRow->CalcSO; $j++) {
+			$pdf->Cell($ArrowTotW/$MyRow->CalcSO, $TmpCellH, ($FillWithArrows ? DecodeFromLetter(substr($MyRow->TfTieBreak,$i*$MyRow->CalcSO + $j,1)) : ''),1,0,'C',0);
+			if(substr(($FillWithArrows ? DecodeFromLetter(substr($MyRow->TfTieBreak,$i*$MyRow->CalcSO + $j,1)) : ''),-1,1)=="*") {
+				$closeToCenter=true;
+			}
 		}
+		$pdf->ln();
 	}
+
 	if($MyRow->TfTie==1) $SetTotal+=1;
 	$SOY=$pdf->GetY();
 
 //Totale
 	$Errore=($FillWithArrows and (strlen($MyRow->TfArrowString) and ($MyRow->EvMatchMode ? $MyRow->Score!=$SetTotal : $MyRow->Score!=$ScoreTotal)));
-	$pdf->SetXY($TopX=$pdf->GetX(), $WhereY[$WhichScore]);
+	$pdf->SetXY($TopX=$StartX+$ArrowTotW, $WhereY[$WhichScore]);
 	$pdf->SetFont($pdf->FontStd,'B',10);
 	if($MyRow->EvMatchMode==0) {
 		$pdf->Cell($TotalW,$TmpCellH,(get_text('Total')),0,0,'R',0);
@@ -357,19 +361,20 @@ function DrawScore(&$pdf, $MyRow, $MyRowOpp) {
 
 //Closet to the center
 	$pdf->SetFont($pdf->FontStd,'',9);
-	$pdf->SetXY($WhereX[$WhichScore]+$GoldW, $SOY + $TmpCellH + 1);
+	$pdf->SetXY($WhereX[$WhichScore]+$GoldW, $SOY + 1);
 	$pdf->Cell($ColWidth,$GoldW,'',1,0,'R',0);
 	if($closeToCenter) {
 		$tmpWidth=$pdf->GetLineWidth();
 		$pdf->SetLineWidth($tmpWidth*5);
-		$pdf->Line($WhereX[$WhichScore]+$GoldW,$SOY + $TmpCellH + 1, $WhereX[$WhichScore]+$GoldW+$ColWidth, $SOY + $TmpCellH + 1 + $GoldW);
-		$pdf->Line($WhereX[$WhichScore]+$GoldW,$SOY + $TmpCellH + 1 + $GoldW, $WhereX[$WhichScore]+$GoldW+$ColWidth, $SOY + $TmpCellH + 1);
+		$pdf->Line($WhereX[$WhichScore]+$GoldW,$SOY + 1, $WhereX[$WhichScore]+$GoldW+$ColWidth, $SOY + 1 + $GoldW);
+		$pdf->Line($WhereX[$WhichScore]+$GoldW,$SOY + 1 + $GoldW, $WhereX[$WhichScore]+$GoldW+$ColWidth, $SOY + 1);
 		$pdf->SetLineWidth($tmpWidth);
 	}
 	$pdf->Cell($ColWidth*($NumCol-1),$CellH*2/4,get_text('Close2Center','Tournament'),0,0,'L',0);
 	$WhereY[$WhichScore]=$pdf->GetY()+10;
+
 //Firme
-	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]);
+	$pdf->SetXY($WhereX[$WhichScore],$WhereY[$WhichScore]+5);
    	$pdf->SetFont($pdf->FontStd,'I',7);
 	$pdf->Cell($ColWidth + $GoldW ,4,(get_text('Archer')),'B',0,'L',0);
 	$pdf->Cell(($NumCol-1)*$ColWidth + 2*($TotalW + $GoldW),4,'','B',1,'L',0);

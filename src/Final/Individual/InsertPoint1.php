@@ -1,12 +1,11 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/CommonLib.php');
 	require_once('HHT/Fun_HHT.local.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclIndividuals, AclReadWrite);
 
 	$PAGE_TITLE=get_text('MenuLM_Data insert (Table view)');
 
@@ -43,16 +42,14 @@
 		. "ORDER BY EvProgr ASC ";
 	$Rs=safe_r_sql($Select);
 
-	print '<select name="d_Event[]" id="d_Event" multiple="multiple" onChange="javascript:ChangeEvent(0);">' . "\n";
-	//print '<option value="">' . get_text('AllEvents') . '</option>' . "\n";
-	if (safe_num_rows($Rs)>0)
-	{
-		while ($Row=safe_fetch($Rs))
-		{
-			print '<option value="' . $Row->EvCode . '">' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>' . "\n";
+	print '<select name="d_Event[]" id="d_Event" multiple="multiple" onChange="javascript:ChangeEvent(0);">';
+	//print '<option value="">' . get_text('AllEvents') . '</option>';
+	if (safe_num_rows($Rs)>0) {
+		while ($Row=safe_fetch($Rs)) {
+			print '<option value="' . $Row->EvCode . '">' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>';
 		}
 	}
-	print '</select>' . "\n";
+	print '</select>';
 ?>
 </td>
 </tr>

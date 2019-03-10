@@ -23,6 +23,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Qualification/Fun_Qualification.local.inc.php');
 CheckTourSession(true);
+checkACL(array(AclIndividuals, AclTeams),AclReadOnly);
 
 $MSG='';
 $ORIS=$_SESSION['ISORIS'];
@@ -202,12 +203,12 @@ $outputTeamBra='';
 
 
 // select the ACTUAL Individual Events
-$Select = "SELECT distinct EvCode,EvEventName,EvTeamEvent,EvElim1,EvElim2,EvFinalFirstPhase "
-	. "FROM EventCategories "
-	. " inner join Entries on EcDivision=EnDivision and EcClass=EnClass "
-	. "WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId'])
-	. " AND EvTeamEvent=0 "
-	. "ORDER BY EvProgr ";
+$Select = "SELECT distinct EvCode,EvEventName,EvTeamEvent,EvElim1,EvElim2,EvFinalFirstPhase 
+    FROM Events 
+    inner join Individuals on IndEvent=EvCode and IndTournament=EvTournament
+    WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent=0 
+    ORDER BY EvProgr ";
+
 $Rs=safe_r_sql($Select);
 while ($MyRow=safe_fetch($Rs)) {
 	$QualCode='IQ' . $MyRow->EvCode;
@@ -244,10 +245,17 @@ while ($MyRow=safe_fetch($Rs)) {
 }
 
 // select the ACTUAL Team Events
-$Sql = "SELECT EvCode, EvEventName, EvMixedTeam, EvMultiTeam, EvMaxTeamPerson,EvTeamCreationMode,EvFinalFirstPhase FROM Events WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent=1 ORDER BY EvProgr";
+$Sql = "SELECT distinct EvCode, EvEventName, EvMixedTeam, EvMultiTeam, EvMaxTeamPerson,EvTeamCreationMode,EvFinalFirstPhase 
+  FROM Events 
+  WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent=1 
+  ORDER BY EvProgr";
 $RsEv=safe_r_sql($Sql);
 while($MyRowEv=safe_fetch($RsEv)) {
-	$Sql = "SELECT DISTINCT EcCode, EcTeamEvent, EcNumber FROM EventClass WHERE EcCode=" . StrSafe_DB($MyRowEv->EvCode) . " AND EcTeamEvent!=0 AND EcTournament=" . StrSafe_DB($_SESSION['TourId']);
+	$Sql = "SELECT DISTINCT EcCode, EcTeamEvent, EcNumber 
+        FROM EventClass 
+        WHERE EcCode=" . StrSafe_DB($MyRowEv->EvCode) . " 
+            AND EcTeamEvent!=0 
+            AND EcTournament=" . StrSafe_DB($_SESSION['TourId']);
 	$RsEc=safe_r_sql($Sql);
 	if(safe_num_rows($RsEc)>0) {
 		$RuleCnt=0;
@@ -257,7 +265,7 @@ while($MyRowEv=safe_fetch($RsEv)) {
 			$Sql .= (++$RuleCnt == 1 ? "FROM ": "INNER JOIN ");
 			$Sql .= "(SELECT {$ifc} as C" . $RuleCnt . ", SUM(IF(EnSubTeam=0,1,0)) AS QuantiMulti
 				  FROM Entries
-				  INNER JOIN EventClass ON EnClass=EcClass AND EnDivision=EcDivision AND EnTournament=EcTournament AND EcTeamEvent=" . $MyRowEc->EcTeamEvent . " AND EcCode=" . StrSafe_DB($MyRowEc->EcCode) . "
+				  INNER JOIN EventClass ON EnClass=EcClass AND EnDivision=EcDivision AND if(EcSubClass='', true, EnSubClass=EcSubClass) and EnTournament=EcTournament AND EcTeamEvent=" . $MyRowEc->EcTeamEvent . " AND EcCode=" . StrSafe_DB($MyRowEc->EcCode) . "
 				  WHERE {$ifc}<>0 AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EnTeam" . ($MyRowEv->EvMixedTeam ? 'Mix' : 'F') ."Event=1
 				  group by {$ifc}, EnSubTeam
 				  HAVING COUNT(EnId)>=" . $MyRowEc->EcNumber . ") as sqy";

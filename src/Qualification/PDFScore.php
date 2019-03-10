@@ -3,6 +3,7 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/ScorePDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 if(isset($_REQUEST["PersonalScore"]) && $_REQUEST["PersonalScore"]==1)
 {
@@ -38,8 +39,15 @@ if(empty($_REQUEST["GetScorecardAsString"])) {
 	if(empty($_REQUEST["ScoreFlags"])) $pdf->HideFlags();
 	if(!empty($_REQUEST["ScoreBarcode"])) $pdf->PrintBarcode=true;
 	if(!empty($_REQUEST["GetArcInfo"])) $pdf->GetArcInfo=true;
-	if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST["ScoreDraw"]=="Data") $pdf->NoDrawing();
-	if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST["ScoreDraw"]=="CompleteTotals") $pdf->PrintTotalColumns();
+	if(isset($_REQUEST["ScoreDraw"])) {
+		switch($_REQUEST["ScoreDraw"]) {
+			case 'Data': $pdf->NoDrawing(); break;
+			case 'CompleteTotals': $pdf->PrintTotalColumns(); break;
+			case 'Single': $pdf->SingleScore(); break;
+            case 'SinglAllDistances': $pdf->SingleScoreAllDistances(); break;
+            case 'FourScoresNFAA': $pdf->NoTensOnlyX(); break;
+		}
+	}
 
 	$Ath4Target = 4;
 	$session=intval($_REQUEST['x_Session']);
@@ -50,21 +58,29 @@ if($session>0) {
 	$Ath4Target = $ses[0]->SesAth4Target;
 }
 
-$defScoreX = $pdf->getSideMargin();
-$defScoreX2 = ($pdf->GetPageWidth()+$pdf->getSideMargin())/2;
-$defScoreY = $pdf->getSideMargin();
-$defScoreY2 = ($pdf->GetPageHeight()+$pdf->getSideMargin())/2;
-
 $defScoreW = ($pdf->GetPageWidth()-$pdf->getSideMargin()*3)/2;
-$defScoreH = ($pdf->GetPageHeight()-$pdf->getSideMargin()*3)/2;
+$defScoreH = ($pdf->GetPageHeight() - $pdf->getSideMargin()*3 - ($pdf->NoTensOnlyX ? 7 : 0))/2;
+
+$defScoreX = $pdf->getSideMargin();
+$defScoreX2 = $defScoreX + $pdf->getSideMargin() + $defScoreW;
+$defScoreY = $pdf->getSideMargin();
+$defScoreY2 = $defScoreY + $pdf->getSideMargin() + $defScoreH;
 
 if($Ath4Target==2) {
-	$defScoreX = $pdf->getSideMargin()*3;
-	$defScoreH = ($pdf->GetPageWidth()-$pdf->getSideMargin()*2);
+	if(!$pdf->SingleScore AND !$pdf->SingleScoreAllDistances) {
+		$defScoreX = $pdf->getSideMargin()*3;
+	}
+	$defScoreH = ($pdf->GetPageWidth()-$pdf->getSideMargin()*2 - ($pdf->NoTensOnlyX ? 7 : 0));
 	$defScoreW = ($pdf->GetPageHeight()-$defScoreX*3)/2;
 } elseif($Ath4Target==3) {
 	$defScoreH = ($pdf->GetPageWidth()-$pdf->getSideMargin()*2);
 	$defScoreW = ($pdf->GetPageHeight()-$pdf->getSideMargin()*4)/3;
+}
+
+if($pdf->SingleScore OR $pdf->SingleScoreAllDistances) {
+	$Ath4Target=1;
+	$defScoreW=$pdf->GetPageWidth()-$pdf->getSideMargin()*2;
+	$defScoreH=$pdf->GetPageHeight()-$pdf->getSideMargin()*2 - ($pdf->NoTensOnlyX ? 7 : 0);
 }
 
 if(!empty($_REQUEST['QRCode'])) {
@@ -96,6 +112,10 @@ if(!empty($_REQUEST['QRCode'])) {
 
 if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 	switch($Ath4Target) {
+		case 1:
+			$pdf->AddPage('P');
+			$pdf->DrawScore($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd, 3,  array("Session"=>$_REQUEST['x_Session']));
+			break;
 		case 2:
 			$pdf->AddPage('L');
 			$pdf->DrawScore($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd, 3,  array("Session"=>$_REQUEST['x_Session']));
@@ -184,7 +204,7 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 			if($TmpTarget != substr($MyRow->tNo,0,-1) && count($Tmp)>0) {
 				foreach($DistArray as $CurDist) {
 					if($CurDist and $Tmp[0]["D" . $CurDist]=='-') continue;
-					$pdf->AddPage($Ath4Target<=3 ? 'L' : 'P' );
+					$pdf->AddPage(($Ath4Target==2 || $Ath4Target==3)  ? 'L' : 'P' );
 					foreach($Tmp as $Value) {
 						$Value['FirstDist']=($CurDist==1);
 						if($CurDist==0) {
@@ -198,6 +218,11 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 						$Value["Session"]=$_REQUEST['x_Session'];
 
 						switch($Ath4Target) {
+							case 1:
+								if(empty($Value['Ath'])) continue;
+								if(substr($Value["tNo"],-1,1)!="A") $pdf->AddPage('P');
+								$pdf->DrawScore($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd,3,$Value,($CurDist==0) ?  '' : $Value["Arr" . $CurDist],($CurDist==0) ?  '' : $Value["Tot" . $CurDist], $Value["gxD" . $CurDist]);
+								break;
 							case 2:
 								if(substr($Value["tNo"],-1,1)=="A")
 									$pdf->DrawScore($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd,3,$Value,($CurDist==0) ?  '' : $Value["Arr" . $CurDist],($CurDist==0) ?  '' : $Value["Tot" . $CurDist], $Value["gxD" . $CurDist]);
@@ -380,7 +405,7 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 			foreach($DistArray as $CurDist)
 			{
 				if($CurDist and $Tmp[0]["D" . $CurDist]=='-') continue;
-				$pdf->AddPage($Ath4Target<=3 ? 'L' : 'P' );
+				$pdf->AddPage($Ath4Target==2 || $Ath4Target==3 ? 'L' : 'P' );
 				foreach($Tmp as $Value)
 				{
 					$Value['FirstDist']=($CurDist==1);
@@ -395,6 +420,10 @@ if(isset($_REQUEST["ScoreDraw"]) && $_REQUEST['ScoreDraw']=="Draw") {
 					$Value["Session"]=$_REQUEST['x_Session'];
 
 						switch($Ath4Target) {
+							case 1:
+								if(substr($Value["tNo"],-1,1)!="A") $pdf->AddPage('P');
+								$pdf->DrawScore($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd,3,$Value,($CurDist==0) ?  '' : $Value["Arr" . $CurDist],($CurDist==0) ?  '' : $Value["Tot" . $CurDist], $Value["gxD" . $CurDist]);
+								break;
 							case 2:
 								if(substr($Value["tNo"],-1,1)=="A")
 									$pdf->DrawScore($defScoreX, $defScoreY, $defScoreW, $defScoreH, $NumEnd,3,$Value,($CurDist==0) ?  '' : $Value["Arr" . $CurDist],($CurDist==0) ?  '' : $Value["Tot" . $CurDist], $Value["gxD" . $CurDist]);

@@ -100,7 +100,6 @@ $lang['KAZ']='Kazakstan';
 $lang['KEN']='Kenia';
 $lang['KGZ']='Kirgisia';
 $lang['KIR']='Kiribati';
-$lang['KOR']='Korean tasavalta';
 $lang['KSA']='Saudi-Arabia';
 $lang['KUW']='Kuwait';
 $lang['LAO']='Kaos';

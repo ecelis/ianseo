@@ -7,6 +7,7 @@ if(!CheckTourSession()) {
 	header('Content-Type: text/xml');
 	die('<response error="'.$Error.'"/>');
 }
+checkACL(AclISKServer, AclReadWrite,false);
 
 $Error=DoImportData();
 

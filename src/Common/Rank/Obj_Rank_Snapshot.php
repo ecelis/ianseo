@@ -182,43 +182,61 @@
 				$cutRank = $this->opts['cutRank'];
 
 			$ArrowNo=0;
+			$RealArrowNo=0;
 			$SnapDistance=0;
 			if(!empty($this->opts['arrNo'])  && is_numeric($this->opts['arrNo'])) {
 				$ArrowNo = $this->opts['arrNo'];
+				$RealArrowNo = $this->opts['arrNo'];
 			} else {
-				$q = "SELECT MAX(EqArrowNo) as ArrowNo
+				$q = "SELECT MAX(EqArrowNo) as ArrowNo, concat(EnDivision, EnClass) as Category, ".($isAbs ? "IndEvent" : "concat(EnDivision, EnClass)")." as IndEvent
 					FROM Entries
 					INNER JOIN Qualifications ON EnId=QuId
 					INNER JOIN ElabQualifications ON EnId=EqId
 					" .	($isAbs ? "INNER JOIN Individuals ON EnId=IndId AND EnTournament=IndTournament " : "")	."
 					WHERE EnAthlete=1 AND " . ($isAbs ? "EnIndFEvent" : "EnIndClEvent") ."=1 AND EnStatus <= 1 AND EnTournament = '{$this->tournament}' {$filter}
-					GROUP BY QuSession
+					GROUP BY QuSession, Category
 					ORDER BY ArrowNo ASC";
-// 				debug_svela($q);
 				$Rs=safe_r_sql($q);
 
-				if(safe_num_rows($Rs)>0) {
-					$ArrowNo = safe_fetch($Rs)->ArrowNo;
+				$ArrowNo=array();
+				$CatsDone=array();
+				while($r=safe_fetch($Rs)) {
+					if(!isset($CatsDone[$r->IndEvent]) and (empty($ArrowNo[$r->ArrowNo]) or !in_array($r->IndEvent, $ArrowNo[$r->ArrowNo]))) {
+						$ArrowNo[$r->ArrowNo][]=$r->IndEvent;
+						$CatsDone[$r->IndEvent]=$r->ArrowNo;
+					}
+				}
+
+				switch(count($ArrowNo)) {
+					case 0:
+						$ArrowNo=0;
+						$RealArrowNo=0;
+						break;
+					case 1:
+						$ArrowNo=key($ArrowNo);
+						$RealArrowNo=$ArrowNo;
+						break;
+					default:
+						$RealArrowNo=key($ArrowNo);
 				}
 			}
 
-			if($ArrowNo != 0) {
+			if($RealArrowNo != 0) {
 				$q = "SELECT MIN(EqDistance) as Distance
 					FROM Entries
 					INNER JOIN Qualifications ON EnId=QuId
 					INNER JOIN ElabQualifications ON EnId=EqId
 					" .	($isAbs ? "INNER JOIN Individuals ON EnId=IndId AND EnTournament=IndTournament " : "")	."
-					WHERE EnAthlete=1 AND EnTournament='{$this->tournament}' AND EqArrowNo='$ArrowNo' {$filter}";
+					WHERE EnAthlete=1 AND EnTournament='{$this->tournament}' AND EqArrowNo='$RealArrowNo' {$filter}";
 				$Rs=safe_r_sql($q);
 				if($Rs) {
 					$SnapDistance=safe_fetch($Rs)->Distance;
 				}
 			}
-
 			$q="
 				SELECT distinct
 					EnId,EnCode, EnSex, EnNameOrder, EnName AS Name, upper(EnFirstName) AS FirstNameUpper, EnFirstName AS FirstName, SUBSTRING(QuTargetNo,1,1) AS Session,
-					SUBSTRING(QuTargetNo,2) AS TargetNo,
+					SUBSTRING(QuTargetNo,2) AS TargetNo, ".($SnapDistance ? 'EqArrowNo' : $RealArrowNo)." as ArrowNo, ".($isAbs ? "IndEvent" : "concat(EnDivision, EnClass)")." as IndEvent,
 					ToNumEnds,ToNumDist,ToMaxDistScore,
 					CoCode, CoName, EnClass, EnDivision,EnAgeClass, EnSubClass, ClDescription, DivDescription,
 					IFNULL(Td1,'.1.') as Td1, IFNULL(Td2,'.2.') as Td2, IFNULL(Td3,'.3.') as Td3, IFNULL(Td4,'.4.') as Td4, IFNULL(Td5,'.5.') as Td5, IFNULL(Td6,'.6.') as Td6, IFNULL(Td7,'.7.') as Td7, IFNULL(Td8,'.8.') as Td8,
@@ -239,24 +257,30 @@
 			if($SnapDistance==0) {
 				$q .= "QuScore as OrderScore, QuGold as OrderGold, QuXnine as OrderXnine, '0' as EqDistance, '0' as EqScore, '0' as EqGold, '0' as EqXNine, ";
 			} else {
-				for($i=1; $i<$SnapDistance; $i++)
+				for($i=1; $i<$SnapDistance; $i++) {
 					$q .= "QuD" . $i . "Score+";
+				}
 				$q .="IFNULL(EqScore,0) AS OrderScore, ";
-				for($i=1; $i<$SnapDistance; $i++)
+
+				for($i=1; $i<$SnapDistance; $i++) {
 					$q .= "QuD" . $i . "Gold+";
+				}
 				$q .="IFNULL(EqGold,0) AS OrderGold, ";
-				for($i=1; $i<$SnapDistance; $i++)
+
+				for($i=1; $i<$SnapDistance; $i++) {
 					$q .= "QuD" . $i . "XNine+";
+				}
 				$q .="IFNULL(EqXNine,0) AS OrderXnine, ";
+
 				$q .= "EqDistance, IFNULL(EqScore,0) as EqScore, IFNULL(EqGold,0) as EqGold, IFNULL(EqXNine,0) as EqXNine, ";
 			}
 			$q .= "
 					QuScore AS Score, QuGold AS Gold, QuXnine AS XNine, QuHits as Hits,
 					QuTimestamp,
 					ToGolds AS GoldLabel, ToXNine AS XNineLabel,
-					ToDouble, DiEnds, DiArrows,
+					ToDouble, DiEnds, DiArrows, DiEnds*DiArrows*ToNumDist as MaxArrows,
 					ToNumDist,ToDouble
-					, " . ($isAbs ? "IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))),IF(EvElim1=0,EvElim2,EvElim1))" : "''") . " as QualifiedNo
+					, " . ($isAbs ? "IF(EvElim1=0 && EvElim2=0, EvNumQualified,IF(EvElim1=0,EvElim2,EvElim1))" : "''") . " as QualifiedNo
 					FROM Tournament
 					INNER JOIN Entries ON ToId=EnTournament
 					INNER JOIN Countries ON EnCountry=CoId AND EnTournament=CoTournament AND EnTournament={$this->tournament}
@@ -265,15 +289,26 @@
 					INNER JOIN Divisions ON EnDivision=DivId AND DivTournament={$this->tournament} ";
 			if($isAbs) {
 				$q .= "
-					INNER JOIN EventClass ON EnClass=EcClass AND EnDivision=EcDivision AND EnTournament=EcTournament AND EcTeamEvent=0
-					INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=EcTeamEvent AND EvTournament=EcTournament
-					INNER JOIN Individuals ON EnId=IndId AND EnTournament=IndTournament AND IndEvent=EvCode
+					INNER JOIN Individuals ON EnId=IndId AND EnTournament=IndTournament 
+					INNER JOIN Events ON EvCode=IndEvent AND EvTeamEvent=0 AND EvTournament=IndTournament
 					LEFT JOIN DocumentVersions DV1 on EvTournament=DV1.DvTournament AND DV1.DvFile = 'QUAL-IND' and DV1.DvEvent=''
 					LEFT JOIN DocumentVersions DV2 on EvTournament=DV2.DvTournament AND DV2.DvFile = 'QUAL-IND' and DV2.DvEvent=EvCode
 					";
 			}
 			if($SnapDistance!=0) {
-				$q .= "LEFT JOIN ElabQualifications ON EnId=EqId AND EqArrowNo='{$ArrowNo}' ";
+				if(is_array($ArrowNo)) {
+					$q .= "LEFT JOIN ElabQualifications ON EnId=EqId AND (".($isAbs ? "IndEvent" : "concat(EnDivision,EnClass)")." , EqArrowNo) in (";
+					$fi=array();
+					foreach($ArrowNo as $arrows => $cats) {
+						foreach($cats as $cat) {
+							$fi[]="('$cat', $arrows)";
+						}
+					}
+					$q.=implode(',', $fi);
+					$q.=") ";
+				} else {
+					$q .= "LEFT JOIN ElabQualifications ON EnId=EqId AND EqArrowNo='{$ArrowNo}' ";
+				}
 			}
 			$q .= "
 					LEFT JOIN TournamentDistances ON ToType=TdType AND TdTournament=ToId AND CONCAT(TRIM(EnDivision),TRIM(EnClass)) LIKE TdClasses
@@ -287,7 +322,7 @@
 				$q .= "EvProgr, EvCode, ";
 			else
 				$q .= "DivViewOrder, EnDivision, ClViewOrder, EnClass,  ";
-			$q .= "OrderScore DESC, OrderGold DESC, OrderXNine DESC, FirstName, Name";
+			$q .= "OrderScore DESC, OrderGold DESC, OrderXNine DESC, QuScore Desc, FirstName, Name";
 
 			$r=safe_r_sql($q);
 
@@ -378,8 +413,8 @@
 							'meta' => array(
 								'event' => $curEvent,
 								'descr' => ($isAbs ? $myRow->EvEventName : get_text($myRow->DivDescription,'','',true) . " - " . get_text($myRow->ClDescription,'','',true)),
-								'printHeader' => get_text('AfterXArrows', 'Common', $ArrowNo),
-								'snapArrows' => $ArrowNo,
+								'printHeader' => get_text('AfterXArrows', 'Common', $myRow->ArrowNo),
+								'snapArrows' => $myRow->ArrowNo,
 								'numDist' => $distValid,
 								'qualifiedNo' => $myRow->QualifiedNo,
 								'snapDistance' => $SnapDistance,
@@ -429,11 +464,11 @@
 						'rank' => $myRank,
 						'score' => $myRow->Score,
 						'completeScore' => $myRow->Score,
-						'recordGap' => ($ArrowNo*10)-$myRow->OrderScore,
+						'recordGap' => ($myRow->ArrowNo*10)-$myRow->OrderScore,
 						'gold' => $myRow->Gold,
 						'xnine' => $myRow->XNine,
 						'arrowsShot' => $myRow->Hits,
-						'scoreSnap' => $myRow->OrderScore,
+						'scoreSnap' => $myRow->MaxArrows==$CatsDone[$myRow->IndEvent] ? $myRow->Score : $myRow->OrderScore,
 						'goldSnap' => $myRow->OrderGold,
 						'xnineSnap' => $myRow->OrderXnine,
 						'dist_Snap' => '0' . '|' . $myRow->{'EqScore'} . '|' . $myRow->{'EqGold'} . '|' . $myRow->{'EqXNine'}
@@ -448,8 +483,8 @@
 					$item = $item + $distFields;
 
 					//Gestisco il numero di frecce tirate per sessione
-					if(empty($section["meta"]["arrowsShot"][$myRow->Session]) || $section["meta"]["arrowsShot"][$myRow->Session]<=$ArrowNo)
-						$section["meta"]["arrowsShot"][$myRow->Session] = $ArrowNo;
+					if(empty($section["meta"]["arrowsShot"][$myRow->Session]) || $section["meta"]["arrowsShot"][$myRow->Session]<=$myRow->ArrowNo)
+						$section["meta"]["arrowsShot"][$myRow->Session] = $myRow->ArrowNo;
 
 					// e lo aggiungo alla sezione
 					//print_r($item);

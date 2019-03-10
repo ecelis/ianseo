@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclTeams, AclReadOnly);
 	require_once('Common/Fun_FormatText.inc.php');
 
 	if(!empty($_FILES) and !empty($_FILES['ImportBackNumbers']['tmp_name']) ) {

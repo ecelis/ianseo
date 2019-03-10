@@ -15,10 +15,10 @@ require_once(dirname(dirname(__FILE__)).'/lib.php');
 CreateStandardDivisions($TourId, '3D');
 
 // default SubClasses
-CreateSubClass($TourId, 1, '00', '00');
+//CreateSubClass($TourId, 1, '00', '00');
 
 // default Classes
-CreateStandardClasses($TourId, $SubRule);
+CreateStandard3DClasses($TourId, $SubRule);
 
 // default Distances
 switch($TourType) {

@@ -1,6 +1,7 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
+checkACL(AclAccreditation, AclReadOnly);
 
 $TourId=$_SESSION['TourId'];
 if($_SESSION['AccreditationTourIds']) $TourId=$_SESSION['AccreditationTourIds'];
@@ -151,8 +152,6 @@ function import_Entries($filename) {
 	$EnToDel=array();
 
 	$Gara=unserialize(gzuncompress(implode('',file($filename))));
-
-// 	debug_svela($Gara['Entries']);
 
 	$Tours=array();
 	$Codes=array();

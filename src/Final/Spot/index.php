@@ -6,8 +6,6 @@
  * (indipendentemente dal flag di live).
  *
  */
-	define ("debug",false);		// true per l'ouput di debug
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
@@ -23,6 +21,7 @@
 	} else {
 		$TourId=getIdFromCode(GetIsParameter('IsCode'));
 	}
+	checkACL(AclOutput,AclReadOnly, true, $TourId);
 
 /**********************
   Cerco l'evento LIVE
@@ -42,6 +41,7 @@
 	$JS_SCRIPT=array(
 		phpVars2js(array('Event'=>$Event, 'MatchNo'=>$MatchNo, 'Team'=>$Team,'Lock'=>$Lock,'WebDir'=>$CFG->ROOT_DIR, 'Phase'=>$Phase, 'TourId'=>$TourId)).
 		'<link href="Common/style.css" media="screen" rel="stylesheet" type="text/css">',
+		'<link href="Common/printer.css" media="print" rel="stylesheet" type="text/css">',
 		'<script type="text/javascript" src="../../Common/js/Fun_JS.inc.js"></script>',
 		'<script type="text/javascript" src="../../Common/ajax/ObjXMLHttpRequest.js"></script>',
 		"<script>var Event='$Event'; var MatchNo=$MatchNo; var Team=$Team; var Lock=$Lock; var WebDir='$CFG->ROOT_DIR'; var Phase=$Phase; </script>",
@@ -70,9 +70,9 @@
 	$Rs=safe_r_sql($Select);
 
 	if (safe_num_rows($Rs)>0) {
-		$comboEvents .='<option value="">----</option>' . "\n";
+		$comboEvents .='<option value="">----</option>';
 		while ($Row=safe_fetch($Rs)) {
-			$comboEvents.='<option value="0-' . $Row->EvCode . '">' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>' . "\n";
+			$comboEvents.='<option value="0-' . $Row->EvCode . '">' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>';
 		}
 	}
 
@@ -84,13 +84,13 @@
 	$Rs=safe_r_sql($Select);
 
 	if (safe_num_rows($Rs)>0) {
-		$comboEvents .='<option value="">----</option>' . "\n";
+		$comboEvents .='<option value="">----</option>';
 		while ($Row=safe_fetch($Rs)) {
-			$comboEvents.='<option value="1-' . $Row->EvCode . '">' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>' . "\n";
+			$comboEvents.='<option value="1-' . $Row->EvCode . '">' . $Row->EvCode . ' - ' . get_text($Row->EvEventName,'','',true) . '</option>';
 		}
 	}
 	$comboEvents
-		.='</select>' . "\n";
+		.='</select>';
 
 ?>
 <form name="FrmParam" method="GET" action="" style="display:none">

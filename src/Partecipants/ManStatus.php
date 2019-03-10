@@ -3,6 +3,7 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclParticipants, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 
 	$JS_SCRIPT=array(
@@ -42,7 +43,7 @@
 			. '<td class="Title" width="4%">' . get_text('Country') . '</td>'
 			. '<td class="Title" width="11%">' . get_text('NationShort','Tournament') . '</td>'
 			. '<td class="Title" width="11%">' . get_text('Status','Tournament') . '</td>';
-		print '</tr>' . "\n";
+		print '</tr>';
 
 		while ($MyRow=safe_fetch($Rs))
 		{
@@ -67,11 +68,11 @@
 			}
 
 			$ComboStatus
-				 = '<select name="d_e_EnStatus_' . $MyRow->EnId . '" id="d_e_EnStatus_' . $MyRow->EnId . '" onChange="javascript:UpdateStatus(\'d_e_EnStatus_' . $MyRow->EnId . '\');">' . "\n"
-				 . '<option value="1"' . ($MyRow->EnStatus==1 ? ' selected' : '') . '>' . get_text('Status_1') . '</option>' . "\n"
-				 . '<option value="5"' . ($MyRow->EnStatus==5 ? ' selected' : '') . '>' . get_text('Status_5') . '</option>' . "\n"
-				 . '<option value="8"' . ($MyRow->EnStatus==8 ? ' selected' : '') . '>' . get_text('Status_8') . '</option>' . "\n"
-				 . '</select>' . "\n";
+				 = '<select name="d_e_EnStatus_' . $MyRow->EnId . '" id="d_e_EnStatus_' . $MyRow->EnId . '" onChange="javascript:UpdateStatus(\'d_e_EnStatus_' . $MyRow->EnId . '\');">'
+				 . '<option value="1"' . ($MyRow->EnStatus==1 ? ' selected' : '') . '>' . get_text('Status_1') . '</option>'
+				 . '<option value="5"' . ($MyRow->EnStatus==5 ? ' selected' : '') . '>' . get_text('Status_5') . '</option>'
+				 . '<option value="8"' . ($MyRow->EnStatus==8 ? ' selected' : '') . '>' . get_text('Status_8') . '</option>'
+				 . '</select>';
 ?>
 <tr <?php print 'id="Row_' . $MyRow->EnId . '" class="' . $RowStyle . '"';?>>
 <td><?php print ($MyRow->EnCode!='' ? $MyRow->EnCode : '&nbsp;'); ?></td>

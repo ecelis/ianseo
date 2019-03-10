@@ -10,11 +10,11 @@ define('debug',false);
 	require_once dirname(dirname(__FILE__)).'/Qualification/Fun_Qualification.local.inc.php';
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite,false);
 
 	$Errore=0;
 
@@ -64,8 +64,8 @@ define('debug',false);
 	if ($Errore==0)
 	{
 		$recalc=false;
-		$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$zeroOld=null;
-		$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+		$indFEventOld=$teamFEventOld=$countryOld=$divOld=$clOld=$subClOld=$zeroOld=null;
+		$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 	// se la vecchia classe è diversa ricalcolo spareggi e squadre per la vecchia e la nuova
 		$query= "SELECT EnClass FROM Entries WHERE EnId=" . StrSafe_DB($_REQUEST['EnId']) . " AND EnClass<>" . StrSafe_DB($_REQUEST['d_e_EnClass']) . " ";
@@ -78,7 +78,7 @@ define('debug',false);
 			$x=Params4Recalc($_REQUEST['EnId']);
 			if ($x!==false)
 			{
-				list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld)=$x;
+				list($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld)=$x;
 			}
 		}
 
@@ -89,7 +89,7 @@ define('debug',false);
 			. "WHERE EnId=" . StrSafe_DB($_REQUEST['EnId']) . " ";
 		$RsUp=safe_w_sql($Update);
 
-	// devo capire se il tipo è atleta oppure no. fanculo!
+	// devo capire se il tipo è atleta oppure no.
 		$EnAthlete=1;
 		$query
 			= "SELECT EnDivision,EnClass FROM Entries WHERE EnId=" . StrSafe_DB($_REQUEST['EnId']) . " ";
@@ -138,12 +138,12 @@ define('debug',false);
 				$x=Params4Recalc($_REQUEST['EnId']);
 				if ($x!==false)
 				{
-					list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+					list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 				}
 
 			// ricalcolo il vecchio e il nuovo
-				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$zeroOld);
-				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEventOld,$teamFEventOld,$countryOld,$divOld,$clOld,$subClOld,$zeroOld);
+				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 			// rank di classe x tutte le distanze
 				$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";
@@ -165,9 +165,9 @@ define('debug',false);
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print '<id>' . $_REQUEST['EnId'] . '</id>';
-	print '</response>' . "\n";
+	print '</response>';
 
 ?>

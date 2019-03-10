@@ -1,6 +1,6 @@
 <?php
 /*
-													- DeleteEventRule.php -
+													- DeletePrice.php -
 	Elimina una coppia DivClass da EventClass
 */
 
@@ -13,6 +13,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclCompetition, AclReadWrite,false);
 
 	$Errore=0;
 

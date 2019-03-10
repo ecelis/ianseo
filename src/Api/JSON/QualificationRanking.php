@@ -36,8 +36,6 @@ if($EvType) {
 $rank->read();
 $Data=$rank->getData();
 
-//debug_svela($Data);
-
 foreach($Data['sections'] as $kSec=>$vSec) {
 	$json_array = Array("Event"=>$EvCode, "Type"=>$EvType, "Results"=>array());
 	foreach($vSec['items'] as $kItem=>$vItem) {
@@ -53,8 +51,12 @@ foreach($Data['sections'] as $kSec=>$vSec) {
 			}
 			$tmp["Components"] = $tmpAth;
 		}
-		$tmp += array("Score"=>$vItem["score"], "Gold"=>$vItem["gold"], "XNine"=>$vItem["xnine"]);
-		
+		$tmp += array("Score"=>$vItem["score"], "Gold"=>$vItem["gold"], "XNine"=>$vItem["xnine"],
+            "CT"=>(($vItem["so"]==0 AND $vItem["ct"]>1) ? "1":"0"), "SO"=>($vItem["so"]>0 ? "1":"0"));
+		if($vItem["so"]>0) {
+            $tmp += array("SOValue" => $vItem["tiebreakDecoded"]);
+        }
+
 		$json_array["Results"][] = $tmp;
 	}
 }

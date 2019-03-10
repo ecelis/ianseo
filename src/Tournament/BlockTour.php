@@ -2,6 +2,7 @@
 	define('debug',false);	// settare a true per l'output di debug
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
+    checkACL(AclRoot, AclReadWrite);
 	CheckTourSession(true);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Tournament/Fun_Tournament.local.inc.php');
@@ -81,7 +82,7 @@
 	<div class=half>
 		<form name="Frm" method="post" action="<?php print $_SERVER['PHP_SELF']; ?>">
 			<table class="Tabella">
-				<tr><th colspan="2"><?php print get_text('BlockSetup','Tournament'); ?></th></tr>
+				<tr><th class="Title" colspan="2"><?php print get_text('BlockSetup','Tournament'); ?></th></tr>
 				<?php foreach($labels as $i => $val) { ?>
 					<tr>
 						<td style="width:40%;"><?php print $labels[$i]; ?></td>

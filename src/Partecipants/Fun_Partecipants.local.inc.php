@@ -263,7 +263,7 @@ function GetRows($Id=null,$OrderBy=null,$AllTargets=false)
 	if (!$AllTargets)
 	{
 		$Select
-			= "SELECT e.*,IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob,c.CoCode,c.CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2,  c3.CoCode AS CoCode3,c3.CoName AS CoName3,"
+			= "SELECT e.*,IF(EnDob!='0000-00-00',EnDob,'0000-00-00') AS Dob,c.CoCode,c.CoName,c2.CoCode AS CoCode2,c2.CoName AS CoName2,  c3.CoCode AS CoCode3,c3.CoName AS CoName3,"
 			. "q.QuSession AS `Session`,SUBSTRING(q.QuTargetNo,2) AS TargetNo,ToWhenFrom,TfName, "
 			. "eextra.EdEmail, zextra.EdExtra locBib, cextra.EdExtra EnCaption "
 			. "FROM Entries AS e LEFT JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament "
@@ -293,7 +293,7 @@ function GetRows($Id=null,$OrderBy=null,$AllTargets=false)
 				. "AvailableTarget LEFT JOIN ("
 					. "SELECT "
 						. "EnId,EnIocCode,EnTournament,EnDivision,EnClass,EnSubClass,EnAgeClass,eextra.EdEmail,zextra.EdExtra, cextra.EdExtra EnCaption,"
-						. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob,"
+						. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,IF(EnDob!='0000-00-00',EnDob,'0000-00-00') AS Dob,"
 						. "EnCode,EnName,EnFirstName,EnBadgePrinted,EnAthlete,"
 						. "EnSex,EnWChair,EnSitting,EnIndClEvent,EnTeamClEvent,EnIndFEvent,EnTeamFEvent,EnTeamMixEvent,"
 						. "EnDoubleSpace,EnPays,EnStatus,EnTargetFace,EnTimestamp,TfName, "
@@ -317,7 +317,7 @@ function GetRows($Id=null,$OrderBy=null,$AllTargets=false)
 			. "UNION ALL "
 
 			. "(SELECT EnId,EnIocCode,EnTournament,EnDivision,EnClass,EnSubClass,EnAgeClass,"
-				. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,IF(EnDob!='0000-00-00',EnDob,'0000-00-00 00:00:00') AS Dob,"
+				. "EnCountry,EnSubTeam,EnCountry2,EnCountry3,EnCtrlCode,IF(EnDob!='0000-00-00',EnDob,'0000-00-00') AS Dob,"
 				. "EnCode,EnName,EnFirstName,EnBadgePrinted,EnAthlete,"
 				. "EnSex,EnWChair,EnSitting,EnIndClEvent,EnTeamClEvent,EnIndFEvent,EnTeamFEvent,EnTeamMixEvent,"
 				. "EnDoubleSpace,EnPays,EnStatus,EnTargetFace,EnTimestamp,TfName, "
@@ -354,7 +354,7 @@ function GetRows($Id=null,$OrderBy=null,$AllTargets=false)
 				} elseif(empty($DefTargets[$MyRow->EnDivision][$MyRow->EnClass][$MyRow->EnTargetFace])) {
 					// the assigned target face doesn't exists so resets to the first one (default)
 					reset($DefTargets[$MyRow->EnDivision][$MyRow->EnClass]);
-					list($TfId, $TfFace) = each($DefTargets[$MyRow->EnDivision][$MyRow->EnClass]);
+					$TfId = key($DefTargets[$MyRow->EnDivision][$MyRow->EnClass]);
 					safe_w_sql("update Entries set EnTargetFace=$TfId where EnId=$MyRow->EnId");
 					$MyRow->EnTargetFace=$TfId;
 				}
@@ -408,11 +408,11 @@ function GetRows($Id=null,$OrderBy=null,$AllTargets=false)
 
 function Params4Recalc($ath)
 {
-	$indFEvent=$teamFEvent=$country=$div=$cl=null;
+	$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
 
 	$q="
 		SELECT
-			EnIndFEvent,EnTeamFEvent,EnCountry,EnDivision,EnClass,EnStatus,QuScore
+			EnIndFEvent, EnTeamFEvent, EnCountry, EnDivision, EnClass, EnSubClass, EnStatus, QuScore
 		FROM
 			Entries
 			INNER JOIN
@@ -433,19 +433,19 @@ function Params4Recalc($ath)
 		$country=$row->EnCountry;
 		$div=$row->EnDivision;
 		$cl=$row->EnClass;
+		$subCl=$row->EnSubClass;
 		$zero=true;
-		if ($row->EnStatus<=1)
-		{
+		if ($row->EnStatus<=1) {
 			$zero=($row->QuScore==0);
 		}
 
-		return array($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+		return array($indFEvent, $teamFEvent, $country, $div, $cl, $subCl, $zero);
 	}
 	else
 		return false;
 }
 
-function RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero)
+function RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)
 {
 	$Errore=0;
 
@@ -453,14 +453,10 @@ function RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$z
 		return 0;
 
 // scopro se $div e $cl sono per gli atleti
-	$q="
-		SELECT
-			(DivAthlete AND ClAthlete) AS isAth
-		FROM
-			Divisions
-			INNER JOIN
-				Classes
-			ON DivTournament=ClTournament
+	$q="SELECT (DivAthlete AND ClAthlete) AS isAth
+		FROM Divisions
+		INNER JOIN Classes
+		ON DivTournament=ClTournament
 		WHERE
 			DivTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND (DivAthlete AND ClAthlete)=1
 			AND DivId=" . StrSafe_DB($div) . " AND ClId=" . StrSafe_DB($cl) . "
@@ -483,7 +479,7 @@ function RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$z
 					INNER JOIN
 						EventClass
 					ON EvCode=EcCode AND EvTeamEvent='0' AND EvTournament=EcTournament AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND
-					EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . "
+					EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . " and if(EcSubClass='', true, EcSubClass='$subCl')
 					INNER JOIN
 						Individuals
 					ON EvCode=IndEvent AND EvTournament=IndTournament AND EvTeamEvent=0 AND EvTournament={$_SESSION['TourId']}
@@ -504,7 +500,7 @@ function RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$z
 					INNER JOIN
 						EventClass
 					ON EvCode=EcCode AND EvTeamEvent='1' AND EvTournament=EcTournament AND EcTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND
-					EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . "
+					EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . " and if(EcSubClass='', true, EcSubClass='$subCl')
 				SET
 					EvShootOff='0',
 					EvE1ShootOff='0',

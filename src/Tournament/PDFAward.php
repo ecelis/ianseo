@@ -1,11 +1,12 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/OrisPDF.inc.php');
-require_once('Common/Fun_Modules.php');
+checkACl(AclCompetition,AclReadOnly);
 
 $arrPosition=array('','1st','2nd','3rd','4th','5th');
 $par_RepresentCountry = getModuleParameter('Awards','RepresentCountry',1);
 $par_PlayAnthem = getModuleParameter('Awards','PlayAnthem',1);
+$par_ShowPoints = getModuleParameter('Awards','ShowPoints',0);
 
 $ReversedCountries="if(EnNameOrder=1, CONCAT(UPPER(EnFirstName), ' ', EnName), CONCAT(EnName, ' ', UPPER(EnFirstName)))";
 
@@ -20,8 +21,8 @@ $pdf->lBorder=0;
 $pdf->setPhase(get_text('MenuLM_PrintAwards'));
 if(getModuleParameter('Awards', 'SecondLanguage')) {
 	$pdf->SecondLang=getModuleParameter('Awards', 'SecondLanguageCode');
-	$pdf->lBorder='L';
-	if($pdf->SecondLang=='cn') {
+	$pdf->lBorder='R';
+	if(in_array($pdf->SecondLang, array('zh-cn', 'zh-tw'))) {
 		$pdf->FontStd2='droidsansfallback';
 		$pdf->FontFix2='droidsansfallback';
 	}
@@ -31,10 +32,11 @@ error_reporting(E_ALL);
 
 $idList=array();
 //Lista Premiazione in Ordine
-$sqlOrder = "SELECT AwEvent, AwEventTrans, AwPositions, AwFinEvent, AwTeam, AwGroup, AwOrder, AwAwarderGrouping "
-	. "FROM Awards "
-	. "WHERE AwTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND AwUnrewarded=0 AND AwGroup!=0 "
-	. "ORDER BY AwGroup, AwOrder, AwEvent, AwFinEvent DESC, AwTeam";
+$sqlOrder = "SELECT AwEvent, AwEventTrans, AwPositions, AwFinEvent, AwTeam, AwGroup, AwOrder, AwAwarderGrouping, EvFinalFirstPhase 
+	FROM Awards
+	left join Events on EvTournament=AwTournament and EvTeamEvent=AwTeam and EvCode=AwEvent
+	WHERE AwTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND AwUnrewarded=0 AND AwGroup!=0 
+	ORDER BY AwGroup, AwOrder, AwEvent, AwFinEvent DESC, AwTeam";
 $rsOrder = safe_r_sql($sqlOrder);
 while($rowOrder=safe_fetch($rsOrder)) {
 	if(strstr($rowOrder->AwEvent, 'Custom-')) {
@@ -50,7 +52,23 @@ while($rowOrder=safe_fetch($rsOrder)) {
 		$data=array();
 		$tmpNum=$Num;
 		while(getModuleParameter('Awards','Aw-CustomEvent-1-'. $Num)==$CustomEvent) {
-			$data[]=array(array($Num), getModuleParameter('Awards','Aw-CustomWinner-1-'. $Num), getModuleParameter('Awards','Aw-CustomNation-1-'. $Num), 'coCode', 'EvCode', 'Score', 'Ori', 'XNine');
+			$Winner1=getModuleParameter('Awards','Aw-CustomWinner-1-'. $Num);
+			$Winner2=getModuleParameter('Awards','Aw-CustomWinner-2-'. $Num);
+			if($Winner2) {
+				$Winner=array($Winner1, $Winner2);
+			} else {
+				$Winner=$Winner1;
+			}
+
+			// get the nation
+			$Country=getModuleParameter('Awards','Aw-CustomNation-1-'. $Num);
+			//// check if we already have it
+			//$coq=safe_r_sql("select * from Countries where CoCode=".StrSafe_DB($Country)." and CoTournament={$_SESSION['TourId']}");
+			//if($cor=safe_fetch($coq)) {
+			//	$Country=$cor->CoName;
+			//}
+
+			$data[]=array(array($Num), $Winner, $Country, $Country, 'EvCode', 'Score', 'Ori', 'XNine');
 
 			$Num++;
 		}
@@ -60,7 +78,9 @@ while($rowOrder=safe_fetch($rsOrder)) {
 	} else {
 		$sql="";
 		if($rowOrder->AwFinEvent==0 && $rowOrder->AwTeam==0) {
-			$sql = "SELECT AwAwarderGrouping, EnId, concat(EnDivision,EnClass) EvCode, concat(EnDivision,EnClass) EventTranslation, CoCode, $ReversedCountries AS Athlete, CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', CoNameComplete, CoName)) AS Country, CONCAT(DivDescription, ' - ', ClDescription) as Category, 1 as Counter,
+			$sql = "SELECT AwAwarderGrouping, EnId, concat(EnDivision,EnClass) EvCode, concat(EnDivision,EnClass) EventTranslation, CoCode, $ReversedCountries AS Athlete, 
+				CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', if(ToLocRule='FR', concat(CoName, ' (',CoNameComplete,')'), CoNameComplete), CoName)) AS Country, 
+				CONCAT(DivDescription, ' - ', ClDescription) as Category, 1 as Counter,
 				QuClRank AS Rank, QuScore AS Score, QuGold AS Gold,QuXnine AS XNine, AwDescription, AwAwarders
 				FROM Tournament
 				INNER JOIN Entries ON ToId=EnTournament
@@ -75,7 +95,8 @@ while($rowOrder=safe_fetch($rsOrder)) {
 		}
 		else if($rowOrder->AwFinEvent==1 && $rowOrder->AwTeam==0)
 		{
-			$sql = "SELECT AwAwarderGrouping, EnId, concat(EvTeamEvent,EvCode) EvCode, concat(EvCode,EvTeamEvent) EventTranslation, CoCode, $ReversedCountries AS Athlete, CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', CoNameComplete, CoName)) AS Country, EvEventName as Category, 1 as Counter,
+			$sql = "SELECT AwAwarderGrouping, EnId, concat(EvTeamEvent,EvCode) EvCode, concat(EvCode,EvTeamEvent) EventTranslation, CoCode, $ReversedCountries AS Athlete, 
+				CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', if(ToLocRule='FR', concat(CoName, ' (',CoNameComplete,')'), CoNameComplete), CoName)) AS Country, EvEventName as Category, 1 as Counter,
 				IF(EvFinalFirstPhase=0,IndRank,ABS(IndRankFinal)) as Rank, QuScore AS Score, QuGold AS Gold,QuXnine AS XNine, AwDescription, AwAwarders
 				FROM Tournament
 				INNER JOIN Entries ON ToId=EnTournament
@@ -90,7 +111,7 @@ while($rowOrder=safe_fetch($rsOrder)) {
 		}
 		else if($rowOrder->AwFinEvent==0 && $rowOrder->AwTeam==1)
 		{
-			$sql=" SELECT AwAwarderGrouping, CoCode, '' EvCode, '' EventTranslation, CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', CoNameComplete, CoName), IF(TeSubTeam=0,'',CONCAT(' (',TeSubTeam,')'))) as Country, CONCAT(DivDescription, ' - ', ClDescription) as Category,
+			$sql=" SELECT AwAwarderGrouping, CoCode, '' EvCode, '' EventTranslation, CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', if(ToLocRule='FR', concat(CoName, ' (',CoNameComplete,')'), CoNameComplete), CoName), IF(TeSubTeam=0,'',CONCAT(' (',TeSubTeam,')'))) as Country, CONCAT(DivDescription, ' - ', ClDescription) as Category,
 				EnId, group_concat($ReversedCountries order by EnSex DESC, EnFirstName, EnName separator '|') AS Athlete, Q as Counter,
 				TeRank as Rank, TeScore as Score, TeGold as Gold, TeXnine AS XNine, AwDescription, AwAwarders
 				FROM Tournament
@@ -117,7 +138,16 @@ while($rowOrder=safe_fetch($rsOrder)) {
 		}
 		else if($rowOrder->AwFinEvent==1 && $rowOrder->AwTeam==1)
 		{
-			$sql = " SELECT AwAwarderGrouping, CoCode, concat(EvTeamEvent,EvCode) EvCode, concat(EvCode, EvTeamEvent) EventTranslation, CoId, CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', CoNameComplete, CoName), IF(TeSubTeam=0,'',CONCAT(' (',TeSubTeam,')'))) as Country, EvEventName as Category,
+			$TeamComponent="LEFT JOIN TeamFinComponent  AS tfc ON TeCoId=tfc.TfcCoId AND TeEvent=tfc.TfcEvent AND TeTournament=tfc.TfcTournament AND TeSubTeam=tfc.tfcSubTeam AND TeFinEvent=1
+				LEFT JOIN Entries ON TfcId=EnId";
+			$TeamComponentOrder="TfcOrder";
+			if(!$rowOrder->EvFinalFirstPhase) {
+				$TeamComponent="LEFT JOIN TeamComponent  AS tc ON TeCoId=tc.TcCoId AND TeEvent=tc.TcEvent AND TeTournament=tc.TcTournament AND TeSubTeam=tc.tcSubTeam AND TeFinEvent=1
+					LEFT JOIN Entries ON TcId=EnId";
+				$TeamComponentOrder="TcOrder";
+			}
+			$sql = " SELECT AwAwarderGrouping, CoCode, concat(EvTeamEvent,EvCode) EvCode, concat(EvCode, EvTeamEvent) EventTranslation, CoId, 
+				CONCAT(" . ($_SESSION["ISORIS"] ? '' : "CoCode, ' ', ") . "if(CoNameComplete>'', if(ToLocRule='FR', concat(CoName, ' (',CoNameComplete,')'), CoNameComplete), CoName), IF(TeSubTeam=0,'',CONCAT(' (',TeSubTeam,')'))) as Country, EvEventName as Category,
 				EnId, group_concat($ReversedCountries order by EnSex DESC, EnFirstName, EnName separator '|') AS Athlete, Q as Counter,
 				IF(EvFinalFirstPhase=0,TeRank,TeRankFinal) as Rank, IF(EvFinalFirstPhase=0,TeScore,IFNULL(TfScore,'')) as Score, IF(EvFinalFirstPhase=0,TeGold,'') as Gold, IF(EvFinalFirstPhase=0,TeXnine,'') AS XNine, AwDescription, AwAwarders
 				FROM Tournament
@@ -127,16 +157,15 @@ while($rowOrder=safe_fetch($rsOrder)) {
 					(SELECT TcCoId, TcEvent, TcTournament, TcFinEvent, TcSubTeam, COUNT(TcId) as Q
 						FROM TeamComponent
 						GROUP BY TcCoId, TcEvent, TcTournament, TcFinEvent, TcSubTeam
-					) AS sq ON TeCoId=sq.TcCoId AND TeEvent=sq.TcEvent AND TeTournament=sq.TcTournament AND TeFinEvent=sq.TcFinEvent AND TeSubTeam=sq.TcSubTeam
-				LEFT JOIN TeamFinComponent  AS tfc ON TeCoId=tfc.TfcCoId AND TeEvent=tfc.TfcEvent AND TeTournament=tfc.TfcTournament AND TeSubTeam=tfc.tfcSubTeam AND TeFinEvent=1
-				LEFT JOIN Entries ON TfcId=EnId
+					) AS sq ON TeCoId=sq.TcCoId AND TeEvent=sq.TcEvent AND TeTournament=sq.TcTournament AND TeFinEvent=sq.TcFinEvent AND TeSubTeam=sq.TcSubTeam 
+				$TeamComponent
 				LEFT JOIN TeamFinals ON TfEvent=TeEvent AND TfTournament=TeTournament AND TfMatchNo<4 AND TfTeam=TeCoId AND TfSubTeam=TeSubTeam
 				INNER JOIN Events ON TeEvent=EvCode AND EvTournament=ToId AND EvTeamEvent=1
 				INNER JOIN Awards ON AwTournament=ToId AND TeEvent like AwEvent AND AwFinEvent=1 AND AwTeam=1 AND AwUnrewarded=0 AND INSTR(AwPositions,IF(EvFinalFirstPhase=0,TeRank,TeRankFinal))!=0
 				WHERE ToId=" . StrSafe_DB($_SESSION['TourId']) . "
 				AND AwEvent=" . StrSafe_DB($rowOrder->AwEvent) . " AND AwFinEvent=" . $rowOrder->AwFinEvent . " AND AwTeam=" . $rowOrder->AwTeam . "
 				group by EvCode, CoId, TeSubTeam
-				ORDER BY EvProgr, TeEvent, INSTR(AwPositions,IF(EvFinalFirstPhase=0,TeRank,TeRankFinal)) ASC, CoCode ASC, TfcOrder ";
+				ORDER BY EvProgr, TeEvent, INSTR(AwPositions,IF(EvFinalFirstPhase=0,TeRank,TeRankFinal)) ASC, CoCode ASC, $TeamComponentOrder ";
 		}
 
 		if($sql!="") {
@@ -182,7 +211,7 @@ $pdf->Output();
 
 function writeData($pdf, $data, $Description, $Category, $Awarders, $indEvent, $Order, $EventTranslated, $Event='') {
 	static $LangCol;
-	GLOBAL $par_RepresentCountry, $par_PlayAnthem, $rowOrder;
+	GLOBAL $par_RepresentCountry, $par_PlayAnthem, $rowOrder, $par_ShowPoints;
 
 	$PlayAnthem=$par_PlayAnthem;
 
@@ -203,17 +232,14 @@ function writeData($pdf, $data, $Description, $Category, $Awarders, $indEvent, $
 
 	//<b>[[$text]@
 
+	$pdf->SetFont($pdf->FontStd,'',13);
+	$lines2=$pdf->multiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Intro-1'), $Category), $pdf->lBorder, 'L', 0, 0);
 	$lines=0;
 	if($pdf->SecondLang) {
 		$pdf->SetFont($pdf->FontStd2,'',13);
-		$lines=$pdf->multiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Intro-2'), $EventTranslated ? $EventTranslated : $Category), 'R', 'L', 0, 0);
+		$lines=$pdf->multiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Intro-2'), $EventTranslated ? $EventTranslated : $Category), 'L', 'L', 0, 0);
 	}
-	$pdf->SetFont($pdf->FontStd,'',13);
-	$lines2=$pdf->multiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Intro-1'), $Category), $pdf->lBorder, 'L', 0, 1);
-	while($lines2<$lines) {
-		$pdf->ln(6);
-		$lines2++;
-	}
+	$pdf->ln(6*max($lines, $lines2));
 	$pdf->ln(2);
 
 	// Prizes and Awarders
@@ -226,23 +252,26 @@ function writeData($pdf, $data, $Description, $Category, $Awarders, $indEvent, $
 			$Special2=get_text_eval(getModuleParameter('Awards', 'Aw-Special-2'), getModuleParameter('Awards', 'Aw-Awarder-2-'.$v));
 			continue;
 		}
+		$pdf->SetFont($pdf->FontStd,'',13);
+		list($Name, $Title) = @explode(',', getModuleParameter('Awards', 'Aw-Awarder-1-'.$v), 2);
+		$lines2=$pdf->MultiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Award-1-'.$k), $Title), $pdf->lBorder, 'L', 0, 0);
 		$lines=0;
 		if($pdf->SecondLang) {
+			list(, $Title) = @explode(',', getModuleParameter('Awards', 'Aw-Awarder-2-'.$v), 2);
 			$pdf->SetFont($pdf->FontStd2,'',13);
-			$lines=$pdf->MultiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Award-2-'.$k), getModuleParameter('Awards', 'Aw-Awarder-2-'.$v)), 'R', 'L', 0, 0);
+			$lines=$pdf->MultiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Award-2-'.$k), $Title), 'L', 'L', 0, 0);
 		}
-		$pdf->SetFont($pdf->FontStd,'',13);
-		$lines2=$pdf->MultiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-Award-1-'.$k), getModuleParameter('Awards', 'Aw-Awarder-1-'.$v)), $pdf->lBorder, 'L', 0, 1);
-		while($lines2<$lines) {
-			$pdf->ln(6);
-			$lines2++;
-		}
+		$pdf->ln(6*max($lines, $lines2));
+		$pdf->SetFont($pdf->FontStd,'B',13);
+		$pdf->MultiCell(0, 6, $Name, 0, 'C', 0, 1);
 		$pdf->ln(2);
 	}
 
 	// Single medals
 	$WinNat='';
 	for($i=count($data)-1; $i>=0; $i--)	{
+		$Club1='';
+		$Club2='';
 		if($par_RepresentCountry) {
 			$Club1=(get_text($data[$i][3], 'IOC_Codes', '', '1', '', $pdf->FirstLang)==$data[$i][3] ? $data[$i][2] : get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->FirstLang));
 			$Club2=(get_text($data[$i][3], 'IOC_Codes', '', '1', '', $pdf->SecondLang)==$data[$i][3] ? $data[$i][2] : get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->SecondLang));
@@ -265,98 +294,112 @@ function writeData($pdf, $data, $Description, $Category, $Awarders, $indEvent, $
 				$med1=getModuleParameter('Awards','Aw-CustomPrize-1-'. $data[$i][0][0]);
 				$med2=getModuleParameter('Awards','Aw-CustomPrize-2-'. $data[$i][0][0]);
 			}
+			$pdf->SetFont($pdf->FontStd,'',13);
+			$lines2=$pdf->MultiCell($LangCol, 6, get_text_eval($med1, $Club1), $pdf->lBorder, 'L', 0, 0);
 			$lines=0;
 			if($pdf->SecondLang) {
 				$pdf->SetFont($pdf->FontStd2,'',13);
-				$lines=$pdf->MultiCell($LangCol, 6, get_text_eval($med2, $Club2), 'R', 'L', 0, 0);
+				$lines=$pdf->MultiCell($LangCol, 6, get_text_eval($med2, $Club2), 'L', 'L', 0, 0);
 			}
-			$pdf->SetFont($pdf->FontStd,'',13);
-			$lines2=$pdf->MultiCell($LangCol, 6, get_text_eval($med1, $Club1), $pdf->lBorder, 'L', 0, 1);
 
-			while($lines2<$lines) {
-				$pdf->ln(6);
-				$lines2++;
-			}
+			$pdf->ln(6*max($lines, $lines2));
 		}
 
-		if($par_RepresentCountry) {
-			$Club1=(get_text($data[$i][3], 'IOC_Codes', '', '1', '', $pdf->FirstLang)==$data[$i][3] ? $data[$i][2] : get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->FirstLang));
-			$Club2=(get_text($data[$i][3], 'IOC_Codes', '', '1', '', $pdf->SecondLang)==$data[$i][3] ? $data[$i][2] : get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->SecondLang));
+		if($par_RepresentCountry and $Club1) {
+			if($Club1=get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->FirstLang, false)) {
+				$Club2=get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->SecondLang, false);
+			} else {
+				$Club1=(get_text($data[$i][3], 'IOC_Codes', '', '1', '', $pdf->FirstLang)==$data[$i][3] ? $data[$i][2] : get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->FirstLang));
+				$Club2=(get_text($data[$i][3], 'IOC_Codes', '', '1', '', $pdf->SecondLang)==$data[$i][3] ? $data[$i][2] : get_text($data[$i][3], 'IOC_Codes', '', '', '', $pdf->SecondLang));
+			}
+
 //if(is_array($Club1))
+			$pdf->SetFont($pdf->FontStd,'',13);
+			$lines2=$pdf->MultiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-representing-1'), $Club1), $pdf->lBorder, 'L', 0, 0);
+			$lines=0;
 			if($pdf->SecondLang) {
 				$pdf->SetFont($pdf->FontStd2,'',13);
-				$pdf->Cell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-representing-2'), $Club2) , 'R', 0, 'L', 0);
+				$lines=$pdf->MultiCell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-representing-2'), $Club2), 'L', 'L', 0, 0);
 			}
-			$pdf->SetFont($pdf->FontStd,'',13);
-			$pdf->Cell($LangCol, 6, get_text_eval(getModuleParameter('Awards', 'Aw-representing-1'), $Club1), $pdf->lBorder, 1, 'L', 0);
+
+			$pdf->ln(6*max($lines, $lines2));
+		}
+
+		if($par_ShowPoints) {
+			$pdf->Cell($LangCol, 6, get_text_eval('Points').' '.$data[$i][5].'; '.get_text_eval('Golds').' '.$data[$i][6].'; '.get_text_eval('XNine').' '.$data[$i][7], $pdf->lBorder, 1, 'L', 0);
 		}
 
 		if($data[$i][0]==1)
 			$WinNat=$data[$i][3];
 
 		$pdf->SetFont($pdf->FontStd,'B',13);
-		$pdf->Cell(0, 6, $ath, 0, 1, 'C', 0);
+		if(is_array($ath)) {
+			$pdf->SetFont($pdf->FontStd,'',13);
+			$lines2=$pdf->MultiCell($LangCol, 6, $ath[0], $pdf->lBorder, 'L', 0, 0);
+			$lines=0;
+			if($pdf->SecondLang) {
+				$pdf->SetFont($pdf->FontStd2,'',13);
+				$lines=$pdf->MultiCell($LangCol, 6, $ath[1], 'L', 'L', 0, 0);
+			}
+
+			$pdf->ln(6*max($lines, $lines2));
+		} else {
+			$pdf->MultiCell(0, 6, $ath, 0, 'C', 0, 1);
+		}
 		$pdf->SetFont($pdf->FontStd,'',13);
 		$pdf->ln(2);
 	}
 
 	if($WinNat) {
 		if($Special1) {
+			$lines2=$pdf->MultiCell($LangCol, 6, $Special1, $pdf->lBorder, 'L', 0, 0);
 			$lines=0;
-			if($pdf->SecondLang) $lines=$pdf->MultiCell($LangCol, 6, $Special2, 'R', 'L', 0, 0);
-			$lines2=$pdf->MultiCell($LangCol, 6, $Special1, $pdf->lBorder, 'L', 0, 1);
-			while($lines2<$lines) {
-				$pdf->ln(6);
-				$lines2++;
+			if($pdf->SecondLang) {
+				$lines=$pdf->MultiCell($LangCol, 6, $Special2, 'L', 'L', 0, 0);
 			}
+			$pdf->ln(6*max($lines, $lines2));
 		}
 
 		if($PlayAnthem) {
 			writeHiLight($pdf,"ANTHEM");
 			$lines=0;
 			if($data[0][3]=='TPE') {
+				$pdf->SetFont($pdf->FontStd,'',13);
+				$lines2=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-TPE-1')), $pdf->lBorder, 'L', 0, 0);
 				if($pdf->SecondLang) {
 					$pdf->SetFont($pdf->FontStd2,'',13);
-					$lines=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-TPE-2')), 'R', 'L', 0, 0);
+					$lines=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-TPE-2')), 'L', 'L', 0, 0);
 				}
-				$pdf->SetFont($pdf->FontStd,'',13);
-				$lines2=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-TPE-1')), $pdf->lBorder, 'L', 0, 1);
 			} else {
+				$pdf->SetFont($pdf->FontStd,'',13);
+				$lines2=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-1')), $pdf->lBorder, 'L', 0, 0);
 				if($pdf->SecondLang) {
 					$pdf->SetFont($pdf->FontStd2,'',13);
-					$lines=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-2')), 'R', 'L', 0, 0);
+					$lines=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-2')), 'L', 'L', 0, 0);
 				}
-				$pdf->SetFont($pdf->FontStd,'',13);
-				$lines2=$pdf->multiCell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Anthem-1')), $pdf->lBorder, 'L', 0, 1);
 			}
-			while($lines2<$lines) {
-				$pdf->ln();
-				$lines2++;
-			}
+			$pdf->ln(6*max($lines, $lines2));
 
+			$pdf->SetFont($pdf->FontStd,'B',13);
+			$pdf->Cell($LangCol, 7, $Club1, $pdf->lBorder, 0, 'C', 0);
 			if($pdf->SecondLang) {
 				$pdf->SetFont($pdf->FontStd2,'',13);
-				$pdf->Cell($LangCol, 7, $Club2, 'R', 0, 'C', 0);
+				$pdf->Cell($LangCol, 7, $Club2, 'L', 0, 'C', 0);
 			}
-			$pdf->SetFont($pdf->FontStd,'B',13);
-			$pdf->Cell($LangCol, 7, $Club1, $pdf->lBorder, 1, 'C', 0);
 
-			$pdf->ln(2);
+			$pdf->ln(8);
 		}
 
 		$pdf->SetFont($pdf->FontStd,'',13);
 		writeHiLight($pdf,"ACKNOWLEDGE MEDALLISTS");
+		$pdf->SetFont($pdf->FontStd,'',13);
+		$lines2=$pdf->multicell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Applause-1')), $pdf->lBorder, 'L', 0, 0);
 		$lines=0;
 		if($pdf->SecondLang) {
 			$pdf->SetFont($pdf->FontStd2,'',13);
-			$lines=$pdf->multicell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Applause-2')), 'R', 'L', 0, 0);
+			$lines=$pdf->multicell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Applause-2')), 'L', 'L', 0, 0);
 		}
-		$pdf->SetFont($pdf->FontStd,'',13);
-		$lines2=$pdf->multicell($LangCol, 7, get_text_eval(getModuleParameter('Awards', 'Aw-Applause-1')), $pdf->lBorder, 'L', 0, 1);
-		while($lines2<$lines) {
-			$pdf->ln(6);
-			$lines2++;
-		}
+		$pdf->ln(6*max($lines, $lines2));
 	}
 }
 
@@ -374,4 +417,3 @@ function writeHiLight($pdf, $text='')
 	$pdf->setfontsize(12);
 	$pdf->SetDefaultColor();
 }
-?>

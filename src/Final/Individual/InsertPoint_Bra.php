@@ -1,8 +1,7 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	CheckTourSession(true);
+    checkACL(AclIndividuals, AclReadWrite);
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
 	require_once('Common/Fun_Phases.inc.php');
@@ -94,9 +93,9 @@
 			$RowPar=safe_fetch($RsParam);
 			$StartPhase=$RowPar->StartPhase;
 
-			$GridRows = 2* ($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase)) + 2 + 2* ($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase));	// righe della griglia
+			$GridRows = 4*valueFirstPhase($StartPhase) + 2;	// righe della griglia
 
-			$alpha=ceil(log10(($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase)))/log10(2));
+			$alpha=ceil(log(valueFirstPhase($StartPhase), 2));
 			$GridCols=2*$alpha+1;	// Colonne della griglia
 
 
@@ -160,7 +159,7 @@
 
 			// Estraggo la griglia della fase $CurPhase
 				$Select
-					= "SELECT GrPhase,IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition,GrMatchNo,EvMatchMode, "
+					= "SELECT GrPhase, IF(EvFinalFirstPhase=48, GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) as GrPosition,GrMatchNo,EvMatchMode, "
 					. "FinNotes, FinMatchNo, FinEvent, FinAthlete, IF(EvMatchMode=0,FinScore,FinSetScore) AS Score, FinTie, FinTiebreak,/* Finals*/"
 					. "CONCAT(EnFirstName,' ',SUBSTRING(EnName,1,1),'.') AS Atleta, /* Entries*/"
 					. "CoCode,CoName, /*Countries*/"
@@ -173,18 +172,15 @@
 					. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($_REQUEST['d_Event']) . " "
 					. "ORDER BY FinEvent, GrPhase DESC , GrMatchNo ASC ";
 				$Rs=safe_r_sql($Select);
-				//print $Select . '<br><br>';
 
 				$StrValue = '';
 
-				if (safe_num_rows($Rs)>0)
-				{
+				if (safe_num_rows($Rs)>0) {
 					$obj=getEventArrowsParams($_REQUEST['d_Event'],$CurPhase,0);
 
 					$Bottone = '<input type="button" name="CmdBlockPhase_' . $CurPhase . '" id="CmdBlockPhase_' . $CurPhase . '" value="' . get_text('CmdEnable') . '" onClick="javascript:BlockPhase(' . $CurPhase . ',\'' . get_text('CmdEnable') . '\',\'' . get_text('CmdDisable') . '\',' . $obj->so . ');">';
 				// righe di testa della fase
-					for ($i=0;$i<=$HeadRows+2;++$i)
-					{
+					for ($i=0;$i<=$HeadRows+2;++$i) {
 					// se sto stampando l'ultima riga di testa scrivo la fase
 						//$MyGrid[$Row++][$Col].= '<td  nowrap class="Center" colspan="5">' . ($i==$HeadRows ? get_text($CurPhase . '_Phase') : '&nbsp;') . '</td>';
 
@@ -206,7 +202,7 @@
 					{
 						$obj=getEventArrowsParams($MyRow->FinEvent,$MyRow->GrPhase,0);
 
-						if (!isFirstPhase($StartPhase,$MyRow->GrPhase))
+						if (!isFirstPhase($StartPhase, $MyRow->GrPhase))
 						{
 							$TipoBordo=($Ultima%2==0 ? 'Bottom' : '');
 							$MyGrid[$Row][$Col].= '<td  nowrap class="Center ' . $TipoBordo . '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>';
@@ -234,10 +230,15 @@
 							$MyGrid[$Row][$Col].= '</select>&nbsp;' . "\n";
 
 							$TieBreak = str_pad($MyRow->FinTiebreak,$obj->so,' ',STR_PAD_RIGHT);
-							for ($i=0;$i<$obj->so;++$i)
-							{
-								$MyGrid[$Row][$Col].= '<input  class="disabled" tabindex="' . ($TabIndex++) . '" type="text" size="1" maxlength="3" name="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $i . '" id="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $i . '" value="' . DecodeFromLetter($TieBreak[$i]) . '" onBlur="javascript:SendTieBreak(\'d_t_' . $MyRow->FinEvent . '_' . $MyRow->FinMatchNo . '\',' . ($obj->so) . ');" disabled>';
-							}
+                            for($pSo=0; $pSo<3; $pSo++ ) {
+                                for ($i = 0; $i < $obj->so; ++$i) {
+                                    $ArrI = $i+($pSo*$obj->so);
+                                    $MyGrid[$Row][$Col] .= '<input  class="disabled" tabindex="' . ($TabIndex++) . '" type="text" size="1" maxlength="3" name="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $ArrI . '" id="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $ArrI . '" value="' .
+                                        (!empty($TieBreak[$ArrI]) ? DecodeFromLetter($TieBreak[$ArrI]):'')
+                                        . '" onBlur="javascript:SendTieBreak(\'d_t_' . $MyRow->FinEvent . '_' . $MyRow->FinMatchNo . '\',' . (3*$obj->so) . ');" disabled>';
+                                }
+                                $MyGrid[$Row][$Col] .= '&nbsp;';
+                            }
 							$MyGrid[$Row][$Col].= '<br/><input list="NoteList" value="'.$MyRow->FinNotes.'" tabindex="' . ($TabIndex++) . '" name="d_N_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '" id="d_N_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '" onChange="javascript:SendToServer(\'d_N_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '\');">' . "\n";
 						}
 						else
@@ -284,8 +285,7 @@
 				// righe senza bordo in testa
 					$Row=0;
 					++$Col;
-					for ($i=0;$i<=$HeadLineRows+2;++$i)
-					{
+					for ($i=0;$i<=$HeadLineRows+2;++$i) {
 						$MyGrid[$Row++][$Col].= '<td nowrap class="Center">&nbsp;</td>';
 					}
 
@@ -301,7 +301,7 @@
 								$MyGrid[$Row++][$Col].= '<td class="Center ' . $Key . '">&nbsp;</td>';
 
 								++$kk;
-								if ($kk>(-2+($StartPhase==48 ? 64 : ($StartPhase==24 ? 32 : $StartPhase))*4-$MiddleRows))
+								if ($kk>(-2+valueFirstPhase($StartPhase)*4-$MiddleRows))
 								{
 									break 3;
 								}
@@ -334,7 +334,7 @@
 
 		// Adesso gestisco l'oro e il bronzo
 			$Select
-				= "SELECT GrPhase, IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) as GrPosition,GrMatchNo, EvMatchMode, "
+				= "SELECT GrPhase, GrMatchNo, EvMatchMode, "
 				. "FinNotes,FinMatchNo,FinEvent, FinAthlete, IF(EvMatchMode=0,FinScore,FinSetScore) AS Score, FinTie, FinTiebreak, /* Finals*/"
 				. "CONCAT(EnFirstName,' ',SUBSTRING(EnName,1,1),'.') AS Atleta, /* Entries*/"
 				. "CoCode,CoName, /*Countries*/"
@@ -414,14 +414,18 @@
 						$MyGrid[$Row][$Col].= '</select>&nbsp;' . "\n";
 
 						$TieBreak = str_pad($MyRow->FinTiebreak,$obj->so,' ',STR_PAD_RIGHT);
-						for ($i=0;$i<$obj->so;++$i)
-						{
-							$MyGrid[$Row][$Col].= '<input type="text"  class="disabled" tabindex="' . ($TabIndex++) . '" size="1" name="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $i . '" id="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $i . '" value="' . DecodeFromLetter($TieBreak[$i]) . '"  onBlur="javascript:SendTieBreak(\'d_t_' . $MyRow->FinEvent . '_' . $MyRow->FinMatchNo . '\',' . ($obj->so) . ');" disabled>';
-						}
+
+                        for($pSo=0; $pSo<3; $pSo++ ) {
+                            for ($i = 0; $i < $obj->so; ++$i) {
+                                $ArrI = $i+($pSo*$obj->so);
+                                $MyGrid[$Row][$Col] .= '<input  class="disabled" tabindex="' . ($TabIndex++) . '" type="text" size="1" maxlength="3" name="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $ArrI . '" id="d_t_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '_' . $ArrI . '" value="' .
+                                    (!empty($TieBreak[$ArrI]) ? DecodeFromLetter($TieBreak[$ArrI]):'')
+                                    . '" onBlur="javascript:SendTieBreak(\'d_t_' . $MyRow->FinEvent . '_' . $MyRow->FinMatchNo . '\',' . (3*$obj->so) . ');" disabled>';
+                            }
+                            $MyGrid[$Row][$Col] .= '&nbsp;';
+                        }
 						$MyGrid[$Row][$Col].= '<br/><input list="NoteList" value="'.$MyRow->FinNotes.'" tabindex="' . ($TabIndex++) . '" name="d_N_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '" id="d_N_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '" onChange="javascript:SendToServer(\'d_N_' . $MyRow->FinEvent . '_' . $MyRow->GrMatchNo . '\');">' . "\n";
-					}
-					else
-					{
+					} else {
 						$MyGrid[$Row][$Col].= '&nbsp;';
 					}
 					$MyGrid[$Row][$Col].= '</td>';

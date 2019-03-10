@@ -33,7 +33,6 @@ if (safe_num_rows($q)>0) {
 	$json_array["SecondLanguage"] = getModuleParameter('Awards', 'SecondLanguageCode', '', $TourId);
 	$SecondLanguage = getModuleParameter('Awards','SecondLanguage',0,$TourId);
 	while ($r=safe_fetch($q)) {
-// 		debug_svela($r);
 		if(substr($r->AwEvent, 0 , 7)=='Custom-') {
 			list($dum, $num) = explode('-', $r->AwEvent);
 			$json_array = Array("Event"=>$EvCode, "Type"=>$EvType, "Results"=>array());
@@ -67,7 +66,7 @@ if (safe_num_rows($q)>0) {
 					if($EvType==0) {
 						$tmp += array("Id"=>$vItem["bib"], "FamilyName"=>$vItem["familyname"], "GivenName"=>$vItem["givenname"], "NameOrder"=>$vItem["nameOrder"], "Gender"=>$vItem["gender"]);
 					}
-					$tmp += array("TeamCode"=>$vItem["countryCode"], "TeamName"=>$vItem["countryNameComplete"]);
+					$tmp += array("TeamCode"=>$vItem["countryCode"], "TeamName"=>$vItem["countryName"]);
 					if($EvType==1) {
 						$tmpAth=array();
 						foreach($vItem["athletes"] as $kAth=>$vAth) {
@@ -87,38 +86,3 @@ if (safe_num_rows($q)>0) {
 
 // Return the json structure with the callback function that is needed by the app
 SendResult($json_array);
-
-
-/*
-
-
-
-
-//debug_svela($Data);
-
-foreach($Data['sections'] as $kSec=>$vSec) {
-$json_array = Array("Event"=>$EvCode, "Type"=>$EvType, "Results"=>array());
-foreach($vSec['items'] as $kItem=>$vItem) {
-$tmp = array("Rank"=>$vItem["rank"]);
-if($EvType==0) {
-$tmp += array("Id"=>$vItem["bib"], "FamilyName"=>$vItem["familyname"], "GivenName"=>$vItem["givenname"], "NameOrder"=>$vItem["nameOrder"], "Gender"=>$vItem["gender"]);
-}
-$tmp += array("TeamCode"=>$vItem["countryCode"], "TeamName"=>$vItem["countryNameComplete"]);
-if($EvType==1) {
-$tmpAth=array();
-foreach($vItem["athletes"] as $kAth=>$vAth) {
-$tmpAth[$kAth]= array("Id"=>$vAth["bib"], "FamilyName"=>$vAth["familyname"], "GivenName"=>$vAth["givenname"], "NameOrder"=>$vAth["nameOrder"], "Gender"=>$vAth["gender"]);
-}
-$tmp["Components"] = $tmpAth;
-}
-//$tmp += array("Score"=>$vItem["score"], "Gold"=>$vItem["gold"], "XNine"=>$vItem["xnine"]);
-
-$json_array["Results"][] = $tmp;
-}
-}
-
-// Return the json structure with the callback function that is needed by the app
-SendResult($json_array);
-
-
-*/

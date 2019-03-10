@@ -3,11 +3,11 @@
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 	require_once('Qualification/Fun_Qualification.local.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$error = 0;
 
@@ -21,7 +21,7 @@
 			list($field,$id)=explode('_',$p);
 
 			$recalc=false;
-			$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+			$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 
 			// se cambio status ricalcolo gli spareggi
 			$query= "SELECT EnClass FROM Entries WHERE EnId=" . StrSafe_DB($id) . " AND " . $field . "<>" . StrSafe_DB($v) . " ";
@@ -33,7 +33,7 @@
 				$x=Params4Recalc($id);
 				if ($x!==false)
 				{
-					list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$x;
+					list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$x;
 				}
 			}
 
@@ -58,7 +58,7 @@
 			{
 				// ricalcolo il vecchio e il nuovo
 				if (!is_null($indFEvent))
-				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 				// rank di classe x tutte le distanze
 				$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";
@@ -80,7 +80,7 @@
 		$error=1;
 
 	$xml ='<response>'
-		. '<error>' . $error . '</error>' . "\n"
+		. '<error>' . $error . '</error>'
 		. '</response>';
 
 	header('Content-type: text/xml; charset=' . PageEncode);

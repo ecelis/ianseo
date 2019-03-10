@@ -1,6 +1,7 @@
 <?php
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	CheckTourSession(true);
+	checkACL(AclCompetition,AclReadWrite);
 
 	$PAGE_TITLE=get_text('Sign/guide-board','Tournament');
 	include('Common/Templates/head.php');

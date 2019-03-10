@@ -1,7 +1,7 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
-
 CheckTourSession(true);
+checkACL(AclCompetition, AclReadWrite);
 
 if(!empty($_REQUEST['Delete'])) {
 	safe_w_sql("delete from FinWarmup where
@@ -38,7 +38,7 @@ echo '<tbody id="tbody">';
 echo '<tr><th class="Title" colspan="9">'.get_text('ManTraining', 'Tournament').'</th></tr>';
 echo '<tr>';
 echo '<th colspan="2">'.get_text('DateTimeViewFmt').'</th>';
-echo '<th>'.get_text('MatchMins', 'Tournament').'</th>';
+echo '<th>'.get_text('WarmUpMins', 'Tournament').'</th>';
 echo '<th>'.get_text('IndEventList').'</th>';
 echo '<th>'.get_text('TeamEventList').'</th>';
 echo '<th>'.get_text('WarmupTargets', 'Tournament').'</th>';

@@ -10,6 +10,7 @@ define('debug',false);
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 
 CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite, false);
 
 $Errore = 1;
 
@@ -26,39 +27,39 @@ if (!IsBlocked(BIT_BLOCK_PARTICIPANT)) {
 	$Rs=safe_r_sql($Select);
 	$Row=safe_fetch($Rs);
 	for ($i=1;$i<=$Row->ToNumSession; $i++) {
-		$xml .= '<sessions>' . $i . '</sessions>' . "\n";
+		$xml .= '<sessions>' . $i . '</sessions>';
 	}
 
 	$Select = "SELECT DivId FROM Divisions WHERE DivTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY DivViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
 	while ($Row=safe_fetch($Rs)) {
-		$xml .= '<divisions>' . $Row->DivId . '</divisions>' . "\n";
+		$xml .= '<divisions>' . $Row->DivId . '</divisions>';
 	}
 
 	$Arr_Cl = array();
 	$Select = "SELECT ClId FROM Classes WHERE ClTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY ClViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
 	while ($Row=safe_fetch($Rs)) {
-		$xml .= '<classes>' . $Row->ClId . '</classes>' . "\n";
+		$xml .= '<classes>' . $Row->ClId . '</classes>';
 	}
 
 	$Arr_SubCl = array();
 	$Select = "SELECT ScId FROM SubClass WHERE ScTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY ScViewOrder ASC ";
 	$Rs=safe_r_sql($Select);
 	while ($Row=safe_fetch($Rs)) {
-		$xml .= '<sub_classes>' . $Row->ScId . '</sub_classes>' . "\n";
+		$xml .= '<sub_classes>' . $Row->ScId . '</sub_classes>';
 	}
 }
 
 header('Content-Type: text/xml');
 
-print '<response>' . "\n";
-print '<error>' . $Errore . '</error>' . "\n";
-print '<new_id>' . $NewId . '</new_id>' . "\n";
+print '<response>';
+print '<error>' . $Errore . '</error>';
+print '<new_id>' . $NewId . '</new_id>';
 print $xml;
 print '<confirm_msg1><![CDATA[' . get_text('Archer') . ']]></confirm_msg1>';
 print '<confirm_msg2><![CDATA['	. get_text('Country') . ']]></confirm_msg2>';
 print '<confirm_msg3><![CDATA[' . get_text('OpDelete','Tournament') . ']]></confirm_msg3>';
 print '<confirm_msg4><![CDATA[' . get_text('MsgAreYouSure') . ']]></confirm_msg4>';
-print '</response>' . "\n";
+print '</response>';
 

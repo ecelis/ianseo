@@ -5,6 +5,7 @@ require_once('Common/pdf/OrisPDF.inc.php');
 require_once('Common/Lib/Fun_PrintOuts.php');
 require_once('Common/OrisFunctions.php');
 require_once('Common/pdf/PdfChunkLoader.php');
+checkACL(AclIndividuals, AclReadOnly);
 
 $EventRequested=(!empty($EventRequested) ? $EventRequested : '');
 

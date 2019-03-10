@@ -65,11 +65,12 @@ $query="
 		ON F2FEntries.F2FTournament=f.F2FTournament AND F2FEntries.F2FPhase=f.F2FPhase AND F2FEntries.F2FGroup=f.F2FGroup AND F2FEntries.F2FMatchNo=f.F2FMatchNo AND F2FEntries.F2FEnId=f.F2FEnId AND F2FEntries.F2FEventCode=f.F2FEvent AND f.F2FRound=1
 		INNER JOIN Entries AS e ON F2FEntries.F2FEnId=EnId AND e.EnTournament= " . StrSafe_DB($RULE->TVRTournament) . " AND EnAthlete=1
 		INNER JOIN Countries AS c ON e.EnCountry=c.CoId AND e.EnTournament=c.CoTournament
+		left join Individuals on IndId=EnId and IndTournament=EnTournament
+		left join Events on EvCode=IndEvent and EvTournament=IndTournament and EvTeamEvent=0
 		LEFT JOIN Countries AS c2 ON e.EnCountry2=c2.CoId AND e.EnTournament=c2.CoTournament
 		LEFT JOIN Countries AS c3 ON e.EnCountry3=c3.CoId AND e.EnTournament=c3.CoTournament
 		LEFT JOIN Divisions ON TRIM(EnDivision)=TRIM(DivId) AND EnTournament=DivTournament
 		LEFT JOIN Classes ON TRIM(EnClass)=TRIM(ClId) AND EnTournament=ClTournament
-		LEFT JOIN EventCategories AS ec ON ec.EcTeamEvent=0 AND e.EnTournament=ec.EcTournament AND e.EnClass=ec.EcClass AND e.EnDivision=ec.EcDivision
 		LEFT JOIN TargetFaces ON EnTournament=TfTournament AND EnTargetFace=TfId
 	{$where}
 	order by F2FEventCode, F2FPhase, F2FGroup, TargetNo

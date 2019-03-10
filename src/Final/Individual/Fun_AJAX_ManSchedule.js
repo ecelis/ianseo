@@ -1,7 +1,7 @@
 /*
 													- Fun_AJAX_ManSchedule.js -
 	Contiene le funzioni ajax usate da ManSchedule.php
-*/ 	
+*/
 var CacheWrite = new Array();	// Cache per le scritture
 /*
 	Esegue una get a WriteDateTime.php
@@ -10,20 +10,20 @@ var CacheWrite = new Array();	// Cache per le scritture
 function WriteSchedule(Field)
 {
 	if (XMLHttp)
-	{	
+	{
 		if (Field)
 		{
 			var FieldValue= encodeURIComponent(document.getElementById(Field).value);
 			CacheWrite.push(Field + "=" + FieldValue);
 		}
-		
+
 		try
 		{
 			if ((XMLHttp.readyState==XHS_COMPLETE || XMLHttp.readyState==XHS_UNINIT) && CacheWrite.length>0)
 			{
 				//var FieldValue = document.getElementById(Field).value;
 				var FromCache=CacheWrite.shift();
-					
+
 				XMLHttp.open("POST","WriteDateTime.php",true);
 				XMLHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
 				XMLHttp.onreadystatechange=WriteSchedule_StateChange;
@@ -65,31 +65,32 @@ function WriteSchedule_Response()
 {
 	// leggo l'xml
 	var XMLResp=XMLHttp.responseXML;
-	
+
 // intercetto gli errori di IE e Opera
 	if (!XMLResp || !XMLResp.documentElement)
 		throw("XML non valido:\n"+XMLResp.responseText);
-	
+
 // Intercetto gli errori di Firefox
 	var XMLRoot;
 	if ((XMLRoot = XMLResp.documentElement.nodeName)=="parsererror")
 		throw("XML non valido:\n");
-	
-	XMLRoot = XMLResp.documentElement;	
-	
+
+	XMLRoot = XMLResp.documentElement;
+
 	var Error=XMLRoot.getElementsByTagName('error').item(0).firstChild.data;
 	var Which = XMLRoot.getElementsByTagName('which').item(0).firstChild.data;
-	
+
 	if (Error==0)
 	{
 		SetStyle(Which,'');
-		
+		document.getElementById(Which).value=XMLRoot.getElementsByTagName('value').item(0).firstChild.data;
+
 	}
 	else
 	{
 		SetStyle(Which,'error');
 	}
-	// per scaricare la cache degli update	
+	// per scaricare la cache degli update
 	setTimeout("WriteSchedule()",600);
 }
 
@@ -100,14 +101,14 @@ function WriteSchedule_Response()
 function WriteScheduleAll(Event,Phase)
 {
 	if (XMLHttp)
-	{	
+	{
 		try
 		{
 			if (XMLHttp.readyState==XHS_COMPLETE || XMLHttp.readyState==XHS_UNINIT)
 			{
 				var QueryString = '';
 				var TimeSchedule=encodeURIComponent(document.getElementById('d_FSScheduledTimeAll_' + Event + '_' + Phase).value);
-				QueryString 
+				QueryString
 					= '?d_Event=' + Event
 					+ '&d_Phase=' + Phase
 					+ '&d_FSScheduledDateAll=' + document.getElementById('d_FSScheduledDateAll_' + Event + '_' + Phase).value
@@ -156,43 +157,47 @@ function WriteScheduleAll_Response()
 {
 	// leggo l'xml
 	var XMLResp=XMLHttp.responseXML;
-	
+
 // intercetto gli errori di IE e Opera
 	if (!XMLResp || !XMLResp.documentElement)
 		throw("XML non valido:\n"+XMLResp.responseText);
-	
+
 // Intercetto gli errori di Firefox
 	var XMLRoot;
 	if ((XMLRoot = XMLResp.documentElement.nodeName)=="parsererror")
 		throw("XML non valido:\n");
-	
-	XMLRoot = XMLResp.documentElement;	
-	
+
+	XMLRoot = XMLResp.documentElement;
+
 	var Error=XMLRoot.getElementsByTagName('error').item(0).firstChild.data;
 	var Event =XMLRoot.getElementsByTagName('event').item(0).firstChild.data;
-	var Phase =XMLRoot.getElementsByTagName('phase').item(0).firstChild.data;  
+	var Phase =XMLRoot.getElementsByTagName('phase').item(0).firstChild.data;
 	var DtId = document.getElementById('d_FSScheduledDateAll_' + Event + '_' + Phase).id;
 	var HrId = document.getElementById('d_FSScheduledTimeAll_' + Event + '_' + Phase).id;
 	var LnId = (document.getElementById('d_FSScheduledLenAll_' + Event + '_' + Phase) ? document.getElementById('d_FSScheduledLenAll_' + Event + '_' + Phase).id : 0);
-	
+
 	if (Error==0)
 	{
 		SetStyle(DtId,'');
 		SetStyle(HrId,'');
 		if(document.getElementById('d_FSScheduledLenAll_' + Event + '_' + Phase))
-			SetStyle(LnId,'');	
-		
+			SetStyle(LnId,'');
+
 		var Dt =XMLRoot.getElementsByTagName('date').item(0).firstChild.data;
-		var Hr =XMLRoot.getElementsByTagName('time').item(0).firstChild.data;    
+		var Hr =XMLRoot.getElementsByTagName('time').item(0).firstChild.data;
 		var Ln =XMLRoot.getElementsByTagName('len').item(0).firstChild.data;
 		var Arr_MatchNo =XMLRoot.getElementsByTagName('matchno');
-		
+
 		for (i=0;i<Arr_MatchNo.length;++i)
 		{
-			document.getElementById('d_FSScheduledDate_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data).value=Dt;
-			document.getElementById('d_FSScheduledTime_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data).value=Hr;
-			if(document.getElementById('d_FSScheduledLenAll_' + Event + '_' + Phase))
-				document.getElementById('d_FSScheduledLen_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data).value=Ln;
+		    var elem=document.getElementById('d_FSScheduledDate_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data);
+		    if(elem) {
+                document.getElementById('d_FSScheduledDate_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data).value=Dt;
+                document.getElementById('d_FSScheduledTime_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data).value=Hr;
+                if(document.getElementById('d_FSScheduledLenAll_' + Event + '_' + Phase)) {
+                    document.getElementById('d_FSScheduledLen_' + Event + '_' + Arr_MatchNo.item(i).firstChild.data).value=Ln;
+                }
+            }
 		}
 	}
 	else

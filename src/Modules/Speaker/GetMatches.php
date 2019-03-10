@@ -10,7 +10,7 @@ $JSON=array('error' => 1, 'rows' => array(), 'serverdate' => '', 'newdata' => ''
 
 $schedule=(isset($_REQUEST['schedule']) && preg_match('/^[01]{1}[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{2}:[0-9]{2}(:[0-9]{2})*$/',$_REQUEST['schedule']) ? substr($_REQUEST['schedule'],1) : null);
 $team=(isset($_REQUEST['schedule']) && preg_match('/^[01]{1}[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{2}:[0-9]{2}(:[0-9]{2})*$/',$_REQUEST['schedule']) ? substr($_REQUEST['schedule'],0,1) : null);
-$events=(isset($_REQUEST['events']) && is_array($_REQUEST['events'])  ? $_REQUEST['events'] : null);
+$events=(isset($_REQUEST['events']) && is_array($_REQUEST['events'])  ? $_REQUEST['events'] : array());
 $serverDate=(isset($_REQUEST['serverDate']) ? $_REQUEST['serverDate'] : 0);
 $parameters=isset($_REQUEST['parameters']) ? $_REQUEST['parameters'] : null;
 
@@ -22,8 +22,7 @@ $row=safe_fetch($rs);
 $JSON['serverdate']=$row->serverDate;
 if($IskSequence=getModuleParameter('ISK', 'Sequence')) {
 	if(!isset($IskSequence['session'])) {
-		$ttt=each($IskSequence);
-		$IskSequence=$ttt['value'];
+		$IskSequence=current($IskSequence);
 	}
 	$tmp=str_replace(' ', '', $schedule);
 	// get the running sequence
@@ -31,10 +30,9 @@ if($IskSequence=getModuleParameter('ISK', 'Sequence')) {
 }
 
 if (empty($_SESSION['TourId']) && (is_null($schedule) || is_null($team))) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	exit;
+	JsonOut($JSON);
 }
+checkACL(AclSpeaker, AclReadOnly, false);
 
 $otherWhere= "
 	AND fs1.FSTeamEvent=" . StrSafe_DB($team) . "
@@ -42,8 +40,8 @@ $otherWhere= "
 ";
 
 if (count($events)>0 && $events[0]!='') {
-	array_walk($events,'safe');
-	$otherWhere .= " AND (fs1.FSEvent IN(" . implode(',',$events) . ") OR fs2.FSEvent IN(". implode(',',$events) .") )";
+	//array_walk($events,'safe');
+	$otherWhere .= " AND (fs1.FSEvent IN(" . implode(',',StrSafe_DB($events)) . ") OR fs2.FSEvent IN(". implode(',', StrSafe_DB($events)) .") )";
 }
 
 /*
@@ -195,11 +193,11 @@ if (safe_num_rows($rs)>0) {
 					'ph'	=> get_text(namePhase($myRow->firstPhase,$myRow->phase). '_Phase'),
 					'evn'	=> $myRow->eventName,
 					't'		=> $target,
-					'n1'	=> $myRow->name1,
+					'n1'	=> $myRow->name1 . ' (#' . $myRow->rank1 . ')',
 					'cn1'	=> $myRow->countryName1,
 					'ar1'	=> strlen(str_replace(' ','',$myRow->arrowString1)),
 					'sar1'	=> strlen(str_replace(' ','',$myRow->tiebreak1)),
-					'n2'	=> $myRow->name2,
+					'n2'	=> $myRow->name2. ' (#' . $myRow->rank2 . ')',
 					'cn2'	=> $myRow->countryName2,
 					'ar2'	=> strlen(str_replace(' ','',$myRow->arrowString2)),
 					'sar2'	=> strlen(str_replace(' ','',$myRow->tiebreak2)),
@@ -216,5 +214,4 @@ if (safe_num_rows($rs)>0) {
 
 $JSON['error']=0;
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

@@ -851,9 +851,9 @@ function DeleteRow_Par(Id,Msg1,Msg2,Msg3,Msg4)
 				if (GetConfirm)
 				{
 					var StrMsg //book
-						= Msg1 + ': ' + document.getElementById('d_e_EnFirstName_' + Id).innerHTML + '  ' + document.getElementById('d_e_EnName_' + Id).innerHTML + "\n"
-						+ Msg2 + ': ' + document.getElementById('d_c_CoCode_' + Id).innerHTML + "\n"
-						+ Msg3 + "\n"
+						= Msg1 + ': ' + document.getElementById('d_e_EnFirstName_' + Id).innerHTML + '  ' + document.getElementById('d_e_EnName_' + Id).innerHTML
+						+ Msg2 + ': ' + document.getElementById('d_c_CoCode_' + Id).innerHTML
+						+ Msg3
 						+ Msg4;
 						
 					if (!confirm(StrMsg))

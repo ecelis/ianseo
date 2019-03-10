@@ -168,7 +168,7 @@
 				//print $q.'<br><br>';
 				safe_w_sql($q);
 
-				if(empty($dd) && $myRow->Hits%3 == 0) {
+				if(empty($dd) and $myRow->Hits%3 == 0) {
 					$q = "INSERT INTO QualOldPositions (QopId, QopHits, QopClRank) "
 						. "VALUES(" . $myRow->EnId . "," . $myRow->Hits . "," . $rank . ") "
 						. "ON DUPLICATE KEY UPDATE QopClRank=" . $rank;

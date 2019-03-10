@@ -1,4 +1,6 @@
 <?php
+require_once('Common/Lib/CommonLib.php');
+
 /**
  * Obj_RankFactory.
  * E' la factory per istanziare la classe corretta per gestire la rank considerata.

@@ -11,6 +11,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$error=0;
 	$has_photo = 0;

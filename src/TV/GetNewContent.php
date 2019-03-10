@@ -14,6 +14,7 @@
 	$SegmentId=intval($_GET['Segment']);
 	$RuleId=intval($_GET['Rule']);
 	$TourId=intval($_GET['Tour']);
+    checkACL(AclOutput,AclReadOnly, false, $TourId);
 	$Event='';
 	if(!empty($_GET['Event']))
 		$Event=preg_replace('/[^a-zA-Z0-9_-]*/','',$_GET['Event']);

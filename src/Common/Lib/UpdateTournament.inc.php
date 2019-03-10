@@ -619,7 +619,10 @@ function UpdateTournament($Gara) {
 				break;
 			case 1: // Type_FITA
 			case 4: //	Type_FITA 72
-				$Straight=($Gara['Tournament']['Td1']>=$Gara['Tournament']['Td2']); // FITA 90-70-50-30 or 4*70m
+                $Straight=true;
+			    if(array_key_exists('Td1',$Gara['Tournament'])) {
+                    $Straight = ($Gara['Tournament']['Td1'] >= $Gara['Tournament']['Td2']); // FITA 90-70-50-30 or 4*70m
+                }
 				$tmp['TfId'] = 1;
 				$tmp['TfT1'] = '5';
 				$tmp['TfW1'] = ($Straight?122:80);
@@ -1058,22 +1061,22 @@ function UpdateTournament($Gara) {
 		require_once('Common/Fun_FormatText.inc.php');
 
 		// updates Countries
-		foreach($Gara['Countries'] as $key => &$val) {
-			$val['CoCode'] = mb_convert_case($val['CoCode'], MB_CASE_UPPER, "UTF-8");
-			$val['CoName']=AdjustCaseTitle($val['CoName']);
-			$val['CoNameComplete']=AdjustCaseTitle($val['CoNameComplete']);
+		foreach($Gara['Countries'] as $key => $val) {
+            $Gara['Countries'][$key]['CoCode'] = mb_convert_case($val['CoCode'], MB_CASE_UPPER, "UTF-8");
+            $Gara['Countries'][$key]['CoName']=AdjustCaseTitle($val['CoName']);
+            $Gara['Countries'][$key]['CoNameComplete']=AdjustCaseTitle($val['CoNameComplete']);
 		}
 
 		// updates Entries
-		foreach($Gara['Entries'] as $key => &$val) {
-			$val['EnName']=AdjustCaseTitle($val['EnName']);
-			$val['EnFirstName']=AdjustCaseTitle($val['EnFirstName']);
+		foreach($Gara['Entries'] as $key => $val) {
+            $Gara['Entries'][$key]['EnName']=AdjustCaseTitle($val['EnName']);
+            $Gara['Entries'][$key]['EnFirstName']=AdjustCaseTitle($val['EnFirstName']);
 		}
 	}
 
 	if($Gara['Tournament']['ToDbVersion']<'2012-01-15 16:00:00') {
-		foreach($Gara['TVParams'] as $key => &$val) {
-			$val['TVPColumns']='ALL';
+		foreach($Gara['TVParams'] as $key => $val) {
+            $Gara['TVParams'][$key]['TVPColumns']='ALL';
 		}
 	}
 
@@ -1153,36 +1156,49 @@ function UpdateTournament($Gara) {
 		unset($Gara['TVOut']);
 	}
 
-	if($Gara['Tournament']['ToDbVersion']<'2016-02-23 11:45:01') {
+	if(false & $Gara['Tournament']['ToDbVersion']<'2016-02-23 11:45:01') {
 		foreach($Gara['Qualifications'] as $key => $row) {
 			$Gara['Qualifications'][$key]['QuTarget']=intval(substr($row['QuTargetNo'], 1));
 			$Gara['Qualifications'][$key]['QuLetter']=substr($row['QuTargetNo'], -1);
 		}
 	}
-
 	if($Gara['Tournament']['ToDbVersion']<'2016-05-18 22:00:01') {
 		// procedura di aggiornamento della gara alla versione attuale del database
 		$ToKeep=array();
-		foreach($Gara['ExtraData'] as $key => $row) {
-			if($row['EdType'][0]=='X' or $row['EdType'][0]=='Y') {
-				if(substr($row['EdType'], -1)=='1') {
-					$Gara['ExtraDataCountries'][]=array(
-							'EdcId' => $row['EdId'],
-							'EdcSubTeam' => 0,
-							'EdcType' => $row['EdType'][0],
-							'EdcEvent' => substr($row['EdType'], 1, -1),
-							'EdcEmail' => $row['EdEmail'],
-							'EdcExtra' => $row['EdExtra']);
-				} else {
-					$row['EdEvent'] = substr($row['EdType'], 1, -1);
-					$row['EdType'] = $row['EdType'][0];
-					$ToKeep[]=$row;
-				}
-			} else {
-				$ToKeep[]=$row;
-			}
-		}
-		$Gara['ExtraData']=$ToKeep;
+		if(array_key_exists('ExtraData', $Gara)) {
+            foreach ($Gara['ExtraData'] as $key => $row) {
+                if ($row['EdType'][0] == 'X' or $row['EdType'][0] == 'Y') {
+                    if (substr($row['EdType'], -1) == '1') {
+                        $Gara['ExtraDataCountries'][] = array(
+                            'EdcId' => $row['EdId'],
+                            'EdcSubTeam' => 0,
+                            'EdcType' => $row['EdType'][0],
+                            'EdcEvent' => substr($row['EdType'], 1, -1),
+                            'EdcEmail' => $row['EdEmail'],
+                            'EdcExtra' => $row['EdExtra']);
+                    } else {
+                        $row['EdEvent'] = substr($row['EdType'], 1, -1);
+                        $row['EdType'] = $row['EdType'][0];
+                        $ToKeep[] = $row;
+                    }
+                } else {
+                    $ToKeep[] = $row;
+                }
+            }
+            $Gara['ExtraData'] = $ToKeep;
+        }
+	}
+
+	if($Gara['Tournament']['ToDbVersion']<'2019-01-14 12:29:02') {
+		// procedura di aggiornamento della gara alla versione attuale del database
+		$ToKeep=array();
+		if(array_key_exists('AvailableTarget', $Gara)) {
+            foreach ($Gara['AvailableTarget'] as $key => &$row) {
+            	$row['AtSession']=substr($row['AtTargetNo'],0,1);
+            	$row['AtTarget']=substr($row['AtTargetNo'], 1, -1);
+            	$row['AtLetter']=substr($row['AtTargetNo'],-1);
+            }
+        }
 	}
 
 /*

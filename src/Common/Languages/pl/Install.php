@@ -126,7 +126,6 @@ $lang['Setup-SE']='Reguły szwedzki';
 $lang['Setup-Select']='Wybierz reguły lokalne';
 $lang['Setup-UK']='Reguły ArcheryGB';
 $lang['Setup-US']='Reguły US';
-$lang['Setup-VEGAS']='Reguły Las Vegas';
 $lang['SetVegas-KOA']='Kings of Archery - NED';
 $lang['SetVegas-WAF']='World Archery Festival - Las Vegas';
 $lang['SpecialUpdate']='Posiadasz instalację "testową".<br/>Tylko wybrani użytkownicy posiadają tą funkcję: podaj e-mail użyty przy rejestracji<br/>Informacja zostanie wysłana do ciebie i Ianseo.';

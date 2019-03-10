@@ -4,18 +4,16 @@
 	Scrive in Finals
 */
 
-	define('debug',false);
-
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Final/Fun_ChangePhase.inc.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/Lib/ArrTargets.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(AclIndividuals, AclReadWrite, false);
 
 	$Errore=0;
 	$FieldType = '#';
@@ -29,10 +27,8 @@
 
 	$xml='';
 
-	if (!IsBlocked(BIT_BLOCK_IND))
-	{
-		foreach ($_REQUEST as $Key => $Value)
-		{
+	if (!IsBlocked(BIT_BLOCK_IND)) {
+		foreach ($_REQUEST as $Key => $Value) {
 		// ho qualcosa da scrivere (considero l'attuale matchno)
 			if(substr($Key,0,4)=='d_N_') {
 				// A note to put into the match
@@ -40,11 +36,14 @@
 				$Update = "UPDATE Finals "
 					. "SET "
 					. "FinNotes=" . StrSafe_DB($Value)
-					. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($ee) . " AND FinMatchNo=" . StrSafe_DB($mm) . " ";
+					. ($Value=='DNS' ? ', FinTie=0, FinScore=0, FinWinLose=0, FinSetScore=0, FinDateTime=' . StrSafe_DB(date('Y-m-d H:i:s')) : '')
+					. " WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($ee) . " AND FinMatchNo=" . StrSafe_DB($mm) . " ";
 				$Rs=safe_w_sql($Update);
+				if($Value=='DNS') {
+					move2NextPhase(NULL, $ee, $mm, 0, true);
+				}
 
-			} elseif (substr($Key,0,4)=='d_S_' || substr($Key,0,4)=='d_T_' || substr($Key,0,4)=='d_t_')
-			{
+			} elseif (substr($Key,0,4)=='d_S_' || substr($Key,0,4)=='d_T_' || substr($Key,0,4)=='d_t_') {
 
 				$Which=$Key;
 				$ee=''; $mm='';
@@ -55,23 +54,13 @@
 
 				$Which = $Key;
 
-				if (debug) print $ee . ' - ' . $mm . '<br>';
-
-				if (substr($Key,0,4)=='d_S_')
-				{
+				if (substr($Key,0,4)=='d_S_') {
 
 					$FieldType = 'Score';
-					if (debug) print $FieldType . '<br>';
 
-					if (!is_numeric($Value) || $Value > ($MaxScores['MaxSetPoints'] ? $MaxScores['MaxSetPoints'] : $MaxScores['MaxMatch']))
-					{
+					if (!is_numeric($Value) || $Value > ($MaxScores['MaxSetPoints'] ? $MaxScores['MaxSetPoints'] : $MaxScores['MaxMatch'])) {
 						$FieldError=1;
-					}
-					else {
-// 						if($Value > $MaxScores['MaxSetPoints']) {
-// 							$Value=0;
-// 						}
-
+					} else {
 						$Update
 							= "UPDATE Finals "
 							. "INNER JOIN Events ON FinEvent=EvCode AND EvTeamEvent='0' AND EvTournament=FinTournament "
@@ -82,23 +71,16 @@
 							. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($ee) . " AND FinMatchNo=" . StrSafe_DB($mm) . " ";
 						$Rs=safe_w_sql($Update);
 
-						if (debug)
-							print $Update . '<br>';
-						if (!$Rs)
-							$Errore=1;
+						if (!$Rs) {
+                            $Errore = 1;
+                        }
 					}
-				}
-				elseif (substr($Key,0,4)=='d_T_')
-				{
+				} elseif (substr($Key,0,4)=='d_T_') {
 					$FieldType = 'Tie';
-					if (debug) print $FieldType . '<br>';
 
-					if (!is_numeric($Value) && !($Value>=0 && $Value<=2))
-					{
+					if (!is_numeric($Value) && !($Value>=0 && $Value<=2)) {
 						$FieldError=1;
-					}
-					else
-					{
+					} else {
 						// have to manage the "double bye" and reset all scoring data that might disturb the following call to next phase!!
 						if($Value==2) {
 							if($mm%2) {
@@ -127,15 +109,12 @@
 								. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($ee) . " AND FinMatchNo=" . StrSafe_DB($mm) . " ";
 						}
 						$Rs=safe_w_sql($Update);
-						if (debug)
-							print $Update . '<br>';
 
-						if (!$Rs)
-							$Errore=1;
+						if (!$Rs) {
+                            $Errore = 1;
+                        }
 					}
-				}
-				elseif (substr($Key,0,4)=='d_t_')
-				{
+				} elseif (substr($Key,0,4)=='d_t_') {
 					$tiebreak='';
 					$tiepoints = explode('|',$_REQUEST['d_t_' . $ee . '_' . $mm]);
 					for ($i=0;$i<count($tiepoints);++$i)
@@ -148,18 +127,15 @@
 					$Rs=safe_w_sql($Update);
 				}
 
-				$xml.= '<which>' . $Which . '</which>' . "\n";
-				$xml.= '<field_error>' . $FieldError . '</field_error>' . "\n";
+				$xml.= '<which>' . $Which . '</which>';
+				$xml.= '<field_error>' . $FieldError . '</field_error>';
 
 			// faccio il passaggio di fase di quel matchno e di quello accoppiato
-				if ($Errore==0)
-				{
+				if ($Errore==0) {
 					//Faccio i passaggi di fase
-					$updateTS = move2NextPhase(NULL, $ee, $mm);
+					$updateTS = move2NextPhase(NULL, $ee, $mm, 0, true);
 
-					if (!is_null($updateTS))
-					{
-
+					if (!is_null($updateTS)) {
 						$Select
 							= "SELECT "
 							. "FinMatchNo, FinEvent,  FinAthlete, IF(EvMatchMode=0,FinScore,FinSetScore) AS Score, FinTie, "
@@ -172,32 +148,29 @@
 							. "WHERE FinTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND FinEvent=" . StrSafe_DB($ee) . " AND FinDateTime=" . StrSafe_DB($updateTS) . " "
 							. "ORDER BY FinEvent, FinMatchNo";
 						$Rs=safe_w_sql($Select);
-						if(safe_num_rows($Rs)>0)
-						{
-							while ($MyRow=safe_fetch($Rs))
-							{
+						if(safe_num_rows($Rs)>0) {
+							while ($MyRow=safe_fetch($Rs)) {
 								$xml.= '<ath matchno="' . $MyRow->FinMatchNo . '" tie="' . $MyRow->FinTie . '">';
-								$xml.= '<name><![CDATA[' . $MyRow->Atleta . ']]></name>' . "\n";
-								$xml.= '<cty><![CDATA[' . $MyRow->Country . ']]></cty>' . "\n";
-								$xml.= '<event><![CDATA[' . $MyRow->FinEvent . ']]></event>' . "\n";
-								$xml.= '<matchno>' . $MyRow->FinMatchNo . '</matchno>' . "\n";
-								$xml.= '<tie>' . $MyRow->FinTie . '</tie>' . "\n";
-								$xml.= '</ath>' . "\n";
+								$xml.= '<name><![CDATA[' . $MyRow->Atleta . ']]></name>';
+								$xml.= '<cty><![CDATA[' . $MyRow->Country . ']]></cty>';
+								$xml.= '<event><![CDATA[' . $MyRow->FinEvent . ']]></event>';
+								$xml.= '<matchno>' . $MyRow->FinMatchNo . '</matchno>';
+								$xml.= '<tie>' . $MyRow->FinTie . '</tie>';
+								$xml.= '</ath>';
 							}
 						}
 					}
 				}
 			}
 		}
-	}
-	else
-		$Errore=1;
+	} else {
+        $Errore = 1;
+    }
 
 // produco l'xml di ritorno
 	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	print $xml;
-	print '</response>' . "\n";
-?>
+	print '</response>';

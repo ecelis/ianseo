@@ -72,7 +72,7 @@
 						Events
 					ON TeEvent=EvCode AND TeTournament=EvTournament AND TeFinEvent=1
 				SET
-					TeRankFinal=IF(TeRank>IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56,(EvFinalFirstPhase*2))),TeRank,0),
+					TeRankFinal=IF(TeRank>EvNumQualified, TeRank, 0),
 					TeTimeStampFinal='{$date}'
 				WHERE
 					TeTournament={$this->tournament} AND EvCode='{$event}' AND EvTeamEvent=1

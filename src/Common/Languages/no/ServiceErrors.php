@@ -50,4 +50,5 @@ $lang['ErrSubClass']='Ugyldig underklasse';
 $lang['ErrSubClassNotFound']='Underklasse ble ikke funnet';
 $lang['ErrWronglevel']='Feil nivå klubb/skytter';
 $lang['LoginTooManyArchers']='Mer enn en skytter har denne e-posten. Vennligst bruk Skytter-Id';
+$lang['WrongType']='Feil type';
 ?>

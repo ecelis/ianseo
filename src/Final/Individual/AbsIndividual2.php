@@ -10,6 +10,7 @@
 	require_once('Final/Fun_ChangePhase.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclIndividuals, AclReadWrite);
 
 	$Error=false;
 	$EventList=array();
@@ -19,6 +20,13 @@
 	{
 		$Events = explode('|',$_REQUEST['EventCode']);
 	}
+	if(!empty($_REQUEST['EventCodeMult'])) {
+		$Events=$_REQUEST['EventCodeMult'];
+    }
+
+    if(!$Events) {
+	    CD_redirect('./AbsIndividual1.php');
+    }
 
 	$rank=Obj_RankFactory::create('Abs',array('events'=>$Events,'dist'=>0));
 
@@ -36,10 +44,10 @@
 		$Events=array_keys($_REQUEST['R']);
 		foreach($_REQUEST['R'] as $Event => $EnIds)
 		{
-			$q=safe_r_sql("select EvFinalFirstPhase, EvMatchMode from Events where EvCode='$Event' and EvTeamEvent='0' and EvTournament='{$_SESSION['TourId']}'");
+			$q=safe_r_sql("select EvFinalFirstPhase, EvMatchMode, EvNumQualified, EvFirstQualified from Events where EvCode='$Event' and EvTeamEvent='0' and EvTournament='{$_SESSION['TourId']}'");
 			$r=safe_fetch($q);
-			$MaxRank[$Event]=$r->EvFinalFirstPhase*2;
-			if($r->EvFinalFirstPhase==24 or $r->EvFinalFirstPhase==48) $MaxRank[$Event]+=8; // salva i primi 8
+			$MaxRank[$Event]=$r->EvNumQualified;
+			//if($r->EvFinalFirstPhase==24 or $r->EvFinalFirstPhase==48) $MaxRank[$Event]+=8; // salva i primi 8
 			$NotResolved[$Event]=false;
 
 			asort($EnIds);
@@ -104,7 +112,11 @@
 		{
 			foreach ($Ties as $Key=>$Value)
 			{
-				list($ev,$ath)=explode('_',$Key);
+				$tmp=explode('_', $Key);
+				$ath=array_pop($tmp);
+				$ev=implode('_', $tmp);
+
+//				list($ev,$ath)=explode('_',$Key);
 
 				$x=$rank->setRow(array(
 					array(
@@ -140,12 +152,13 @@
 				$Rs=safe_w_sql($Delete);
 
 			// ricreo la griglia distrutta
-				$Insert
-					= "INSERT INTO Finals (FinEvent,FinMatchNo,FinTournament,FinDateTime) "
-					. "SELECT EvCode,GrMatchNo," . StrSafe_DB($_SESSION['TourId']) . "," . StrSafe_DB(date('Y-m-d H:i:s')) . " "
-					. "FROM Events INNER JOIN Grids ON GrPhase<=(IF(EvFinalFirstPhase=24,32, IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase ))) AND EvTeamEvent='0' "
-					. "AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
-					. "WHERE EvCode IN ('" . implode("','",$Events) . "') ";
+				$Insert = "INSERT INTO Finals (FinEvent,FinMatchNo,FinTournament,FinDateTime)
+				  SELECT EvCode,GrMatchNo," . StrSafe_DB($_SESSION['TourId']) . "," . StrSafe_DB(date('Y-m-d H:i:s')) . " 
+				  FROM Events 
+				  Inner join Phases on PhId=EvFinalFirstPhase and (PhIndTeam & 1)=1
+				  INNER JOIN Grids ON GrPhase<=greatest(PhId, PhLevel) AND EvTeamEvent='0' 
+				  AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " 
+				  WHERE EvCode IN ('" . implode("','",$Events) . "') ";
 				$RsIns=safe_w_sql($Insert);
 			}
 
@@ -161,16 +174,16 @@
 //print '<pre>';
 //print_r($VetoEvents);
 //print '</pre>';
-			$Select
-				= "SELECT "
-					. "IndId,IndRank, IndEvent,GrMatchNo,EvFinalFirstPhase "
-				. "FROM "
-					. "Individuals INNER JOIN Events ON IndTournament=EvTournament AND IndEvent=EvCode AND EvTeamEvent=0 "
-					. "INNER JOIN Grids ON IF(EvFinalFirstPhase=24,32,IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase))=GrPhase AND IndRank=IF(EvFinalFirstPhase=48 || EvFinalFirstPhase=24,GrPosition2, GrPosition) "
-				. "WHERE "
-					. "IndRank>0 and IndTournament=" . StrSafe_DB($_SESSION['TourId']) . " " . (count($Events)>0 ? " AND IndEvent IN('" . implode("','",$Events). "')" : ""). " "
-					. ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'')
-				. "ORDER BY EvCode,IndRank ASC,GrMatchNo ASC ";
+			$Select = "SELECT IndId,IndRank, IndEvent,GrMatchNo,EvFinalFirstPhase
+                FROM Individuals 
+                INNER JOIN Events ON IndTournament=EvTournament AND IndEvent=EvCode AND EvTeamEvent=0 
+                INNER JOIN Phases ON PhId=EvFinalFirstPhase and (PhIndTeam & 1) = 1 
+                INNER JOIN Grids ON GrPhase=greatest(PhId,PhLevel) AND IndRank=IF(EvFinalFirstPhase=48,GrPosition2, if(GrPosition>EvNumQualified, 0, GrPosition)) 
+                WHERE IndRank between EvFirstQualified and EvNumQualified+EvFirstQualified-1 
+                    and IndTournament=" . StrSafe_DB($_SESSION['TourId']) . " " . (count($Events)>0 ? " 
+                    AND IndEvent IN('" . implode("','",$Events). "')" : ""). " 
+                    " . ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'') . "
+                ORDER BY EvCode,IndRank ASC,GrMatchNo ASC ";
 			;
 //print $Select;exit;
 //exit;
@@ -241,8 +254,14 @@
 ?>
 <table class="Tabella">
 <TR><TH class="Title"><?php print get_text('ShootOff4Final') . ' - ' . get_text('Individual');?></TH></TR>
-<?php if (count($NotResolvedMsg)>0) { ?>
-	<tr class="warning"><td><?php print get_text('NotAllShootoffResolved','Tournament',implode(', ',$NotResolvedMsg));?></td></tr>
+<?php
+if (count($NotResolvedMsg)>0) {
+    $msg=array();
+    foreach($NotResolvedMsg as $m) {
+        $msg[]='<a href="#r'.$m.'">'.$m.'</a>';
+    }
+    ?>
+	<tr class="warning"><td><?php print get_text('NotAllShootoffResolved','Tournament',implode('</a>, <a href="#">',$msg));?></td></tr>
 <?php } ?>
 </table>
 <?php
@@ -254,17 +273,21 @@
 
 		$curEvent='';
 
-		if(count($data['sections'])>0)
-		{
+		if(count($data['sections'])>0) {
 			print '<form name="Frm" method="post" action="">' . "\n";
-				if (isset($_REQUEST['EventCode']))
+				if (isset($_REQUEST['EventCode'])) {
 					print '<input type="hidden" name="EventCode" value="' . $_REQUEST['EventCode'] . '">' . "\n";
+                } elseif (!empty($_REQUEST['EventCodeMult'])) {
+				    foreach($_REQUEST['EventCodeMult'] as $val) {
+					    echo '<input type="hidden" name="EventCodeMult[]" value="' . $val . '">' . "\n";
+                    }
+                }
 
 				foreach ($data['sections'] as $section)
 				{
 					$Colonne = 8 + $NumDist;
 					$PercPunti = NumFormat(55/($NumDist+3));
-
+                    echo '<a name="r'.$section['meta']['event'].'"></a>';
 					print '<table class="Tabella">' . "\n";
 						print '<tr class="Divider"><td colspan="' . $Colonne . '"></td></tr>' . "\n";
 						print '<tr><th class="Title" colspan="' . $Colonne . '">' . $section['meta']['descr']. ' (' . $section['meta']['event'] . ')</th></tr>';
@@ -328,7 +351,7 @@
 									if($item['rankBeforeSO']!=$endRank) {
 										echo '<select name="R' . $nn . '">';
 										for ($i=$item['rankBeforeSO'];$i<=$endRank;++$i) {
-											echo '<option value="' . $i . '"' . ($i==$item['rank'] || $i==$_REQUEST["R"][$section['meta']['event']][$item['id']] ? ' selected' : '') . '>' . $i . '</option>';
+											echo '<option value="' . $i . '"' . ($i==$item['rank'] || (isset($_REQUEST["R"][$section['meta']['event']][$item['id']]) and $i==$_REQUEST["R"][$section['meta']['event']][$item['id']]) ? ' selected' : '') . '>' . $i . '</option>';
 										}
 										echo '</select>';
 									} else {
@@ -367,4 +390,3 @@
 	}
 
 	include('Common/Templates/tail.php');
-?>

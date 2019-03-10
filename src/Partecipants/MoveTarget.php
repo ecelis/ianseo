@@ -1,6 +1,7 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 CheckTourSession(true);
+checkACL(AclParticipants, AclReadWrite);
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Various.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
@@ -16,7 +17,7 @@ $errors=array();
 
 $msg='';
 $msg=get_text('Error');
-if (isset($_REQUEST['command']) && $_REQUEST['command']=='OK') {
+if (isset($_REQUEST['command'])) {
 	if (!IsBlocked(BIT_BLOCK_PARTICIPANT)) {
 		if (!(is_numeric($startSession) && $startSession>0)) $errors[]='startSession';
 		if (!is_numeric($endSession)) $errors[]='endSession';
@@ -40,8 +41,7 @@ if (isset($_REQUEST['command']) && $_REQUEST['command']=='OK') {
 					QuBacknoPrinted=0,
 					QuSession=" . StrSafe_DB($endSession) . ",
 					QuTargetNo=CONCAT(" . StrSafe_DB($endSession) . ",RIGHT(CONCAT('000',SUBSTRING(QuTargetNo,2,".TargetNoPadding.")+(" . (intval($destFrom)-intval($sourceFrom)) . ")), ".TargetNoPadding."),RIGHT(QuTargetNo,1)),
-					QuTarget=SUBSTRING(QuTargetNo,2,".TargetNoPadding.")+0,
-					QuLetter=RIGHT(QuTargetNo,1)
+					QuTarget=QuTarget+(" . (intval($destFrom)-intval($sourceFrom)) . ")
 					WHERE $Where";
 
 			safe_w_SQL($query);
@@ -60,24 +60,24 @@ if (isset($_REQUEST['command']) && $_REQUEST['command']=='OK') {
 $sessions=GetSessions('Q');
 
 $comboStartSession
-	= '<select name="startSession" id="startSession"' . (in_array('startSession',$errors) ? ' class="error"' : '') .'>' . "\n"
-	. '<option value="0">--</option>' . "\n";
-	//. '<option value="0">' . get_text('AllSessions','Tournament') . '</option>' . "\n";
+	= '<select name="startSession" id="startSession"' . (in_array('startSession',$errors) ? ' class="error"' : '') .'>'
+	. '<option value="0">--</option>';
+	//. '<option value="0">' . get_text('AllSessions','Tournament') . '</option>';
 
 $comboEndSession
-	= '<select name="endSession" id="endSession"' . (in_array('endSession',$errors) ? ' class="error"' : '') . '>' . "\n"
-	. '<option value="0">--</option>' . "\n";
+	= '<select name="endSession" id="endSession"' . (in_array('endSession',$errors) ? ' class="error"' : '') . '>'
+	. '<option value="0">--</option>';
 
 
 foreach ($sessions as $s)
 {
-	$comboStartSession.='<option value="' . $s->SesOrder. '"' . (!is_null($startSession) && $s->SesOrder==$startSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
-	$comboEndSession.='<option value="' . $s->SesOrder . '"' . (!is_null($endSession) && $s->SesOrder==$endSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>' . "\n";
+	$comboStartSession.='<option value="' . $s->SesOrder. '"' . (!is_null($startSession) && $s->SesOrder==$startSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
+	$comboEndSession.='<option value="' . $s->SesOrder . '"' . (!is_null($endSession) && $s->SesOrder==$endSession ? ' selected' : '') . '>' . $s->SesOrder .': ' . $s->SesName . '</option>';
 }
 
 
-$comboStartSession.='</select>' . "\n";
-$comboEndSession.='</select>' . "\n";
+$comboStartSession.='</select>';
+$comboEndSession.='</select>';
 
 
 $JS_SCRIPT=array(

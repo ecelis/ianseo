@@ -7,11 +7,11 @@
 	$col=(isset($_REQUEST['col']) ? $_REQUEST['col'] : null);
 	$div=(isset($_REQUEST['div']) ? $_REQUEST['div'] : '');
 
-	if (!CheckTourSession() || is_null($sex) || is_null($row) || is_null($col))
-	{
+	if (!CheckTourSession() || is_null($sex) || is_null($row) || is_null($col)) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 
 	$error=0;

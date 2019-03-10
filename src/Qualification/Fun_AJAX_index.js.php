@@ -1,4 +1,6 @@
 <?php
+// TODO: THIS FILE IS NOT REFERENCED DIRECTLY: CAN BE DELETED???
+
 header('Content-Type: application/javascript');
 /*
 													- Fun_AJAX_index.js.php -

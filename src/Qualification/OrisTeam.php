@@ -6,6 +6,7 @@ require_once('Common/Lib/ArrTargets.inc.php');
 require_once('Common/Lib/Fun_PrintOuts.php');
 require_once('Common/OrisFunctions.php');
 require_once('Common/pdf/PdfChunkLoader.php');
+checkACL(AclQualification, AclReadOnly);
 
 $EventRequested=(!empty($EventRequested) ? $EventRequested : '');
 

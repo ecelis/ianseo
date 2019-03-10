@@ -120,7 +120,6 @@ $lang['Setup-SE']='Schwedisches Turnier Reglement';
 $lang['Setup-Select']='Bestimme das korrekte Reglement';
 $lang['Setup-UK']='ArcheryGB Turnier Reglement';
 $lang['Setup-US']='US Turnier Reglement';
-$lang['Setup-VEGAS']='Las Vegas Turnier Regeln';
 $lang['SetVegas-KOA']='Kings of Archery - NED';
 $lang['SetVegas-WAF']='World Archery Festival - Las Vegas';
 $lang['SpecialUpdate']='Dies ist eine "Test" Installation.<br/>Nur ausgewählte User können diese Funktion verwenden: Bitte gib deine Email Adresse an, mit welcher du registriert bist.<br/>Eine Benachrichtigung wird an dich und das Ianseo Team geschickt.';

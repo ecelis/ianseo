@@ -21,7 +21,8 @@ function SetElimArrowValue($Phase, $Event, $Target, $ArIndex, $ArSymbol, $Output
 
 	if(empty($CompId)) $CompId=$_SESSION['TourId'];
 
-	$q=safe_r_sql("select el.*, EvElimArrows from Eliminations el
+	$q=safe_r_sql("select el.*, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) EvElimArrows 
+		from Eliminations el
 		INNER JOIN Events on ElEventCode=EvCode and ElTournament=EvTournament and EvTeamEvent=0
 		where ElElimPhase=".($Phase[1]-1)."
 		and ElEventCode='$Event'

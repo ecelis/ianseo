@@ -8,6 +8,7 @@
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(array(AclQualification,AclEliminations,AclIndividuals,AclTeams),AclReadWrite);
 
 	/*$Select
 		= "SELECT ToId,ToNumSession,TtNumDist, "
@@ -68,17 +69,17 @@
 					//Update Individuals
 					$MyQuery = "UPDATE Qualifications "
 						. "INNER JOIN Entries ON QuId=EnId "
-						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision AND EcTournament=EnTournament "
-						. "INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=IF(EcTeamEvent!=0, 1,0) AND EvTournament=EcTournament "
+						. "INNER JOIN Individuals ON IndId=EnId and IndTournament=EnTournament "
+						. "INNER JOIN Events ON EvCode=IndEvent AND EvTeamEvent=0 AND EvTournament=EnTournament "
 						. "SET EvQualPrintHead=" . StrSafe_DB((substr($_REQUEST['txtComment'],0,2)!='||' ? stripslashes($_REQUEST['txtComment']) : (substr($_REQUEST['txtComment'],2,1)=='!' ? 'OFFICIAL ' : 'Unofficial ') . str_replace("##",intval(substr($_REQUEST['txtComment'],(substr($_REQUEST['txtComment'],2,1)=='!' ? 3:2))),"After ## Arrows"))) . " "
-						. "WHERE QuSession=" . StrSafe_DB($_REQUEST['x_Session']) . " AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent=0";
+						. "WHERE QuSession=" . StrSafe_DB($_REQUEST['x_Session']) . " AND EnTournament=" . StrSafe_DB($_SESSION['TourId']);
 					$Rs=safe_w_sql($MyQuery);
 
 					//Update Teams
 					// normal teams, 3 components
 					$MyQuery = "UPDATE Qualifications "
 						. "INNER JOIN Entries ON QuId=EnId "
-						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision AND EcTournament=EnTournament "
+						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision and if(EcSubClass='', true, EcSubClass=EnSubClass) AND EcTournament=EnTournament "
 						. "INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=IF(EcTeamEvent!=0, 1,0) AND EvTournament=EcTournament "
 						. "SET EvQualPrintHead=" . StrSafe_DB((substr($_REQUEST['txtComment'],0,2)!='||' ? stripslashes($_REQUEST['txtComment']) : (substr($_REQUEST['txtComment'],2,1)=='!' ? 'OFFICIAL ' : 'Unofficial ') . str_replace("##",intval(substr($_REQUEST['txtComment'],(substr($_REQUEST['txtComment'],2,1)=='!' ? 3:2)))*3,"After ## Arrows"))) . " "
 						. "WHERE EvMixedTeam=0 AND QuSession=" . StrSafe_DB($_REQUEST['x_Session']) . " AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent!=0";
@@ -86,7 +87,7 @@
 					// Mixed Teams
 					$MyQuery = "UPDATE Qualifications "
 						. "INNER JOIN Entries ON QuId=EnId "
-						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision AND EcTournament=EnTournament "
+						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision and if(EcSubClass='', true, EcSubClass=EnSubClass) AND EcTournament=EnTournament "
 						. "INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=IF(EcTeamEvent!=0, 1,0) AND EvTournament=EcTournament "
 						. "SET EvQualPrintHead=" . StrSafe_DB((substr($_REQUEST['txtComment'],0,2)!='||' ? stripslashes($_REQUEST['txtComment']) : (substr($_REQUEST['txtComment'],2,1)=='!' ? 'OFFICIAL ' : 'Unofficial ') . str_replace("##",intval(substr($_REQUEST['txtComment'],(substr($_REQUEST['txtComment'],2,1)=='!' ? 3:2)))*2,"After ## Arrows"))) . " "
 						. "WHERE EvMixedTeam=1 AND QuSession=" . StrSafe_DB($_REQUEST['x_Session']) . " AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent!=0";
@@ -95,7 +96,7 @@
 					$MyQuery = "SELECT DISTINCT EvCode, EvTeamEvent, EvEventName, EvQualPrintHead as PrintHeader "
 						. "FROM Qualifications "
 						. "INNER JOIN Entries ON QuId=EnId "
-						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision AND EcTournament=EnTournament "
+						. "INNER JOIN EventClass ON EcClass=EnClass AND EcDivision=EnDivision and if(EcSubClass='', true, EcSubClass=EnSubClass) AND EcTournament=EnTournament "
 						. "INNER JOIN Events ON EvCode=EcCode AND EvTeamEvent=IF(EcTeamEvent!=0, 1,0) AND EvTournament=EcTournament "
 						. "WHERE QuSession=" . StrSafe_DB($_REQUEST['x_Session']) . " AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
 						. "ORDER BY EvTeamEvent, EvProgr";

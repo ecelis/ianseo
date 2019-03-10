@@ -32,7 +32,11 @@ function getRows(obj) {
 		    $(this).parent().toggleClass('active');
 		});
 
-		$('.EntryRow').bind('click', function() {
+        if(obj) {
+            $('#'+obj.getAttribute('id')).toggleClass('sortActive', true);
+        }
+
+        $('.EntryRow').bind('click', function() {
 			$(this).unbind('click');
 			createEdits($(this));
 			var EditCell=$(this).find('td.edit');
@@ -51,54 +55,65 @@ function createEdits(obj, nosave) {
 		var cell=$(this);
 
 		switch(cell.attr('field')) {
-		case 'code':
-		case 'locCode':
-		case 'firstname':
-		case 'name':
-		case 'email':
-		case 'dob':
-		case 'caption':
-		case 'targetno':
-		case 'country_code':
-		case 'country_name':
-		case 'country_code2':
-		case 'country_name2':
-		case 'country_code3':
-		case 'country_name3':
-			createTextField(this, cell.attr('field'), nosave);
-			break;
-		case 'tourcode':
-		case 'session':
-		case 'sex':
-		case 'wc':
-		case 'division':
-		case 'class':
-		case 'ageclass':
-		case 'subclass':
-		case 'targetface_name':
-			createComboField(this, cell.attr('field'), nosave);
-			break;
-		case 'qutargetno':
-		case 'tourid':
-		case 'key':
-		case 'id':
-		case 'ioccode':
-		case 'status':
-		case 'sex_id':
-		case 'ctrl_code':
-		case 'country_id':
-		case 'sub_team':
-		case 'country_id2':
-		case 'country_id3':
-		case 'targetface':
-		case 'indcl':
-		case 'teamcl':
-		case 'indfin':
-		case 'teamfin':
-		case 'mixteamfin':
-		case 'double':
+            case 'code':
+            case 'locCode':
+            case 'firstname':
+            case 'name':
+            case 'email':
+            case 'dob':
+            case 'caption':
+            case 'targetno':
+            case 'country_code':
+            case 'country_name':
+            case 'country_code2':
+            case 'country_name2':
+            case 'country_code3':
+            case 'country_name3':
+                createTextField(this, cell.attr('field'), nosave);
+                break;
+            case 'tourcode':
+            case 'session':
+            case 'sex':
+            case 'wc':
+            case 'division':
+            case 'class':
+            case 'ageclass':
+            case 'subclass':
+            case 'targetface_name':
+            case 'status':
+                createComboField(this, cell.attr('field'), nosave);
+                break;
+            case 'picture':
+                if(!nosave) {
+                    $(cell).click(function () {
+                        var id=this.parentNode.getAttribute('enid');
+                        $('#PhotoId').val(id);
+                        $('#PhotoPhoto').attr('src', 'photo.php?mode=y&val=130&id='+id);
+                        $('#PhotoFrame').show();
+                    });
+                }
 
-			break;
+                break;
+            case 'qutargetno':
+            case 'tourid':
+            case 'key':
+            case 'id':
+            case 'ioccode':
+            case 'sex_id':
+            case 'ctrl_code':
+            case 'country_id':
+            case 'sub_team':
+            case 'country_id2':
+            case 'country_id3':
+            case 'targetface':
+            case 'indcl':
+            case 'teamcl':
+            case 'indfin':
+            case 'teamfin':
+            case 'mixteamfin':
+            case 'double':
+
+                break;
 		}
 	});
 
@@ -123,12 +138,16 @@ function createTextField(cell, what, nosave) {
 	field.defaultValue=field.value;
 	field.name=what;
 	$(cell).html(field);
-	if(!nosave) {
+	if(cell.getAttribute('field')==event.target.getAttribute('field')) {
+        cell.firstChild.focus();
+    }
+
+    if(!nosave) {
 		$(field).change(function () {
 			$.getJSON('./updateField.php?'+cell.parentNode.id+'&field='+what+'&value='+this.value, function(data) {
 				if(data.error==0) {
-					if(data.newvalue) {
-						$(cell).css('background-color', 'green');
+					if(data.newvalue && data.newvalue!=field.defaultValue) {
+						$(cell).toggleClass('updated', true);
 					}
 				} else {
 					alert(data.msg);
@@ -143,22 +162,38 @@ function createTextField(cell, what, nosave) {
 function createComboField(cell, what, nosave) {
 	// tourcode selector ONLY for new entries...
 	if(what=='tourcode') return;
+	var Clicked=event.target;
 	$.getJSON('getCombo.php?'+cell.parentNode.id+'&field='+what, function(data) {
 		if(data.error==1) return;
 		var field=document.createElement('select');
 		$.each(data.rows, function(key, row) {
 			$(field).append('<option value="'+row.key+'">'+row.value+'</option>');
 		});
-		field.value=$(cell).attr('val');
+		if($(cell).attr('val')) {
+		    field.value=$(cell).attr('val');
+        }
+        if(field.selectedIndex==-1) {
+		    field.selectedIndex=0;
+        }
 		field.defaultValue=field.value;
 		field.name=what;
 		$(cell).html(field);
-		if(!nosave) {
+        if(cell.getAttribute('field')==Clicked.getAttribute('field')) {
+            cell.firstChild.focus();
+        }
+
+        if(!nosave) {
 			$(field).change(function () {
 				$.getJSON('./updateField.php?'+cell.parentNode.id+'&field='+what+'&value='+this.value, function(data) {
 					if(data.error==0) {
-						if(data.newvalue) {
-							$(cell).css('background-color', 'green');
+						if(data.newvalue && data.newvalue!=field.defaultValue) {
+                            $(cell).toggleClass('updated', true);
+                            // check if we need to update also other fields
+                            switch(what) {
+                                case 'ageclass':
+                                    createComboField($(cell).closest('tr').find('[name="class"] select')[0], 'class', nosave);
+                                    break;
+                            }
 						}
 					} else {
 						alert(data.msg);
@@ -241,6 +276,8 @@ function removeRow(obj) {
 
 function closeRow(obj) {
 	var EditCell=$(obj).parent();
+	var EditRow=EditCell.parent();
+	event.stopPropagation();
 	$(obj).parent().parent().find('td').each(function(index, cell) {
 		var field=$(cell).find('select option:selected');
 		if(field && field.length>0) {
@@ -252,6 +289,17 @@ function closeRow(obj) {
 					break;
 				case 'wc':
 					text=(val==1 ? 'X' : '');
+					break;
+				case 'status':
+				    switch(val) {
+                        case '0': text='<img src="'+rootDir+'Common/Images/status-ok.gif"  title="'+strStatus_0+'"/>'; break;
+                        case '1': text='<img src="'+rootDir+'Common/Images/status-canshoot.gif"  title="'+strStatus_1+'"/>'; break;
+                        case '5': text='<img src="'+rootDir+'Common/Images/status-unknown.gif"  title="'+strStatus_5+'"/>'; break;
+                        case '6': text='<img src="'+rootDir+'Common/Images/status-gohome.gif"  title="'+strStatus_6+'"/>'; break;
+                        case '7': text='<img src="'+rootDir+'Common/Images/status-notaccredited.gif"  title="'+strStatus_7+'"/>'; break;
+                        case '8': text='<img src="'+rootDir+'Common/Images/status-couldshoot.gif"  title="'+strStatus_8+'"/>'; break;
+                        case '9': text='<img src="'+rootDir+'Common/Images/status-noshoot.gif"  title="'+strStatus_9+'"/>'; break;
+                    }
 					break;
 				case 'subclass':
 				case 'targetface_name':
@@ -267,5 +315,17 @@ function closeRow(obj) {
 			$(cell).html(val);
 		}
 	});
-	EditCell.html('<input type="button" value="'+EditCell.attr('edit')+'" onclick="popUp(this)">');
+	EditCell.html('<input type="button" value="'+EditCell.attr('edit')+'">');
+    EditRow.bind('click', function(event) {
+        event.stopPropagation();
+        $(this).unbind('click');
+        createEdits($(this));
+        var EditCell=$(this).find('td.edit');
+        EditCell.html('<input type="button" value="'+EditCell.attr('close')+'" onclick="closeRow(this)">');
+    });
+
+}
+
+function closePhoto() {
+    $('#PhotoFrame').hide();
 }

@@ -1,16 +1,27 @@
 <?php
-	define('INSTALL', true);
+define('INSTALL', true);
 
-	require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	// non si sa mai, ma il $CFG potrebbe essere vuoto!!!
-	// quindi ricostruisco il $CFG
-	$CFG->ROOT_DIR = substr($_SERVER['SCRIPT_NAME'], 0, strlen(dirname(dirname(__FILE__))) + strlen($_SERVER['SCRIPT_NAME']) - strlen(realpath($_SERVER['SCRIPT_FILENAME']))) . '/';
+// non si sa mai, ma il $CFG potrebbe essere vuoto!!!
+// quindi ricostruisco il $CFG
+$CFG->ROOT_DIR = substr($_SERVER['SCRIPT_NAME'], 0, strlen(dirname(dirname(__FILE__))) + strlen($_SERVER['SCRIPT_NAME']) - strlen(realpath($_SERVER['SCRIPT_FILENAME']))) . '/';
 
+if(isset($_REQUEST['acceptGPL'])) {
+	$_SESSION['AcceptGPL']=true;
+}
+
+if(empty($_SESSION['AcceptGPL'])) {
+	AcceptGPL();
+}
 
 /**
 
 La procdura di installazione è suddivisa in numerosi STEPS
+
+* STEP 0:
+ - check if everything is RW by the web server
+ - show licensing and accept it
 
 * STEP 1: check della configurazione corrente del PHP
   - memoria assegnata
@@ -72,28 +83,26 @@ if(!file_exists('./dbdumps')) {
 	}
 }
 
+include('Common/Templates/head.php');
 
-	include('Common/Templates/head.php');
-?>
-<center>
-<form method="POST">
-<h2><?php echo get_text('Install-'.$STEP.' Title', 'Install') ?></h2>
-<table class="Tabella" style="width:auto">
-<?php
+echo '<div align="center">';
+echo '<form method="POST">';
 
+echo '<h2>'.get_text('Install-'.$STEP.' Title', 'Install').'</h2>';
+echo '<table class="Tabella" style="width:auto">';
 if(!empty($_SESSION['INSTALL']['CFG']['ERROR'])) {
-	echo '<tr><td colspan="3" class="Warning red">'.$_SESSION['INSTALL']['CFG']['ERROR'].'</td></tr>';
-	echo '<tr class="Divider"><td colspan="3"></td></tr>';
+    echo '<tr><td colspan="3" class="Warning red">'.$_SESSION['INSTALL']['CFG']['ERROR'].'</td></tr>';
+    echo '<tr class="Divider"><td colspan="3"></td></tr>';
 }
 
 if($STEP) include('install-'.$STEP.'.php');
 
-?>
-</table>
-</form>
-</center>
-<?php
-	include('Common/Templates/tail.php');
+echo '</table>';
+
+echo '</form>';
+echo '</div>';
+
+include('Common/Templates/tail.php');
 
 /** ********* *************   ******************* */
 
@@ -109,6 +118,9 @@ function install_blank_db() {
 		}
 	}
 	if($query AND substr($query, -1)==';') safe_w_sql($query);
+
+	// inserisce l'accettazione della licenza GPL
+	SetParameter('AcceptGPL', date('Y-m-d H:i:s'));
 }
 
 

@@ -4,10 +4,10 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 $JSON=array('error' => 1, 'rows' => array());
 
 if (empty($_SESSION['TourId'])) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	exit;
+	JsonOut($JSON);
 }
+checkACL(AclSpeaker, AclReadOnly, false);
+
 $SQL='';
 $Sessions='';
 $Field='concat(QuTarget, QuLetter)';
@@ -92,5 +92,4 @@ if($SQL) {
 }
 
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

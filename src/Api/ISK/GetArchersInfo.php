@@ -94,9 +94,9 @@ if(!defined('IN_IANSEO')) {
 				INNER JOIN TargetFaces ON EnTargetFace=TfId AND EnTournament=TfTournament
 				INNER JOIN Targets ON TfT1=TarId
 				WHERE EnTournament=$CompId
-				AND EnAthlete=1
-				AND EnStatus <= 1
-				AND left(ElTargetNo,3) in ('".$TargetNo."')
+					AND EnAthlete=1
+					AND EnStatus <= 1
+					AND left(ElTargetNo,3) in ('".$TargetNo."')
 				ORDER BY ElTargetNo ";
 			$q=safe_r_sql($Select);
 			while($r=safe_fetch($q)) {
@@ -116,7 +116,7 @@ if(!defined('IN_IANSEO')) {
 			// Retrieve the parameters sent in the call
 			$Session = (empty($_GET['session']) ? '' : $_GET['session']);
 			$Target = sprintf("%03s", (isset($_GET['sesstarget']) ? $_GET['sesstarget'] : ''));  // Add leading zeroes because the app doesn't send them
-			$TargetNo=getGroupedTargets($Session.$Target, $Session);
+			$Filter="left(QuTargetNo,4) in ('".getGroupedTargets($Session.$Target, $Session)."')";
 
 			// get the targettypes
 			$sql=array();
@@ -124,7 +124,7 @@ if(!defined('IN_IANSEO')) {
 				$sql[]="select TarId, TarDescr from Targets
 					inner join TargetFaces on TfT{$n}=TarId and TfTournament=$CompId
 					inner join Entries on EnTournament=$CompId and EnTargetFace=TfId
-					inner join Qualifications on EnId=QuId and left(QuTargetNo,4) in ('".$TargetNo."') AND EnStatus <= 1 AND EnAthlete=1";
+					inner join Qualifications on EnId=QuId and $Filter AND EnStatus <= 1 AND EnAthlete=1";
 			}
 			$SQL="(".implode(') UNION (', $sql).")";
 			$q=safe_r_sql($SQL);
@@ -139,7 +139,7 @@ if(!defined('IN_IANSEO')) {
 				$sql[]="select group_concat(DISTINCT Td{$n} ORDER BY Td{$n} ASC SEPARATOR ',') DiName, DiEnds, DiArrows, DiDistance
 					from Entries
 					INNER JOIN Tournament ON ToId=$CompId
-					inner join Qualifications on EnId=QuId and left(QuTargetNo,4) in ('".$TargetNo."')
+					inner join Qualifications on EnId=QuId and $Filter
 					INNER JOIN DistanceInformation ON EnTournament=DiTournament and DiSession=QuSession and DiDistance=$n and DiType='Q'
 					INNER JOIN TournamentDistances ON ToType=TdType and TdTournament=ToId AND CONCAT(TRIM(EnDivision),TRIM(EnClass)) LIKE TdClasses
 					where EnTournament=$CompId
@@ -175,7 +175,7 @@ if(!defined('IN_IANSEO')) {
 				WHERE EnTournament=$CompId
 					AND EnAthlete=1
 					AND EnStatus <= 1
-					AND left(QuTargetNo,4) in ('".$TargetNo."')
+					AND $Filter
 				ORDER BY QuTargetNo ";
 		}
 

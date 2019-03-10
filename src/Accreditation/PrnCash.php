@@ -1,5 +1,6 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclParticipants, AclReadOnly);
 require_once('Common/pdf/ResultPDF.inc.php');
 require_once('Common/Fun_Number.inc.php');
 require_once('Common/Fun_FormatText.inc.php');

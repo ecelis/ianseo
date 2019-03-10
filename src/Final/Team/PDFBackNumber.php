@@ -2,9 +2,9 @@
 	require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 	require_once('Common/Fun_FormatText.inc.php');
 	require_once('Common/pdf/BackNoPDF.php');
+	checkACL(AclTeams, AclReadOnly);
 
 	$pdf = new BackNoPDF(2);
-
 
 	$MyQuery = 'SELECT '
        	. ' EvCode, EvEventName, EvFinalFirstPhase, GrPosition, '

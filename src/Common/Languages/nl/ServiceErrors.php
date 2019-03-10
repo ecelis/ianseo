@@ -1,4 +1,7 @@
 <?php
+$lang['ArcClassified']='fout toegekende waarde';
+$lang['ArcNative']='Fout land status';
+$lang['ArcPara']='Fout Para status';
 $lang['ErrArcherCodeExists']='ID schutter bestaat al';
 $lang['ErrArcherCodeFree']='ID schutter is nog niet bezet';
 $lang['ErrArcherCodeTooLong']='ID schutter is te lang';
@@ -50,4 +53,5 @@ $lang['ErrSubClass']='foutieve sub klasse';
 $lang['ErrSubClassNotFound']='Sub klasse niet gevonden';
 $lang['ErrWronglevel']='Club schutter verkeerd niveau';
 $lang['LoginTooManyArchers']='Meer dan 1 sporter heeft dit email adres. Gebruik de unieke ID.';
+$lang['WrongType']='Fout type';
 ?>

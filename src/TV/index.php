@@ -26,10 +26,7 @@ if(!empty($_REQUEST['export'])) {
 			$JSON['content'][]=$r;
 		}
 		if($JSON) {
-			header('Content-Type: application/json');
-			header('Content-disposition: attachment; filename=TVRules-'.$_REQUEST['Tour'].'-'.$RuleName.'.json');
-			echo json_encode($JSON);
-			die();
+			JsonOut($JSON, false, 'Content-disposition: attachment; filename=TVRules-'.$_REQUEST['Tour'].'-'.$RuleName.'.json');
 		}
 	} else {
 		redirect();
@@ -40,6 +37,10 @@ if(!empty($_REQUEST['export'])) {
 $TourId=0;
 if(!empty($_SESSION['TourId'])) $TourId=$_SESSION['TourId'];
 if(!empty($_REQUEST['TourId'])) $TourId=$_REQUEST['TourId'];
+$lvl = 0;
+if($TourId) {
+    $lvl = checkACL(AclOutput, AclReadOnly, true, $TourId);
+}
 
 if(!IsBlocked(BIT_BLOCK_MEDIA)) {
 	if(!empty($_SESSION['TourId']) and !empty($_FILES['TvRule']['size']) and $_FILES['TvRule']['error']==0) {
@@ -120,7 +121,7 @@ if(!IsBlocked(BIT_BLOCK_MEDIA)) {
 			cd_redirect();
 		}
 	}
-	if($TourId and !empty($_POST['NewRule'])) {
+	if($TourId and !empty($_POST['NewRule']) and $lvl==AclReadWrite) {
 		$q=safe_r_sql("SELECT IFNULL(MAX(TVRId),0) AS CurID FROM TVRules WHERE TVRTournament=$TourId");
 		$newID = (safe_fetch($q)->CurID)+1;
 		safe_w_sql("INSERT INTO TVRules set TVRId=$newID, TVRTournament=$TourId, TVRName=".strsafe_DB($_POST['NewRule']));
@@ -129,7 +130,7 @@ if(!IsBlocked(BIT_BLOCK_MEDIA)) {
 	}
 
 	// cancella la regola e le sue associazioni
-	if(!empty($_GET['delete'])) {
+	if(!empty($_GET['delete']) and $lvl==AclReadWrite) {
 		$IDrule=intval($_GET['delete']);
 
 		// controlla che non sia una regola predefinita (IDtour = -1)
@@ -146,7 +147,7 @@ if(!IsBlocked(BIT_BLOCK_MEDIA)) {
 		cd_redirect();
 	}
 
-	if(!empty($_GET['edit'])) {
+	if(!empty($_GET['edit']) and $lvl==AclReadWrite) {
 		$IDrule=intval($_GET['edit']);
 
 		// controlla che non sia una regola predefinita (IDtour = -1)
@@ -215,7 +216,7 @@ include('Common/Templates/head.php');
 			print '<td class="Left">[&nbsp;<a target="_blank"  class="Link" href="LightRot.php?Rule=' . $MyRow->TVRId . '&Tour=' . $MyRow->ToCode . '">' . get_text('TvLightPage', 'Tournament') . '</a>&nbsp;]</td>';
 			print '<td class="Left">[&nbsp;<a target="_blank"  class="Link" href="Rot/?Rule=' . $MyRow->TVRId . '&Tour=' . $MyRow->ToCode . '">' . get_text('TvCss3Page', 'Tournament') . '</a>&nbsp;]</td>';
 
-			if($TourId) {
+			if($TourId and $lvl==AclReadWrite) {
 				print '<td class="Left"><a class="Link" href="?edit=' . $MyRow->TVRId . '">' . get_text('Edit','Languages') . '</a></td>';
 				print '<td class="Left"><a class="Link" href="?delete=' . $MyRow->TVRId . '" onclick="return(confirm(\''.get_text('MsgAreYouSure').'\'))">' . get_text('CmdDelete','Tournament') . '</a></td>';
 			}
@@ -228,7 +229,7 @@ include('Common/Templates/head.php');
 		print '<tr><td class="Bold Center">' . get_text('TVOutNoRulesWithStart','Tournament') . '</td></tr>' . "\n";
 	}
 
-	if($TourId) {
+	if($TourId and $lvl==AclReadWrite) {
 		// new rules only in an open tournament
 		$riga=(1-$riga);
 		print '<tr'.($riga?' class="alt"':'').'>';

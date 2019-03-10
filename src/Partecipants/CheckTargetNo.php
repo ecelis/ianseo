@@ -8,13 +8,11 @@
 
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 
-	if (!CheckTourSession() ||
-		!isset($_REQUEST['d_q_QuSession']) ||
-		!isset($_REQUEST['d_q_QuTargetNo']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['d_q_QuSession']) || !isset($_REQUEST['d_q_QuTargetNo'])) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$Errore=0;
 
@@ -49,8 +47,8 @@
 	if (!debug)
 		header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<targetno><![CDATA[' . $TargetNo . ']]></targetno>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<targetno><![CDATA[' . $TargetNo . ']]></targetno>';
+	print '</response>';
 ?>

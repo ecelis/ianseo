@@ -12,7 +12,7 @@ if($r=safe_fetch($q)) {
 		die();
 	}
 	if($r->RasTourCode and $r->RasRot) {
-		header("Location: {$_SERVER['REQUEST_SCHEME']}://{$_SERVER['SERVER_NAME']}{$CFG->ROOT_DIR}TV/".($r->RasType ? 'LightRot.php' : 'Rot/index.php')."?Rule={$r->RasRot}&Tour={$r->RasTourCode}");
+		header("Location: ".getMyScheme()."://{$_SERVER['SERVER_NAME']}{$CFG->ROOT_DIR}TV/".($r->RasType ? 'LightRot.php' : 'Rot/index.php')."?Rule={$r->RasRot}&Tour={$r->RasTourCode}");
 		die();
 	}
 } else {

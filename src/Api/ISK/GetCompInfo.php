@@ -21,7 +21,6 @@ require_once('Common/Fun_Sessions.inc.php');
 
 	if($TourRow=safe_fetch($Rs)) {
 		// Now load the json array with the info we need
-
 		// FIRST LOOK IF IT IS A PRO+PRO configuration!
 		if($iskModePro and $iskAppPro) {
 			// check the state of the app
@@ -49,6 +48,8 @@ require_once('Common/Fun_Sessions.inc.php');
 		$json_array["compdesc2"] = $TourRow->ToWhere . ", " . $TourRow->DtFrom . " - " . $TourRow->DtTo;
 		$json_array["compdesc3"] = ManageHTML(get_text($TourRow->ToTypeName, 'Tournament')) . ", " . $TourRow->ToNumDist . " " . get_text($TourRow->ToNumDist==1?'Distance':'Distances','Tournament');
 		$json_array["compcategory"] = (int)$TourRow->ToCategory;
+		$json_array["email"] = $iskModePro ? getModuleParameter('ISK', 'LicenseEmail', '', $CompId) : '';
+		$json_array["id"] = $iskModePro ? getModuleParameter('ISK', 'LicenseNumber', '', $CompId) : '';
 		$json_array["numdist"] = (int)$TourRow->ToNumDist;
 		$json_array["numsession"] = (int)$TourRow->ToNumSession;
 		$json_array["distances"] = array();

@@ -10,11 +10,11 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Fun_Partecipants.local.inc.php');
 
-	if (!isset($_REQUEST['Matr']) || !CheckTourSession())
-	{
+	if (!isset($_REQUEST['Matr']) || !CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(AclParticipants, AclReadWrite, false);
 
 	$nocCode='';
 	if(isset($_REQUEST['Noc']))
@@ -144,7 +144,7 @@
 			= "SELECT ClId FROM Classes WHERE ClTournament=" . StrSafe_DB($_SESSION['TourId']) . " ORDER BY ClViewOrder ASC ";
 		$Rs=safe_r_sql($Select);
 		while ($Row=safe_fetch($Rs)) {
-			$AllClasses.= '<cl_id>' . $Row->ClId . '</cl_id>' . "\n";
+			$AllClasses.= '<cl_id>' . $Row->ClId . '</cl_id>';
 		}
 	}
 
@@ -157,24 +157,24 @@
 		header('Cache-Control: post-check=0, pre-check=0', false);
 		header('Pragma: no-cache');
 	}
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<code><![CDATA[' . (strlen(trim($Code2Save))!=0 ? ($Code2Save) : '') . ']]></code>' . "\n";
-	print '<name><![CDATA[' . (strlen(trim($Name2Save))!=0 ? ($Name2Save) : '') . ']]></name>' . "\n";
-	print '<firstname><![CDATA[' . (strlen(trim($FirstName2Save))!=0 ? ($FirstName2Save) : '') . ']]></firstname>' . "\n";
-	print '<ctrl_code><![CDATA[' . (strlen(trim($CtrlCode2Save))!=0 ? ($CtrlCode2Save) : '') . ']]></ctrl_code>' . "\n";
-	print '<dob><![CDATA[' . (strlen(trim($Dob2Save))!=0 ? ($Dob2Save) : '') . ']]></dob>' . "\n";
-	print '<sex><![CDATA[' . (strlen(trim($Sex2Save))!=0 ? ($Sex2Save) : '') . ']]></sex>' . "\n";
-	print '<division><![CDATA[' . (strlen(trim($Division2Save))!=0 ? ($Division2Save) : '') . ']]></division>' . "\n";
-	print '<class><![CDATA[' . (strlen(trim($Class2Save))!=0 ? ($Class2Save) : '') . ']]></class>' . "\n";
-	print '<ageclass><![CDATA[' . (strlen(trim($Class2Save))!=0 ? ($Class2Save) : '') . ']]></ageclass>' . "\n";
-	print '<subclass><![CDATA[' . (strlen(trim($SubClass2Save))!=0 ? ($SubClass2Save) : '') . ']]></subclass>' . "\n";
-	print '<country><![CDATA[' . (strlen(trim($Country2Save))!=0 ? ($Country2Save) : '') . ']]></country>' . "\n";
-	print '<idcountry><![CDATA[' . (strlen(trim($IdCountry2Save))!=0 ? ($IdCountry2Save) : '') . ']]></idcountry>' . "\n";
-	print '<nation><![CDATA[' . (strlen(trim($Nation2Save))!=0 ? ($Nation2Save) : '') . ']]></nation>' . "\n";
-	print '<country2><![CDATA[' . (strlen(trim($SecondCountry2Save))!=0 ? ($SecondCountry2Save) : '') . ']]></country2>' . "\n";
-	print '<idcountry2><![CDATA[' . (strlen(trim($SecondIdCountry2Save))!=0 ? ($SecondIdCountry2Save) : '') . ']]></idcountry2>' . "\n";
-	print '<nation2><![CDATA[' . (strlen(trim($SecondNation2Save))!=0 ? ($SecondNation2Save) : '') . ']]></nation2>' . "\n";
-	print '<status><![CDATA[' . (strlen(trim($Status2Save))!=0 ? ($Status2Save) : '') . ']]></status>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<code><![CDATA[' . (strlen(trim($Code2Save))!=0 ? ($Code2Save) : '') . ']]></code>';
+	print '<name><![CDATA[' . (strlen(trim($Name2Save))!=0 ? ($Name2Save) : '') . ']]></name>';
+	print '<firstname><![CDATA[' . (strlen(trim($FirstName2Save))!=0 ? ($FirstName2Save) : '') . ']]></firstname>';
+	print '<ctrl_code><![CDATA[' . (strlen(trim($CtrlCode2Save))!=0 ? ($CtrlCode2Save) : '') . ']]></ctrl_code>';
+	print '<dob><![CDATA[' . (strlen(trim($Dob2Save))!=0 ? ($Dob2Save) : '') . ']]></dob>';
+	print '<sex><![CDATA[' . (strlen(trim($Sex2Save))!=0 ? ($Sex2Save) : '') . ']]></sex>';
+	print '<division><![CDATA[' . (strlen(trim($Division2Save))!=0 ? ($Division2Save) : '') . ']]></division>';
+	print '<class><![CDATA[' . (strlen(trim($Class2Save))!=0 ? ($Class2Save) : '') . ']]></class>';
+	print '<ageclass><![CDATA[' . (strlen(trim($Class2Save))!=0 ? ($Class2Save) : '') . ']]></ageclass>';
+	print '<subclass><![CDATA[' . (strlen(trim($SubClass2Save))!=0 ? ($SubClass2Save) : '') . ']]></subclass>';
+	print '<country><![CDATA[' . (strlen(trim($Country2Save))!=0 ? ($Country2Save) : '') . ']]></country>';
+	print '<idcountry><![CDATA[' . (strlen(trim($IdCountry2Save))!=0 ? ($IdCountry2Save) : '') . ']]></idcountry>';
+	print '<nation><![CDATA[' . (strlen(trim($Nation2Save))!=0 ? ($Nation2Save) : '') . ']]></nation>';
+	print '<country2><![CDATA[' . (strlen(trim($SecondCountry2Save))!=0 ? ($SecondCountry2Save) : '') . ']]></country2>';
+	print '<idcountry2><![CDATA[' . (strlen(trim($SecondIdCountry2Save))!=0 ? ($SecondIdCountry2Save) : '') . ']]></idcountry2>';
+	print '<nation2><![CDATA[' . (strlen(trim($SecondNation2Save))!=0 ? ($SecondNation2Save) : '') . ']]></nation2>';
+	print '<status><![CDATA[' . (strlen(trim($Status2Save))!=0 ? ($Status2Save) : '') . ']]></status>';
+	print '</response>';
 ?>

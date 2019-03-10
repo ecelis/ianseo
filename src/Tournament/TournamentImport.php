@@ -21,6 +21,11 @@ if($_FILES and !empty($_FILES['Gara']['tmp_name'])){
 
 	include('Common/Fun_TourDelete.php');
 
+	$TourId = getIdFromCode(tour_getCode($_FILES['Gara']['tmp_name']));
+	if($TourId ) {
+        checkACL(AclRoot, AclReadWrite, true, $TourId);
+    }
+
 	$TourId = tour_import($_FILES['Gara']['tmp_name']);
 
 	// if an ID is returned then everything is fine!

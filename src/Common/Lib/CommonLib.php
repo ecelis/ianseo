@@ -1,5 +1,401 @@
 <?php
 
+/**
+ * @return array of the pool phases as [phase] => [descriptionShort]
+ */
+function getPoolMatchesPhases() {
+	$ret=array();
+	$ret['64']='Show Match';
+	$ret['32']='Match A1/B1';
+	$ret['16']='Match A2/B2';
+	$ret['8']='Match A3/B3';
+	$ret['4']='Match A4/B4';
+	return $ret;
+}
+
+/**
+ * @return array of the pool phases as [phase] => [descriptionShort]
+ */
+function getPoolMatchesPhasesWA() {
+	$ret=array();
+	$ret['64']='Match 1 A/B/C/D';
+	$ret['32']='Match 2 A/B/C/D';
+	$ret['16']='Match 3 A/B/C/D';
+	$ret['8']='Match 4 A/B/C/D';
+	$ret['4']='Match AB/CD';
+	return $ret;
+}
+
+/**
+ * @return array of the pool phases as [phase] => [descriptionShort]
+ */
+function getPoolMatchesHeadersWA() {
+	$ret=array();
+	$ret['64']='Match 1';
+	$ret['32']='Match 2';
+	$ret['16']='Match 3';
+	$ret['8']='Match 4';
+	$ret['4']='AB/CD';
+	return $ret;
+}
+
+/**
+ * @param int $Pool can be empty string [default], A or B to filter the selected pool
+ * @return array of the pool matches as [lower matchno] => [descriptionShort]
+ */
+function getPoolMatchesShort($Pool='') {
+	$ret=array();
+	if(!$Pool) {
+		$ret['128']='Show Match';
+	}
+	if(!$Pool or $Pool=='A') {
+		$ret['94']='Match A1';
+		$ret['46']='Match A2';
+		$ret['22']='Match A3';
+		$ret['10']='Match A4';
+	}
+	if(!$Pool or $Pool=='B') {
+		$ret['96']='Match B1';
+		$ret['48']='Match B2';
+		$ret['24']='Match B3';
+		$ret['12']='Match B4';
+	}
+	return $ret;
+}
+
+/**
+ * @param int $Pool can be empty string [default], A or B to filter the selected pool
+ * @return array of the pool matches as [lower matchno] => [descriptionShort]
+ */
+function getPoolMatchesShortWA($Pool='') {
+	$ret=array();
+	if(!$Pool or $Pool=='A') {
+		$ret['206']='Match A1';
+		$ret['102']='Match A2';
+		$ret['50'] ='Match A3';
+		$ret['24'] ='Match A4';
+		//$ret['12'] ='Match AB';
+	}
+	if(!$Pool or $Pool=='B') {
+		$ret['222']='Match B1';
+		$ret['110']='Match B2';
+		$ret['54'] ='Match B3';
+		$ret['26'] ='Match B4';
+		$ret['12'] ='Match AB';
+	}
+	if(!$Pool or $Pool=='C') {
+		$ret['174']='Match C1';
+		$ret['86'] ='Match C2';
+		$ret['42'] ='Match C3';
+		$ret['20'] ='Match C4';
+		//$ret['10'] ='Match CD';
+	}
+	if(!$Pool or $Pool=='D') {
+		$ret['190']='Match D1';
+		$ret['94'] ='Match D2';
+		$ret['46'] ='Match D3';
+		$ret['22'] ='Match D4';
+		$ret['10'] ='Match CD';
+	}
+
+	return $ret;
+}
+
+/**
+ * @param int $Pool can be empty string [default], A or B to filter the selected pool
+ * @return array of the pool matches as [Matchno] => [Winner Description]
+ */
+function getPoolMatchesWinners($Pool='') {
+	$ret=array();
+	if(!$Pool) {
+		$ret['128']='1st Ranked';
+		$ret['129']='2nd Ranked';
+		$ret['4']='1st or 2nd Ranked';
+		$ret['5']='Winner of Match A4';
+		$ret['6']='Winner of Match B4';
+		$ret['7']='1st or 2nd Ranked';
+	}
+	if(!$Pool or $Pool=='A') {
+		$ret['94']='10th ranked';
+		$ret['95']='11th ranked';
+		$ret['46']='7th ranked';
+		$ret['47']='Winner of Match A1';
+		$ret['22']='6th ranked';
+		$ret['23']='Winner of Match A2';
+		$ret['10']='3rd ranked';
+		$ret['11']='Winner of Match A3';
+	}
+	if(!$Pool or $Pool=='B') {
+		$ret['96']='12th ranked';
+		$ret['97']='9th ranked';
+		$ret['48']='Winner of Match B1';
+		$ret['49']='8th ranked';
+		$ret['24']='Winner of Match B2';
+		$ret['25']='5th ranked';
+		$ret['12']='Winner of Match B3';
+		$ret['13']='4th ranked';
+	}
+	return $ret;
+}
+
+/**
+ * @param int $Pool can be empty string [default], A or B to filter the selected pool
+ * @return array of the pool matches as [Matchno] => [Winner Description]
+ */
+function getPoolMatchesWinnersWA($Pool='') {
+	$ret=array();
+	if(!$Pool) {
+		$ret['4']='1st Ranked';
+		$ret['5']='Winner of Match CD';
+		$ret['6']='Winner of Match AB';
+		$ret['7']='2nd Ranked';
+	}
+
+	if(!$Pool or $Pool=='A') {
+		$ret['206']='18th ranked';
+		$ret['207']='19th ranked';
+		$ret['102']='11th ranked';
+		$ret['103']='Winner of Match A1';
+		$ret['50'] ='10th ranked';
+		$ret['51'] ='Winner of Match A2';
+		$ret['24'] ='3rd ranked';
+		$ret['25'] ='Winner of Match A3';
+		//$ret['12'] ='Winner of Pool A';
+		//$ret['13'] ='Winner of Pool B';
+	}
+	if(!$Pool or $Pool=='B') {
+		$ret['222']='16th ranked';
+		$ret['223']='21st ranked';
+		$ret['110']='13th ranked)';
+		$ret['111']='Winner of Match B1';
+		$ret['54'] ='8th ranked';
+		$ret['55'] ='Winner of Match B2';
+		$ret['26'] ='5th ranked';
+		$ret['27'] ='Winner of Match B3';
+		$ret['12'] ='Winner of Pool A';
+		$ret['13'] ='Winner of Pool B';
+	}
+	if(!$Pool or $Pool=='C') {
+		$ret['174']='17th ranked';
+		$ret['175']='20th ranked';
+		$ret['86'] ='12th ranked';
+		$ret['87'] ='Winner of Match C1';
+		$ret['42'] ='9th ranked';
+		$ret['43'] ='Winner of Match C2';
+		$ret['20'] ='4th ranked';
+		$ret['21'] ='Winner of Match C3';
+		//$ret['10'] ='Winner of Pool C';
+		//$ret['11'] ='Winner of Pool D';
+	}
+	if(!$Pool or $Pool=='D') {
+		$ret['190']='15th ranked';
+		$ret['191']='22nd ranked';
+		$ret['94'] ='14th ranked';
+		$ret['95'] ='Winner of Match D1';
+		$ret['46'] ='7th ranked';
+		$ret['47'] ='Winner of Match D2';
+		$ret['22'] ='6th ranked';
+		$ret['23'] ='Winner of Match D3';
+		$ret['10'] ='Winner of Pool C';
+		$ret['11'] ='Winner of Pool D';
+	}
+
+	return $ret;
+}
+
+/**
+ * @param string $Pool can be empty string [default], A or B to filter the selected pool
+ * @return array of the pool matches as [description] => [lower matchno]
+ */
+function getPoolMatches($Pool='') {
+	$ret=array();
+	if(!$Pool or $Pool=='C') {
+		$ret['128']='Show Match 1 vs 2';
+	}
+	if(!$Pool or $Pool=='A') {
+		$ret['94']='Pool A - Match 1 (10/11)';
+		$ret['46']='Pool A - Match 2 (7/W MA-1)';
+		$ret['22']='Pool A - Match 3 (6/W MA-2)';
+		$ret['10']='Pool A - Match 4 (3/W MA-3)';
+	}
+	if(!$Pool or $Pool=='B') {
+		$ret['96']='Pool B - Match 1 (9/12)';
+		$ret['48']='Pool B - Match 2 (8/W MB-1)';
+		$ret['24']='Pool B - Match 3 (5/W MB-2)';
+		$ret['12']='Pool B - Match 4 (4/W MB-3)';
+	}
+	return $ret;
+}
+
+/**
+ * @param string $Pool can be empty string [default], A or B to filter the selected pool
+ * @return array of the pool matches as [description] => [lower matchno]
+ */
+function getPoolMatchesWA($Pool='', $WithExtra=true) {
+	$ret=array();
+	if(!$Pool or $Pool=='A') {
+		$ret['206']='Pool A - Match 1 (18/19)';
+		$ret['102']='Pool A - Match 2 (11/W MA-1)';
+		$ret['50'] ='Pool A - Match 3 (10/W MA-2)';
+		$ret['24'] ='Pool A - Match 4 (3/W MA-3)';
+		if($Pool and $WithExtra) {
+			$ret['12'] ='Pool A/B (W MA-4/W MB-4)';
+		}
+	}
+	if(!$Pool or $Pool=='B') {
+		$ret['222']='Pool B - Match 1 (16/21)';
+		$ret['110']='Pool B - Match 2 (13/W MB-1)';
+		$ret['54'] ='Pool B - Match 3 (8/W MB-2)';
+		$ret['26'] ='Pool B - Match 4 (5/W MB-3)';
+		$ret['12'] ='Pool A/B (W MA-4/W MB-4)';
+	}
+	if(!$Pool or $Pool=='C') {
+		$ret['174']='Pool C - Match 1 (17/20)';
+		$ret['86'] ='Pool C - Match 2 (12/W MC-1)';
+		$ret['42'] ='Pool C - Match 3 (9/W MC-2)';
+		$ret['20'] ='Pool C - Match 4 (4/W MC-3)';
+		if($Pool and $WithExtra) {
+			$ret['10'] = 'Pool C/D (W MC-4/W MD-4)';
+		}
+	}
+	if(!$Pool or $Pool=='D') {
+		$ret['190']='Pool D - Match 1 (15/22)';
+		$ret['94'] ='Pool D - Match 2 (14/W MD-1)';
+		$ret['46'] ='Pool D - Match 3 (7/W MD-2)';
+		$ret['22'] ='Pool D - Match 4 (6/W MD-3)';
+		$ret['10'] ='Pool C/D (W MC-4/W MD-4)';
+	}
+	return $ret;
+}
+
+/**
+ * @param string $Pool
+ * @return array of all the matchnos involved
+ */
+function getPoolMatchNos($Pool='') {
+	$ret=array();
+	foreach(getPoolMatches($Pool) as $k => $v) {
+		$ret[]=$k;
+		$ret[]=$k+1;
+	}
+	return $ret;
+}
+
+/**
+ * @param string $Pool
+ * @return array of all the matchnos involved
+ */
+function getPoolMatchNosWA($Pool='', $WithExtra=true) {
+	$ret=array();
+	foreach(getPoolMatchesWA($Pool, $WithExtra) as $k => $v) {
+		$ret[]=$k;
+		$ret[]=$k+1;
+	}
+	return $ret;
+}
+
+/**
+ * @return array as a static grid of rank => matchno
+ * @see getPoolMatches();
+ */
+function getPoolGrids() {
+	$ret=array();
+	$ret[1]='128';
+	$ret[2]='129';
+	$ret[3]='10';
+	$ret[4]='13';
+	$ret[5]='25';
+	$ret[6]='22';
+	$ret[7]='46';
+	$ret[8]='49';
+	$ret[9]='97';
+	$ret[10]='94';
+	$ret[11]='95';
+	$ret[12]='96';
+
+	return $ret;
+}
+
+/**
+ * @return array as a static grid of rank => matchno
+ * @see getPoolMatches();
+ */
+function getPoolGridsWA() {
+	$ret=array();
+	$ret[1] ='4';
+	$ret[2] ='7';
+	$ret[3] ='24';
+	$ret[4] ='20';
+	$ret[5] ='26';
+	$ret[6] ='22';
+	$ret[7] ='46';
+	$ret[8] ='54';
+	$ret[9] ='42';
+	$ret[10]='50';
+	$ret[11]='102';
+	$ret[12]='86';
+	$ret[13]='110';
+	$ret[14]='94';
+	$ret[15]='190';
+	$ret[16]='222';
+	$ret[17]='174';
+	$ret[18]='206';
+	$ret[19]='207';
+	$ret[20]='175';
+	$ret[21]='223';
+	$ret[22]='191';
+
+	return $ret;
+}
+
+/**
+ * @return array as a static grid of rank => matchno
+ * @see getPoolMatches();
+ */
+function getPoolLooserRank($MatchNo) {
+	switch($MatchNo) {
+		case '96': return 12; break;
+		case '94': return 11; break;
+		case '46': return 10; break;
+		case '48': return  9; break;
+		case '24': return  8; break;
+		case '22': return  7; break;
+		case '10': return  6; break;
+		case '12': return  5; break;
+	}
+
+	return false;
+}
+
+/**
+ * @return array as a static grid of rank => matchno
+ * @see getPoolMatches();
+ */
+function getPoolLooserRankWA($MatchNo) {
+	switch($MatchNo) {
+		case '190': return 22; break;
+		case '222': return 21; break;
+		case '174': return 20; break;
+		case '206': return 19; break;
+		case '102': return 18; break;
+		case '86':  return 17; break;
+		case '110': return 16; break;
+		case '94':  return 15; break;
+		case '46':  return 14; break;
+		case '54':  return 13; break;
+		case '42':  return 12; break;
+		case '50':  return 11; break;
+		case '24':  return 10; break;
+		case '20':  return  9; break;
+		case '26':  return  8; break;
+		case '22':  return  7; break;
+		case '10':  return  6; break;
+		case '12':  return  5; break;
+	}
+
+	return false;
+}
+
 function Get_Tournament_Option($key, $Ret='', $TourId=0) {
 	if(!$TourId and !empty($_SESSION['TourId'])) $TourId=$_SESSION['TourId'];
 	if(empty($TourId)) return array();
@@ -191,13 +587,151 @@ function ObjectToCss($css) {
 }
 
 function DefineForcePrintouts($TourId, $Restore=false) {
-	static $OldLang=null;
-	if($OldLang==null) {
-		$OldLang=SelectLanguage();
-	}
+//	static $OldLang=null;
+//	if($OldLang==null) {
+//		$OldLang=SelectLanguage();
+//	}
 
 	$q=safe_r_SQL("select ToPrintLang from Tournament where ToId=$TourId");
 	$r=safe_fetch($q);
 	@define('PRINTLANG', $r->ToPrintLang);
 }
 
+function getScheduledSessions($return='API', $TourId=0, $OnlyToday=false) {
+	require_once('Common/Lib/Fun_Phases.inc.php');
+	if(!$TourId) $TourId=$_SESSION['TourId'];
+
+	$ret=array();
+
+	$SQL = "(SELECT DISTINCT CONCAT(SesType,ToNumDist,SesOrder) as keyValue, SesType as Type, 'Q' as txtkey,
+				if(SesName='', SesOrder, SesName) as Description, '0' as FirstPhase,
+				IFNULL(CONCAT(SchDay, ' ', SchStart), concat('0000-00-00 00:00:', SesOrder)) as dtOrder, group_concat(DiEnds order by DiDistance) MaxEnds, 0 as EvElimType
+			FROM Session
+			INNER JOIN Tournament ON SesTournament=ToId
+			LEFT JOIN DistanceInformation on DiTournament=SesTournament and DiType=SesType and DiSession=SesOrder
+			LEFT JOIN Scheduler ON SchTournament=SesTournament AND SchSesType=SesType AND SchSesOrder=SesOrder
+			WHERE SesTournament=$TourId AND SesType='Q'
+			" . ($OnlyToday ? " AND (SchDay=UTC_DATE() or DiDay=UTC_DATE())" : "") ."
+			GROUP BY SesOrder, SesType
+		) UNION ALL (
+		SELECT DISTINCT CONCAT('E1',ElSession) as keyValue, 'E' as Type, 'E1' as txtkey,
+				if(SesName is null or SesName='', ElSession, SesName) as Description, '0' as FirstPhase,
+				IFNULL(CONCAT(SchDay, ' ', SchStart), concat('0000-00-00 00:00:', ElSession)) as dtOrder, EvElimEnds as MaxEnds, EvElimType
+			FROM Events
+			INNER JOIN Eliminations ON ElTournament=EvTournament and EvCode=ElEventCode and EvTeamEvent=0 and EvElim1>0 and ElElimPhase=0 and EvElimType<3
+			left JOIN Session on EvTournament=SesTournament and ElSession=SesOrder AND SesType='E'
+			LEFT JOIN Scheduler ON SchTournament=EvTournament AND SchSesType='E' AND SchSesOrder=ElSession
+			WHERE EvTournament=$TourId
+			" . ($OnlyToday ? "AND SchDay=UTC_DATE()" : "") ."
+			GROUP BY EvCode
+		) UNION ALL (
+		SELECT DISTINCT CONCAT('E2',ElSession) as keyValue, 'E' as Type, 'E2' as txtkey,
+				if(SesName is null or SesName='', ElSession, SesName) as Description, '0' as FirstPhase, 
+				IFNULL(CONCAT(SchDay, ' ', SchStart), concat('0000-00-00 00:00:', ElSession)) as dtOrder, EvElim2 as MaxEnds, EvElimType
+			FROM Events
+			INNER JOIN Eliminations ON ElTournament=EvTournament and EvCode=ElEventCode and EvTeamEvent=0 and EvElim2>0 and ElElimPhase=1 and EvElimType<3
+			left JOIN Session on SesTournament=ElTournament and ElSession=SesOrder AND SesType='E'
+			LEFT JOIN Scheduler ON SchTournament=EvTournament AND SchSesType='E' AND SchSesOrder=ElSession
+			WHERE EvTournament=$TourId
+			" . ($OnlyToday ? "AND SchDay=UTC_DATE()" : "") ."
+			GROUP BY EvCode
+		) UNION ALL (
+		SELECT DISTINCT CONCAT(IF(FSTeamEvent=0,'I','T'), FSScheduledDate, FSScheduledTime) AS keyValue, FSTeamEvent as Type, FSTeamEvent as txtkey,
+				CONCAT(date_format(FSScheduledDate, '%e %b '),date_format(FSScheduledTime, '%H:%i'), ' ', group_concat(distinct concat('--', GrPhase, '-- ', FsEvent) separator '+')) AS Description, EvFinalFirstPhase as FirstPhase, 
+				CONCAT(FSScheduledDate,' ',FSScheduledTime) as dtOrder, (max(if(GrPhase>4, EvElimEnds, EvFinEnds))+5) MaxEnds, EvElimType
+			FROM FinSchedule
+			inner join Grids on GrMatchNo=FsMatchNo
+			inner join Events on EvCode=FsEvent and EvTournament=FsTournament and EvTeamEvent=FsTeamEvent
+			WHERE FSTournament=$TourId and FSScheduledDate>0
+			" . ($OnlyToday ? "AND FSScheduledDate=UTC_DATE()" : "") ."
+			GROUP BY CONCAT(IF(FSTeamEvent=0,'I','T'), FSScheduledDate, FSScheduledTime)
+		) ORDER BY Type='Q' desc, Type='E' desc, dtOrder ASC, Description ";
+
+	$texts=array(
+		'type-Q' => get_text('QualSession', 'HTT'),
+		'type-E1' => get_text('EliminationShort', 'Tournament').' 1',
+		'type-E2' => get_text('EliminationShort', 'Tournament').' 2',
+		'type-0' => get_text('FinInd', 'HTT'),
+		'type-1' => get_text('FinTeam', 'HTT'),
+	);
+
+	$PoolMatches=getPoolMatchesPhases();
+	$PoolMatchesWA=getPoolMatchesPhasesWA();
+
+	$q=safe_r_SQL($SQL);
+	while($r=safe_fetch($q)) {
+		unset($m);
+		preg_match_all('/--([0-9]+)--/', $r->Description, $m);
+		$n=array_unique($m[1]);
+		foreach($n as $v) {
+			$tmp=get_text(namePhase($r->FirstPhase, $v).'_Phase');
+			if($r->EvElimType==3 and isset($PoolMatches[$v])) {
+				$tmp=$PoolMatches[$v];
+			} elseif($r->EvElimType==4 and isset($PoolMatchesWA[$v])) {
+				$tmp=$PoolMatchesWA[$v];
+			}
+			$r->Description=str_replace("--{$v}--", $tmp, $r->Description);
+		}
+
+		$r->Description=$texts['type-'.$r->txtkey].': '.$r->Description;
+
+		$ret[$r->keyValue]=$r;
+	}
+	return $ret;
+}
+
+function getStatusFromEnds($Ends, $Group, &$JSON) {
+	$TgtsStatus=array();
+	foreach($Ends as $Tgt => $Let) {
+		if(!empty($SpecificDevice) and !in_array($Tgt, $SpecificDevice)) {
+			// a secific device has been asked for, so if not in those skip the target!
+			continue;
+		}
+		$TgtsStatus[$Tgt]='';
+		$isScoring=false;
+		$noScores=false;
+		$finished=true;
+		foreach($Let as $k => $v) {
+			$finished=($finished and ($v=='F' or $v=='G'));
+			switch($v) {
+				case 'G': // empty spot
+				case 'R': // arrows in wrong session
+				case 'C': // missing arrow in current end
+				case 'O': // arrows in different end
+					// do nothing
+					break;
+				case 'B': // arrows imported
+				case 'F': // finished scoring
+					$isScoring=true;
+					if($TgtsStatus[$Tgt]!='Z' and $TgtsStatus[$Tgt]!='Y') {
+						$TgtsStatus[$Tgt]='B';
+					}
+					break;
+				case 'Z': // scoring in progress
+					$isScoring=true;
+					$TgtsStatus[$Tgt]='Z';
+					break;
+				case 'Y': // ready to import
+					$isScoring=true;
+					if($TgtsStatus[$Tgt]!='Y') {
+						$TgtsStatus[$Tgt]='Y';
+					}
+					break;
+				default:
+					$noScores=true;
+			}
+			$JSON['a'][]=array(
+				'id' => $Group.'-'.$Tgt.'-'.$k,
+				'v' => $v,
+				'a' => (!empty($Anomalies[$Tgt][$k]) ? '1' : '0'),
+			);
+		}
+		if($finished) {
+			$TgtsStatus[$Tgt]='F';
+		}
+		if($isScoring and $noScores) {
+			$TgtsStatus[$Tgt]='Z';
+		}
+	}
+	return $TgtsStatus;
+}

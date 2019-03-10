@@ -6,12 +6,10 @@ $schedule=(isset($_REQUEST['schedule']) && preg_match('/^[0-1]{1}[0-9]{4}\-[0-9]
 
 $JSON=array('error' => 1, 'rows' => array(), 'newdata' => '');
 
-// debug_svela($_REQUEST['schedule']);
 if (empty($_SESSION['TourId']) or !$schedule ) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	exit;
+	JsonOut($JSON);
 }
+checkACL(AclSpeaker, AclReadOnly, false);
 
 $team=substr($schedule,0,1);
 
@@ -21,8 +19,7 @@ $time=$tmp[1];
 
 if($IskSequence=getModuleParameter('ISK', 'Sequence')) {
 	if(!isset($IskSequence['session'])) {
-		$ttt=each($IskSequence);
-		$IskSequence=$ttt['value'];
+		$IskSequence=current($IskSequence);
 	}
 	// get the running sequence
 	$JSON['newdata']=($IskSequence['session']==$tmp[0].$tmp[1] ? '' : 'newdata');
@@ -52,5 +49,4 @@ while ($myRow=safe_fetch($rs)) {
 	);
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
+JsonOut($JSON);

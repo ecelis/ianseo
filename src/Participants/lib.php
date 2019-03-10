@@ -1,7 +1,7 @@
 <?php
 
 require_once('Qualification/Fun_Qualification.local.inc.php');
-require_once ('Partecipants/Fun_Partecipants.local.inc.php');
+//require_once ('Partecipants/Fun_Partecipants.local.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 
 function saveField($Field, $Value, $EnId, $ToId) {
@@ -14,15 +14,13 @@ function saveField($Field, $Value, $EnId, $ToId) {
 	if(!$EnId) {
 		// TODO: needs to create an Entry!!!
 		$JSON['msg']='TODO: need to create an Entry first, file: '.__FILE__.' row '.__LINE__;
-		header('Content-type: application/javascript');
-		echo json_encode($JSON);
-		die();
+		JsonOut($JSON);
 	}
 
 	$Updated=false; // needs to recalculate printed items
 	$OldControl='';
 	if(in_array($Field, $ArrayRecalc)) {
-		list($indFEventOld, $teamFEventOld, $countryOld, $divOld, $clOld, $zeroOld)=Params4Recalc($EnId);
+		list($indFEventOld, $teamFEventOld, $countryOld, $divOld, $clOld, $subClOld, $zeroOld)=Params4Recalc($EnId);
 	}
 
 	switch($Field) {
@@ -48,6 +46,11 @@ function saveField($Field, $Value, $EnId, $ToId) {
 				safe_w_sql("update ExtraData set EdEmail='' where EdId=$EnId and EdType='E'");
 				safe_w_sql("delete from ExtraData where EdEmail='' and EdExtra='' and EdId=$EnId and EdType='E'");
 			}
+			break;
+		case 'status':
+			$Value=intval($Value);
+			safe_w_sql("update Entries set EnTimestamp=EnTimestamp, EnStatus=".StrSafe_DB($Value)." where EnId=$EnId");
+			$Updated=safe_w_affected_rows();
 			break;
 		case 'firstname':
 			$Value=AdjustCaseTitle($Value);
@@ -205,11 +208,11 @@ function saveField($Field, $Value, $EnId, $ToId) {
 			}
 		}
 		if(in_array($Field, $ArrayRecalc)) {
-			list($indFEventNew, $teamFEventNew, $countryNew, $divNew, $clNew, $zeroNew)=Params4Recalc($EnId);
+			list($indFEventNew, $teamFEventNew, $countryNew, $divNew, $clNew, $subClNew, $zeroNew)=Params4Recalc($EnId);
 
 			// check and recalculates shootoffs for both old and new division
-			RecalculateShootoffAndTeams($ToId, $indFEventOld, $teamFEventOld, $countryOld, $divOld, $clOld, $zeroOld);
-			RecalculateShootoffAndTeams($ToId, $indFEventNew, $teamFEventNew, $countryNew, $divNew, $clNew, $zeroNew);
+			RecalculateShootoffAndTeams($ToId, $indFEventOld, $teamFEventOld, $countryOld, $divOld, $clOld, $subClOld, $zeroOld);
+			RecalculateShootoffAndTeams($ToId, $indFEventNew, $teamFEventNew, $countryNew, $divNew, $clNew, $subClNew, $zeroNew);
 
 			// rank di classe x tutte le distanze
 			$q="SELECT ToNumDist FROM Tournament WHERE ToId={$ToId}";
@@ -373,7 +376,7 @@ function checkAndSetClasses($EnId) {
 	$q=safe_r_sql("select distinct Age.ClId AgeClass, Shoot.ClId ShootClass, EnAgeClass=Age.ClId as SameAge
 			from Entries
 			inner join Tournament on EnTournament=ToId
-			inner join Classes Age on year(ToWhenTo)-year(EnDob) between Age.ClAgeFrom and Age.ClAgeTo and Age.ClSex in (-1, EnSex) and (Age.ClDivisionsAllowed='' or EnDivision='' or find_in_set(EnDivision, Age.ClDivisionsAllowed)) and Age.ClTournament=EnTournament
+			inner join Classes Age on if(EnDob=0, true, year(ToWhenTo)-year(EnDob) between Age.ClAgeFrom and Age.ClAgeTo) and Age.ClSex in (-1, EnSex) and (Age.ClDivisionsAllowed='' or EnDivision='' or find_in_set(EnDivision, Age.ClDivisionsAllowed)) and Age.ClTournament=EnTournament
 			left join Classes Shoot on EnClass=Shoot.ClId and Shoot.ClSex in (-1, EnSex) and find_in_set(Shoot.ClId, Age.ClValidClass) and (Shoot.ClDivisionsAllowed='' or EnDivision='' or find_in_set(EnDivision, Shoot.ClDivisionsAllowed)) and Shoot.ClTournament=EnTournament
 			where EnId=$EnId
 			order by SameAge desc, ShootClass is null
@@ -399,11 +402,10 @@ function checkAndSetClasses($EnId) {
 			if($r->ShootClass) $Ages[$r->AgeClass][$r->ShootClass]=true;
 		}
 		if(!$Valid and count($Ages)==1) {
-			$tmp=each($Ages);
-			$Age=$tmp[0];
-			if(count($tmp[1])==1) {
-				$tmp=each($tmp[1]);
-				$Shoot=$tmp[0];
+			$Age=key($Ages);
+			$tmp=current($Ages);
+			if(count($tmp)==1) {
+				$Shoot=key($tmp);
 			}
 		}
 	}
@@ -417,7 +419,7 @@ function checkAndSetClasses($EnId) {
 function Params4Recalc($EnId) {
 	$indFEvent=$teamFEvent=$country=$div=$cl=null;
 
-	$q="SELECT EnIndFEvent, EnTeamFEvent, EnCountry, EnDivision, EnClass, EnStatus, QuScore
+	$q="SELECT EnIndFEvent, EnTeamFEvent, EnCountry, EnDivision, EnClass, EnSubClass, EnStatus, QuScore
 		FROM Entries
 		INNER JOIN Qualifications ON EnId=QuId
 		WHERE EnId={$EnId} ";
@@ -432,18 +434,19 @@ function Params4Recalc($EnId) {
 		$country=$row->EnCountry;
 		$div=$row->EnDivision;
 		$cl=$row->EnClass;
+		$subCl=$row->EnSubClass;
 		$zero=true;
 		if ($row->EnStatus<=1) {
 			$zero=($row->QuScore==0);
 		}
 
-		return array($indFEvent, $teamFEvent, $country, $div, $cl, $zero);
+		return array($indFEvent, $teamFEvent, $country, $div, $cl, $subCl, $zero);
 	}
 
 	return false;
 }
 
-function RecalculateShootoffAndTeams($TourId, $indFEvent, $teamFEvent, $country, $div, $cl, $zero) {
+function RecalculateShootoffAndTeams($TourId, $indFEvent, $teamFEvent, $country, $div, $cl, $subCl, $zero) {
 	$Errore=0;
 
 	if ($zero) return 0;
@@ -465,7 +468,7 @@ function RecalculateShootoffAndTeams($TourId, $indFEvent, $teamFEvent, $country,
 		// shootoff degli individuali a zero (e reset della RankFinal)
 		if ($indFEvent==1) {
 			$queries[]=" UPDATE Events
-				INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent='0' AND EvTournament=EcTournament AND EcTournament=$TourId AND EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . "
+				INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent='0' AND EvTournament=EcTournament AND EcTournament=$TourId AND EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . " and if(EcSubClass='', true, EcSubClass='$subCl')
 				INNER JOIN Individuals ON EvCode=IndEvent AND EvTournament=IndTournament AND EvTeamEvent=0 AND EvTournament=$TourId
 				SET
 					EvShootOff='0',
@@ -477,7 +480,7 @@ function RecalculateShootoffAndTeams($TourId, $indFEvent, $teamFEvent, $country,
 		// shootoff dei team a zero
 		if ($teamFEvent==1) {
 			$queries[]=" UPDATE Events
-				INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent='1' AND EvTournament=EcTournament AND EcTournament=$TourId AND EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . "
+				INNER JOIN EventClass ON EvCode=EcCode AND EvTeamEvent='1' AND EvTournament=EcTournament AND EcTournament=$TourId AND EcDivision=" . StrSafe_DB($div) . " AND EcClass=" . StrSafe_DB($cl) . " and if(EcSubClass='', true, EcSubClass='$subCl')
 				SET
 					EvShootOff='0',
 					EvE1ShootOff='0',

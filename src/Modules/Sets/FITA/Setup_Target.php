@@ -10,7 +10,7 @@ require_once(dirname(dirname(__FILE__)).'/lib.php');
 CreateStandardDivisions($TourId);
 
 // default SubClasses
-CreateSubClass($TourId, 1, '00', '00');
+//CreateSubClass($TourId, 1, '00', '00');
 
 // default Classes
 CreateStandardClasses($TourId, $SubRule);
@@ -145,9 +145,30 @@ switch($TourType) {
 	case 8:
 		CreateDistance($TourId, $TourType, '%', '25m-1', '25m-2', '18m-1', '18m-2');
 		break;
+    case 37:
+        switch($SubRule) {
+            case '1':
+                CreateDistance($TourId, $TourType, 'RM', '70m-1', '70m-2','70m-3', '70m-4');
+                CreateDistance($TourId, $TourType, 'RW', '70m-1', '70m-2','70m-3', '70m-4');
+                CreateDistance($TourId, $TourType, 'RJ_', '70m-1', '70m-2','70m-3', '70m-4');
+                CreateDistance($TourId, $TourType, 'RC_', '60m-1', '60m-2','60m-3', '60m-4');
+                CreateDistance($TourId, $TourType, 'RM_', '60m-1', '60m-2','60m-3', '60m-4');
+                break;
+            case '2':
+            case '3':
+            case '5':
+                CreateDistance($TourId, $TourType, 'R%', '70m-1', '70m-2','70m-3', '70m-4');
+                break;
+            case '4':
+                CreateDistance($TourId, $TourType, 'RJ_', '70m-1', '70m-2','70m-3', '70m-4');
+                CreateDistance($TourId, $TourType, 'RC_', '60m-1', '60m-2','60m-3', '60m-4');
+                break;
+        }
+        CreateDistance($TourId, $TourType, 'C%', '50m-1', '50m-2','50m-3', '50m-4');
+        break;
 }
 
-if($TourType<5 or $TourType==6 or $TourType==18) {
+if($TourType<5 or $TourType==6 or $TourType==18 or $TourType==37) {
 	// default Events
 	CreateStandardEvents($TourId, $SubRule, $TourType!=6);
 
@@ -181,7 +202,7 @@ switch($TourType) {
 		CreateTargetFace($TourId, 4, '~Option2', 'R%', '',  5, 122, 5, 122, 9, 80, 10, 80);
 		break;
 	case 3:
-		CreateTargetFace($TourId, 1, '~Default', '%', '1', 5, 122, 5, 122);
+		CreateTargetFace($TourId, 1, '~Default', 'R%', '1', 5, 122, 5, 122);
 		CreateTargetFace($TourId, 2, '~DefaultCO', 'C%', '1',  9, 80, 9, 80);
 		break;
 	case 5:
@@ -205,6 +226,10 @@ switch($TourType) {
 		// optional target faces
 		CreateTargetFace($TourId, 3, '~Option1', 'R%', '',  1, 60, 1, 60,  1, 40, 1, 40);
 		break;
+    case 37:
+        CreateTargetFace($TourId, 1, '~Default', 'R%', '1', 5, 122, 5, 122,5, 122, 5, 122);
+        CreateTargetFace($TourId, 2, '~DefaultCO', 'C%', '1',  9, 80, 9, 80,9, 80, 9, 80);
+        break;
 }
 
 // create a first distance prototype

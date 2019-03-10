@@ -291,7 +291,21 @@ class OrisPDF extends IanseoPdf
 				$Align='C';
 			}
 			if(strstr($data[$i], "\n")) {
-				$maxCell = max($maxCell, $this->MultiCell($this->DataSize[min($i,count($this->DataSize)-1)],3.5,str_replace(array("#","§"),"",$data[$i]),0, $Align, 0, 0));
+				$CellData=explode("\n", $data[$i]);
+				$OrgX=$this->GetX();
+				$OrgY=$this->GetY();
+				$maxCell=count($CellData);
+				foreach($CellData as $k=>$v) {
+					$this->SetAbsXY($OrgX, $OrgY + ($k*3.5));
+					if(!$k) {
+						// first line bold
+						$this->SetFont('', 'B');
+					}
+					$this->Cell($this->DataSize[min($i,count($this->DataSize)-1)],3.5, str_replace(array("#","§"),"", $v),0,0, $Align);
+					$this->SetFont('', '');
+				}
+				$this->SetXY($this->GetX(), $OrgY);
+				//$maxCell = max($maxCell, $this->MultiCell($this->DataSize[min($i,count($this->DataSize)-1)],3.5,str_replace(array("#","§"),"",$data[$i]),0, $Align, 0, 0));
 			} else {
 				$this->Cell($this->DataSize[min($i,count($this->DataSize)-1)],3.5,str_replace(array("#","§"),"",$data[$i]),0,0, $Align);
 			}

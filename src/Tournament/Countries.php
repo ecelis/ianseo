@@ -5,6 +5,69 @@ CheckTourSession(true);
 
 $edit='';
 if(!empty($_GET['edit'])) $edit=$_GET['edit'];
+if(!empty($_GET['delete'])) {
+	safe_w_SQL("delete from Flags where FlCode=".StrSafe_DB($_GET['delete'])." and FlTournament={$_SESSION['TourId']}");
+	@unlink( $CFG->DOCUMENT_PATH . 'TV/Photos/' . $_SESSION['TourCodeSafe'] . '-Fl-' . $_GET['delete'] . '.jpg') ;
+	@unlink( $CFG->DOCUMENT_PATH . 'TV/Photos/' . $_SESSION['TourCodeSafe'] . '-FlSvg-' . $_GET['delete'] . '.svg') ;
+	CD_redirect($_SERVER['PHP_SELF'].go_get('delete', '', true));
+}
+
+if(isset($_REQUEST['Export'])) {
+	$q=safe_r_sql("select distinct FlCode, FlJPG
+		from Flags 
+		where FlTournament in (-1, {$_SESSION['TourId']})
+			and FlJPG!='' ");
+	if(!safe_num_rows($q)) {
+		cd_redirect('./Countries.php');
+	}
+
+	$zip = new ZipArchive();
+	$filename = $tmpfname = tempnam("/tmp", $_SESSION['TourCodeSafe']);
+
+	if ($zip->open($filename, ZipArchive::CREATE)!==TRUE) {
+		exit("cannot open <$filename>\n");
+	}
+
+	while($r=safe_fetch($q)) {
+		if(!($img=imagecreatefromstring(base64_decode($r->FlJPG)))) {
+			continue; // skip and goes to the next picture
+		}
+		$img2=imagecreatetruecolor(90, 60);
+		$BgCol=imagecolorallocate($img2, 255, 255, 255);
+		imagefill($img2, 0, 0, $BgCol);
+		$ratio=imagesx($img)/imagesy($img);
+
+		$DestX=0;
+		$DestY=0;
+		$DestW=90;
+		$DestH=60;
+
+		if($ratio<1.5) {
+			// image is too squarish
+			$DestX=intval((90-(60*$ratio))/2);
+			$DestW=60*$ratio;
+		} elseif($ratio>1.5) {
+			// image is too long
+			$DestY=intval((60-(90/$ratio))/2);
+			$DestH=90/$ratio;
+		}
+
+		imagecopyresampled($img2, $img, $DestX, $DestY, 0, 0, $DestW, $DestH, imagesx($img), imagesy($img));
+		ob_start();
+		imagepng($img2);
+		$stringdata = ob_get_contents(); // read from buffer
+		ob_end_clean(); // delete buffer
+
+		$zip->addFromString($r->FlCode.'.png', $stringdata);
+	}
+
+	$zip->close();
+
+	header('Content-Type: application/zip');
+	header('Content-Disposition: attachment; filename="'.$_SESSION['TourCodeSafe'].'.zip"');
+	readfile($filename);
+	unlink($filename);
+}
 
 if($_FILES) {
 	if(!empty($_FILES['SVG']['name'][$edit]) and $_FILES['SVG']['type'][$edit] == 'image/svg+xml') {
@@ -77,9 +140,10 @@ include('Common/Templates/head.php');
 echo '<form method="POST" ENCTYPE="multipart/form-data">';
 echo '<table class="Tabella">';
 echo '<tr>';
-echo '<td colspan="4">';
-echo '<a href="../Final/Team/PrnName.php?TeamLabel=1" target="_blank">'.get_text('TeamPlace', 'Tournament').'</a>';
-echo '&nbsp;&nbsp;<a href="../Final/Team/PrnName.php?TeamLabel=1&local=1" target="_blank">'.get_text('TeamPlaceLocal', 'Tournament').'</a>';
+echo '<td colspan="5">';
+echo '<a href="../Final/Team/PrnName.php?TeamLabel=1" target="_blank" class="Button">'.get_text('TeamPlace', 'Tournament').'</a>';
+echo '<a href="../Final/Team/PrnName.php?TeamLabel=1&local=1" target="_blank" class="Button">'.get_text('TeamPlaceLocal', 'Tournament').'</a>';
+echo '<a href="?Export" class="Button">'.get_text('CmdExport', 'Tournament').'</a>';
 echo '</td>';
 echo '</tr>';
 echo '<tr>';
@@ -87,6 +151,7 @@ echo '<th class="Title" width="15%" nowrap="nowrap">'.get_text('Country').'</th>
 echo '<th class="Title">'.get_text('Nation').'</th>';
 echo '<th class="Title">'.get_text('SVGFile', 'Tournament').'</th>';
 echo '<th class="Title">'.get_text('Image', 'Tournament').'</th>';
+echo '<th class="Title">'.get_text('CmdDelete', 'Tournament').'</th>';
 echo '</tr>';
 
 $q=safe_r_sql("select distinct "
@@ -112,16 +177,22 @@ while($r=safe_fetch($q)) {
 		echo '<td>'.$r->CoName.'</td>';
 		echo '<td>'.get_text($r->FlSVG?'Yes':'No').' <input type="file" name="SVG['.$r->CoCode.']" size="5"> <input type="checkbox" name="UpdateJPG" checked="checked">' . get_text('UpdateJPG', 'Tournament').' <a href="http://en.wikipedia.org/wiki/File:Flag_of_'.$r->CoName.'.svg" target="_blank">Wikipedia</a></td>';
 		echo '<td>'.($r->FlJPG?'<img height="30" src="' . $CFG->ROOT_DIR . 'TV/Photos/'.$_SESSION['TourCodeSafe'].'-Fl-'.$r->FlCode . '.jpg">':'&nbsp;').' <input type="file" name="JPG['.$r->CoCode.']" size="5"></td>';
+		echo '<td>&nbsp;</td>';
 		echo '</tr>';
 	} else {
 		echo '<tr>';
 		echo '<td><a name="'.$r->CoCode.'" href="?edit='.$r->CoCode.'">'.$r->CoCode.'</a></td>';
 		echo '<td><a name="'.$r->CoCode.'" href="?edit='.$r->CoCode.'">'.$r->CoName.'</a></td>';
-		echo '<td>'.get_text($r->FlSVG?'Yes':'No').'</td>';
+		echo '<td>'.get_text($r->FlSVG ? 'Yes' : 'No').'</td>';
 		if($r->FlJPG) {
 			$size=getimagesize($CFG->DOCUMENT_PATH.'TV/Photos/'.$_SESSION['TourCodeSafe'].'-Fl-'.$r->FlCode . '.jpg');
 			$Ratio=round($size[0]/$size[1],2);
 			echo '<td><img height="30" src="' . $CFG->ROOT_DIR . 'TV/Photos/'.$_SESSION['TourCodeSafe'].'-Fl-'.$r->FlCode . '.jpg">&nbsp;'.$Ratio.'</td>';
+		} else {
+			echo '<td>&nbsp;</td>';
+		}
+		if($r->FlSVG or $r->FlJPG) {
+			echo '<td><img src="' . $CFG->ROOT_DIR . 'Common/Images/drop.png" onclick="location.href=\'?delete='.$r->FlCode.'\'"></td>';
 		} else {
 			echo '<td>&nbsp;</td>';
 		}
@@ -132,7 +203,7 @@ while($r=safe_fetch($q)) {
 }
 
 echo '<tr>';
-echo '<td colspan="4" align="Center"><input type="submit" value="'.get_text('CmdUpdate').'"></td>';
+echo '<td colspan="5" align="Center"><input type="submit" value="'.get_text('CmdUpdate').'"></td>';
 echo '</tr>';
 
 echo '</table>';

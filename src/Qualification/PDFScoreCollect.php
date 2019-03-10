@@ -3,6 +3,7 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/pdf/ScorePDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
+checkACL(AclQualification, AclReadOnly);
 
 // Works for collecting up to 12 ends of 3 arrows
 // changing the define here to have 6 ends of 6 arrows

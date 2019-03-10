@@ -9,31 +9,26 @@ require_once('Common/Lib/Obj_RankFactory.php');
 
 if (!CheckTourSession()) {
 	$JSON['msg']= get_text('CrackError');
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
+checkACL(AclEliminations, AclReadWrite, false);
 
 $JSON=array('error' => 1, 'msg'=>'');
 
 if(empty($_REQUEST['arr'])) {
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
 
 if (IsBlocked(BIT_BLOCK_ELIM)) {
 	$JSON['msg']='Eliminations locked';
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
 
 list(, $Index, $Event, $Phase, $EnId)=explode('_', $_REQUEST['arr']);
 $Arrow=strtoupper($_REQUEST['value']);
 
 // get the arrowstring
-$q = safe_r_sql("select distinct if(ElElimPhase=0, EvElimEnds, EvElim2) Ends, EvElimArrows Arrows, ElArrowstring, EvFinalTargetType, ElTargetNo-1 as TgtOffset, ToCategory
+$q = safe_r_sql("select distinct if(ElElimPhase=0, EvE1Ends, EvE2Ends) Ends, if(ElElimPhase=0, EvE1Arrows, EvE2Arrows) Arrows, ElArrowstring, EvFinalTargetType, ElTargetNo-1 as TgtOffset, ToCategory
 	from Eliminations
 	inner join Events on EvCode=ElEventCode and EvTeamEvent=0 and EvTournament=ElTournament
 	inner join Tournament on ToId=ElTournament
@@ -41,9 +36,7 @@ $q = safe_r_sql("select distinct if(ElElimPhase=0, EvElimEnds, EvElim2) Ends, Ev
 
 if(!($r=safe_fetch($q))) {
 	$JSON['msg']='Wrong data';
-	header('Content-type: application/javascript');
-	echo json_encode($JSON);
-	die();
+	JsonOut($JSON);
 }
 
 $MaxArrows=$r->Arrows*$r->Ends;
@@ -123,7 +116,5 @@ if($_REQUEST['type']=='score') {
 	}
 }
 
-header('Content-type: application/javascript');
-echo json_encode($JSON);
-die();
+JsonOut($JSON);
 

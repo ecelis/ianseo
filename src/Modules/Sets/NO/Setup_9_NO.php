@@ -11,22 +11,30 @@ $TourType is the Tour Type (8)
 $TourType=9;
 
 $tourDetTypeName		= 'Type_NorField';
-$tourDetNumDist			= ($SubRule<5 ? '1' : ($SubRule<9 ? '2' : '1' ) );
-if($SubRule==1 or $SubRule==5) {
-	$tourDetNumEnds			= '12';
-} elseif ($SubRule==2 or $SubRule==6) {
-	$tourDetNumEnds			= '16';
-} elseif ($SubRule==3 or $SubRule==7) {
-	$tourDetNumEnds			= '20';
-} else {
-	$tourDetNumEnds			= '24';
+$tourDetNumDist			= (($SubRule<=4 or $SubRule==9) ? '1' : '2' );
+switch($SubRule) {
+	case 1:
+	case 5:
+		$tourDetNumEnds			= '12';
+		break;
+	case 2:
+	case 6:
+		$tourDetNumEnds			= '16';
+		break;
+	case 3:
+	case 7:
+		$tourDetNumEnds			= '20';
+		break;
+	default:
+		$tourDetNumEnds			= '24';
 }
+
 $tourDetMaxDistScore	= $tourDetNumEnds*6*3;
-$tourDetMaxFinIndScore	= '0';
-$tourDetMaxFinTeamScore	= '0';
+$tourDetMaxFinIndScore	= '72';
+$tourDetMaxFinTeamScore	= '144';
 $tourDetCategory		= '4'; // 0: Other, 1: Outdoor, 2: Indoor, 4:Field, 8:3D
 $tourDetElabTeam		= '1'; // 0:Standard, 1:Field, 2:3DI
-$tourDetElimination		= '0'; // 0: No Eliminations, 1: Elimination Allowed
+$tourDetElimination		= '1'; // 0: No Eliminations, 1: Elimination Allowed
 $tourDetGolds			= '6+5';
 $tourDetXNine			= '6';
 $tourDetGoldsChars		= 'FG';

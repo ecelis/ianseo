@@ -26,6 +26,7 @@ $lang['Guess-Pass']='Sua senha';
 $lang['Guess-Phone']='Seu fone (Celular)';
 $lang['Guess-Select']='Selecione um atleta';
 $lang['Guess-WrongPassword']='Senha incorreta ou código já existente';
+$lang['HomeButton']='Home';
 $lang['Individual']='Individual';
 $lang['InfoPointAlert']='<b> Faça o mesmo em seu laptop, tablet ou smartfone:</b><br>Conecte seu aparelho à rede <<ianseo>> (gratuitamente - sem senha), navegue até http://ianseo/ e siga ao vivo!';
 $lang['InfoPointIndex']='Use o menu acima para descobrir os resultados da competição e encontrar o ranking de um atleta.';

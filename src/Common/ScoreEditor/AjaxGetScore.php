@@ -80,7 +80,7 @@
 					$out .= '<td class="Bold Center" onClick="clickStar(\'spot_' . $myRow->{'match'.$m} . '_0\', false)">' . ($i+1) . '</td>';
 					$out .= '<td id="spot_' . $myRow->{'match'.$m} . '_0" class="Right FontMedium" onClick="clickStar(this.id, true)">&nbsp;</td>';
 					$out .= '<td rowspan="' . $cols . '" colspan="' . (4+$cols). '" class="Center">';
-					$out .= '<img id="tgtImage_'. $myRow->{'match'.$m} . '" style="position:relative; cursor:crosshair;" src="' . $CFG->ROOT_DIR .'Common/target.php?Event=' . $d_Event . '&Match=' . $d_Match . '&Team=' . $team . '&Size=' . $size . '&ts=' . date('U'). '" onclick="javascript:targetClick(' . $myRow->{'match'.$m} . ', ' . $size . ', event);"  height="' . $size . '" width="' . $size . '"/>';
+					//$out .= '<img id="tgtImage_'. $myRow->{'match'.$m} . '" style="position:relative; cursor:crosshair;" src="' . $CFG->ROOT_DIR .'Common/target.php?Event=' . $d_Event . '&Match=' . $d_Match . '&Team=' . $team . '&Size=' . $size . '&ts=' . date('U'). '" onclick="javascript:targetClick(' . $myRow->{'match'.$m} . ', ' . $size . ', event);"  height="' . $size . '" width="' . $size . '"/>';
 					$out .= '</td>';
 					$out .= '</tr>' . "\n";
 					for($i=1;$i<$cols;$i++)

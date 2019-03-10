@@ -7,58 +7,60 @@
 	require_once('Common/Lib/ArrTargets.inc.php');
 	require_once('Common/Lib/Obj_RankFactory.php');
 	require_once('Final/Fun_ChangePhase.inc.php');
+    require_once('Common/Fun_Phases.inc.php');
 
 	CheckTourSession(true);
+    checkACL(AclTeams, AclReadWrite);
 
 	$Error=false;
 
 	$EventList=array();
 
 	$Events=array();
-	if (!empty($_REQUEST['EventCode']))
-	{
+	if (!empty($_REQUEST['EventCode'])) {
 		$Events = explode('|',$_REQUEST['EventCode']);
 	}
-	//print_r($Events);exit;
+
+    if(!empty($_REQUEST['EventCodeMult'])) {
+        $Events=$_REQUEST['EventCodeMult'];
+    }
+
+    if(!$Events) {
+        CD_redirect('./AbsTeam1.php');
+    }
+
+//print_r($Events);exit;
 	$rank=Obj_RankFactory::create('AbsTeam',array('events'=>$Events,'components'=>false));
 
 	$IdAffected = array();
 	$NotResolvedMsg=array();
 
 	// scrivo
-	if (isset($_REQUEST['Ok']) && $_REQUEST['Ok']=='OK' && !IsBlocked(BIT_BLOCK_TEAM))
-	{
+	if (isset($_REQUEST['Ok']) && $_REQUEST['Ok']=='OK' && !IsBlocked(BIT_BLOCK_TEAM)) {
 		$Ties=array();
 		$NotResolved=array();
 
 	// rank
-		foreach($_REQUEST['R'] as $Event => $CoIds)
-		{
-			$q=safe_r_sql("select EvFinalFirstPhase, EvMatchMode from Events where EvCode='$Event' and EvTeamEvent='1' and EvTournament='{$_SESSION['TourId']}'");
+		foreach($_REQUEST['R'] as $Event => $CoIds) {
+			$q=safe_r_sql("select EvFinalFirstPhase, EvMatchMode, EvNumQualified from Events where EvCode='$Event' and EvTeamEvent=1 and EvTournament='{$_SESSION['TourId']}'");
 			$r=safe_fetch($q);
-			$MaxRank=$r->EvFinalFirstPhase*2;
-			if($r->EvFinalFirstPhase==24 or $r->EvFinalFirstPhase==48) $MaxRank+=8; // salva i primi 8
+			$MaxRank=$r->EvNumQualified;
 			$NotResolved[$Event]=false;
 
 			asort($CoIds);
 
 		// controlla che tutti gli spareggi siano stati fatti
 			$TrueRank=1;
-			foreach($CoIds as $CoId => $AssignedRank)
-			{
-				if($AssignedRank!=$TrueRank && $AssignedRank<=$MaxRank)
-				{
-
+			foreach($CoIds as $CoId => $AssignedRank) {
+				if($AssignedRank!=$TrueRank && $AssignedRank<=$MaxRank) {
 					$NotResolved[$Event]=true;
 				}
 				$TrueRank++;
 			}
 
 		// assegna le rank SOLO se tutto è a posto
-			if(!$NotResolved[$Event])
-			{
-				foreach($CoIds as $CoId => $AssignedRank)
-				{
+			if(!$NotResolved[$Event]) {
+				foreach($CoIds as $CoId => $AssignedRank) {
 					list($id,$subteam)=explode('_',$CoId);
 					$x=$rank->setRow(array(
 						array(
@@ -69,41 +71,35 @@
 						)
 					));
 
-					if ($x==1)
-					{
+					if ($x==1) {
 						$IdAffected[]= strsafe_db($CoId);
 					}
-
 				}
-			}
-			else
-			{
+			} else {
 				$NotResolvedMsg[]=$Event;
 			}
 		}
 
 	// tie
-		foreach ($_REQUEST['T'] as $EventKey => $Event)
-		{
-			foreach ($Event as $id => $TieArrows)
-			{
-				foreach($TieArrows as $index => $Value)
-				{
-					if (!array_key_exists($EventKey.'_'.$id,$Ties))
-						$Ties[$EventKey.'_'.$id]=str_pad('',3,' ');
-
+		foreach ($_REQUEST['T'] as $EventKey => $Event) {
+			foreach ($Event as $id => $TieArrows) {
+				foreach($TieArrows as $index => $Value) {
+					if (!array_key_exists($EventKey.'_'.$id,$Ties)) {
+                        $Ties[$EventKey . '_' . $id] = str_pad('', 3, ' ');
+                    }
 					$v=GetLetterFromPrint($Value);
-
 					$Ties[$EventKey.'_'.$id]=substr_replace($Ties[$EventKey.'_'.$id],$v,$index,1);
 				}
 			}
 		}
 
-		if (count($Ties)>0)
-		{
-			foreach ($Ties as $Key=>$Value)
-			{
-				list($ev,$id,$subteam)=explode('_',$Key);
+		if (count($Ties)>0) {
+			foreach ($Ties as $Key=>$Value) {
+			    $tmp=explode('_', $Key);
+			    $subteam=array_pop($tmp);
+			    $id=array_pop($tmp);
+			    $ev=implode('_', $tmp);
+//				list($ev,$id,$subteam)=explode('_',$Key);
 
 				$x=$rank->setRow(array(
 					array(
@@ -116,8 +112,7 @@
 			}
 		}
 
-		if (count($IdAffected)>0)
-		{
+		if (count($IdAffected)>0) {
 
 
 //			print '<pre>';
@@ -125,48 +120,36 @@
 //			print '</pre>';
 
 		// distruggo le griglie
-			$Select
-				= "SELECT DISTINCT EvCode "
-				. "FROM "
-					. "Events INNER JOIN Teams ON EvCode=TeEvent AND EvTournament=TeTournament AND EvTeamEvent=1 "
-				. "WHERE "
-					. "CONCAT(TeCoId,'_',TeSubTeam) IN(" . implode(',',$IdAffected). ") AND TeTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TeFinEvent=1 "
+			$Select	= "SELECT DISTINCT EvCode 
+				FROM Events INNER JOIN Teams ON EvCode=TeEvent AND EvTournament=TeTournament AND EvTeamEvent=1 
+				WHERE CONCAT(TeCoId,'_',TeSubTeam) IN(" . implode(',',$IdAffected). ") AND TeTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TeFinEvent=1 "
 					. (count($Events)>0 ? " AND EvCode IN('" . implode("','",$Events). "')" : ""). " "
 //					. ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'')
 			;
 				//print $Select;Exit;
 			$Rs=safe_r_sql($Select);
 
-			if (safe_num_rows($Rs)>0)
-			{
+			if (safe_num_rows($Rs)>0) {
 				$Ev2Delete = array();
 				while ($Row=safe_fetch($Rs))
 					$Ev2Delete[]=StrSafe_DB($Row->EvCode);
 
-				$Delete
-					= "DELETE FROM TeamFinals "
-					. "WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent IN (" . implode(',',$Ev2Delete) . ") ";
-					//print $Delete;exit;
+				$Delete = "DELETE FROM TeamFinals 
+					WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND TfEvent IN (" . implode(',',$Ev2Delete) . ")";
 				$Rs=safe_w_sql($Delete);
 
-
-				/*print $Delete . '<br>';
-				exit;*/
-
 				// Distruggo le righe di TeamFinComponent basandomi su $IdAffected
-				$Delete
-					= "DELETE FROM TeamFinComponent "
-					. "WHERE CONCAT(TfcCoId,'_',TfcSubTeam) IN(" . implode(',',$IdAffected) . ") AND TfcEvent IN(" . implode(',',$Ev2Delete). ") AND TfcTournament=" . StrSafe_DB($_SESSION['TourId']);
+				$Delete = "DELETE FROM TeamFinComponent WHERE CONCAT(TfcCoId,'_',TfcSubTeam) IN(" . implode(',',$IdAffected) . ") AND TfcEvent IN(" . implode(',',$Ev2Delete). ") AND TfcTournament=" . StrSafe_DB($_SESSION['TourId']);
 					//print $Delete;exit;
 				$Rs=safe_w_sql($Delete);
 
 			// ricreo la grid
-				$Insert
-					= "INSERT INTO TeamFinals (TfEvent,TfMatchNo,TfTournament,TfDateTime) "
-					. "SELECT EvCode,GrMatchNo," . StrSafe_DB($_SESSION['TourId']) . "," . StrSafe_DB(date('Y-m-d H:i:s')) . " "
-					. "FROM Events "
-					. "INNER JOIN Grids ON GrPhase<=EvFinalFirstPhase AND EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " "
-					. "WHERE EvCode IN (" . implode(',',$Ev2Delete) . ")";
+				$Insert = "INSERT INTO TeamFinals (TfEvent,TfMatchNo,TfTournament,TfDateTime) 
+					SELECT EvCode,GrMatchNo," . StrSafe_DB($_SESSION['TourId']) . "," . StrSafe_DB(date('Y-m-d H:i:s')) . " 
+					FROM Events 
+					INNER JOIN Phases ON EvFinalFirstPhase=PhId and (PhIndTeam & pow(2, EvTeamEvent))>0
+					INNER JOIN Grids ON GrPhase<=greatest(PhId,PhLevel) AND EvTeamEvent='1' AND EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " 
+					WHERE EvCode IN (" . implode(',',$Ev2Delete) . ")";
 				$RsIns=safe_w_sql($Insert);
 			}
 
@@ -175,67 +158,52 @@
 //			print'<pre>';
 //			print_r($NotResolved);
 //			print'</pre>';exit;
-			foreach($NotResolved as $Event => $veto)
-			{
+			foreach($NotResolved as $Event => $veto) {
 				if($veto) $VetoEvents[]=$Event;
 			}
 			sort($VetoEvents);
 
-			$Select
-				= "SELECT "
-					. "TeCoId,TeSubTeam,TeRank, TeEvent,GrMatchNo,EvFinalFirstPhase "
-				. "FROM "
-					. "Teams INNER JOIN Events ON TeTournament=EvTournament AND TeEvent=EvCode AND EvTeamEvent=1 "
-					. "INNER JOIN Grids ON IF(EvFinalFirstPhase=24,32, IF(EvFinalFirstPhase=48,64,EvFinalFirstPhase))=GrPhase AND TeRank=GrPosition "
-				. "WHERE "
-					. "TeTournament=" . StrSafe_DB($_SESSION['TourId']) . " " . (count($Events)>0 ? " AND TeEvent IN('" . implode("','",$Events). "')" : ""). " AND TeFinEvent=1 "
-					. ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'')
-				. "ORDER BY EvCode,TeRank ASC,GrMatchNo ASC ";
+			$Select	= "SELECT TeCoId,TeSubTeam,TeRank, TeEvent,GrMatchNo,EvFinalFirstPhase 
+				FROM Teams 
+				INNER JOIN Events ON TeTournament=EvTournament AND TeEvent=EvCode AND EvTeamEvent=1 
+				INNER JOIN Phases ON EvFinalFirstPhase=PhId and (PhIndTeam & pow(2, EvTeamEvent))>0
+				INNER JOIN Grids ON GrPhase=greatest(PhId,PhLevel)  AND TeRank=IF(PhLevel=-1,GrPosition,GrPosition2) 
+				WHERE TeTournament=" . StrSafe_DB($_SESSION['TourId']) . " " . (count($Events)>0 ? " AND TeEvent IN('" . implode("','",$Events). "')" : ""). " AND TeFinEvent=1 "
+				. ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'')
+				. " ORDER BY EvCode,TeRank ASC,GrMatchNo ASC ";
 			;
 			//print $Select;exit;
 			$RsSel=safe_r_sql($Select);
 
-			while ($MyRow=safe_fetch($RsSel))
-			{
-				if(!array_key_exists($MyRow->TeEvent, $EventList))
-					$EventList[$MyRow->TeEvent]=($MyRow->EvFinalFirstPhase == 24 ? 32 : $MyRow->EvFinalFirstPhase);
+			while ($MyRow=safe_fetch($RsSel)) {
+				if(!array_key_exists($MyRow->TeEvent, $EventList)) {
+                    $EventList[$MyRow->TeEvent] =valueFirstPhase($MyRow->EvFinalFirstPhase);
+                }
 
-				$Update
-					= "UPDATE TeamFinals SET "
-					. "TfTeam='" . $MyRow->TeCoId . "', "
-					. "TfSubTeam='" . $MyRow->TeSubTeam . "', "
-					. "TfDateTime='" . date('Y-m-d H:i:s') . "' "
-					. "WHERE TfEvent='" . $MyRow->TeEvent . "' AND "
-					. "TfMatchNo='" . $MyRow->GrMatchNo . "' AND "
-					. "TfTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
+				$Update = "UPDATE TeamFinals SET 
+					TfTeam='" . $MyRow->TeCoId . "', 
+					TfSubTeam='" . $MyRow->TeSubTeam . "', 
+					TfDateTime='" . date('Y-m-d H:i:s') . "' 
+					WHERE TfEvent='" . $MyRow->TeEvent . "' AND 
+					TfMatchNo='" . $MyRow->GrMatchNo . "' AND 
+					TfTournament=" . StrSafe_DB($_SESSION['TourId']);
 				$RsUp=safe_w_sql($Update);
 				//print $Update . '<br>';
 			}
 
 		// componenti
-			$Insert
-				= "REPLACE INTO TeamFinComponent (TfcCoId,TfcSubTeam,TfcTournament,TfcEvent,TfcId,TfcOrder) "
-				. "SELECT "
-					. "TcCoId,TcSubTeam,TcTournament,TcEvent,TcId,TcOrder "
-				. "FROM "
-					. "TeamComponent "
-				. "INNER JOIN "
-					. "(SELECT DISTINCT TfTeam, TfSubTeam, TfEvent FROM TeamFinals WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . ") "
-					. "as Sqy ON TcCoId=TfTeam AND TcSubTeam=TfSubTeam AND TcEvent=TfEvent "
-				. "WHERE "
-					. "TcFinEvent=1 AND TcTournament=" . StrSafe_DB($_SESSION['TourId']) . "  " . (count($Events)>0 ? " AND TcEvent IN('" . implode("','",$Events). "')" : ""). " "
-					. ($VetoEvents?" AND TcEvent not in ('".implode("','", $VetoEvents)."')":'')
-			;
-			//print $Insert;exit;
+			$Insert = "REPLACE INTO TeamFinComponent (TfcCoId,TfcSubTeam,TfcTournament,TfcEvent,TfcId,TfcOrder) 
+				SELECT TcCoId,TcSubTeam,TcTournament,TcEvent,TcId,TcOrder 
+				FROM TeamComponent 
+				INNER JOIN (
+				    SELECT DISTINCT TfTeam, TfSubTeam, TfEvent FROM TeamFinals WHERE TfTournament=" . StrSafe_DB($_SESSION['TourId']) . "
+				  ) as Sqy ON TcCoId=TfTeam AND TcSubTeam=TfSubTeam AND TcEvent=TfEvent 
+				WHERE TcFinEvent=1 AND TcTournament=" . StrSafe_DB($_SESSION['TourId']) . "  " . (count($Events)>0 ? " AND TcEvent IN('" . implode("','",$Events). "')" : ""). ($VetoEvents?" AND TcEvent not in ('".implode("','", $VetoEvents)."')":'');
 			$RsIns=safe_w_sql($Insert);
 
 		// setto a 1 i flags che dicono che ho fatto gli spareggi per gli eventi
-			$Update
-				= "UPDATE Events SET "
-				. "EvShootOff='1' "
-				. "WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='1' " . (count($Events)>0 ? " AND EvCode IN('" . implode("','",$Events). "')" : ""). " "
-				. ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'')
-			;
+			$Update = "UPDATE Events SET EvShootOff='1' 
+				WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='1' " . (count($Events)>0 ? " AND EvCode IN('" . implode("','",$Events). "')" : ""). ($VetoEvents?" AND EvCode not in ('".implode("','", $VetoEvents)."')":'');
 			$RsUp=safe_w_sql($Update);
 			set_qual_session_flags();
 
@@ -244,8 +212,7 @@
 			$coppie=array();
 			$q="SELECT EvCode FROM Events WHERE EvTournament={$_SESSION['TourId']} AND EvTeamEvent=1 AND EvCode NOT IN ('" . implode(',',$VetoEvents). "')" . (count($Events)>0 ? " AND EvCode IN('" . implode("','",$Events). "') " : '');
 			$r=safe_r_sql($q);
-			while ($rr=safe_fetch($r))
-			{
+			while ($rr=safe_fetch($r)) {
 				$coppie[$rr->EvCode]= $rr->EvCode . "@-3";
 			}
 			/*foreach ($Events as $e)
@@ -255,8 +222,7 @@
 			//print_r($coppie);exit;
 			Obj_RankFactory::create('FinalTeam',array('eventsC'=>$coppie))->calculate();
 
-			foreach($EventList as $key=>$value)
-			{
+			foreach($EventList as $key=>$value) {
 				move2NextPhaseTeam($value,$key,null);
 			}
 		}
@@ -282,8 +248,13 @@
 		if(count($data['sections'])>0)
 		{
 			print '<form name="Frm" method="post" action="" onsubmit="return validShotoff()">' . "\n";
-				if (isset($_REQUEST['EventCode']))
+				if (isset($_REQUEST['EventCode'])) {
 					print '<input type="hidden" name="EventCode" value="' . $_REQUEST['EventCode'] . '">' . "\n";
+                } elseif (!empty($_REQUEST['EventCodeMult'])) {
+					foreach($_REQUEST['EventCodeMult'] as $val) {
+						echo '<input type="hidden" name="EventCodeMult[]" value="' . $val . '">' . "\n";
+					}
+				}
 
 				$Colonne = 7;
 

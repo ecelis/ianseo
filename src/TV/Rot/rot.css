@@ -19,5 +19,5 @@ div {overflow:hidden;}
 	}
 
 .Headers .Headers {background:none;}
-.RecBar {flex: 0 0 1rem; height:2em;}
-.Record {flex: 1 0 10rem; text-align:right;}
+.RecBar {flex: 0 0 1vw; height:2em;}
+.Record {flex: 1 0 40vw; text-align:right;}

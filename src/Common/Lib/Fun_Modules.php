@@ -36,6 +36,31 @@ function getModuleParameter($module, $param, $defaultValue='', $TourId=0, $clear
 	}
 }
 
+function getModuleParameterLike($module, $param, $TourId=0) {
+	$Ret=array();
+	if(empty($TourId) and !empty($_SESSION['TourId'])) {
+		$TourId=$_SESSION['TourId'];
+	}
+	$TmpSql = "SELECT MpValue, MpParameter
+		FROM ModulesParameters
+		WHERE MpModule=" . StrSafe_DB($module) . "
+		and MpParameter like ".StrSafe_DB($param)."
+		AND MpTournament=" .  StrSafe_DB($TourId);
+	$Rs=safe_r_sql($TmpSql);
+	while($r=safe_fetch($Rs)) {
+		if($r->MpValue) {
+			if(($tmp=@unserialize($r->MpValue))===false) {
+				$tmp=$r->MpValue;
+			}
+		} else {
+			$tmp=$r->MpValue;
+		}
+		$Ret[$r->MpParameter]=$tmp;
+	}
+
+	return $Ret;
+}
+
 function getModule($module, $like='', $TourId=0) {
 	$ret=array();
 	if(empty($TourId) and !empty($_SESSION['TourId'])) {

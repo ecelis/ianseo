@@ -1,4 +1,6 @@
 <?php
+$lang['Anomalies']='Anomalies';
+$lang['DirectoryNotWriteable']='The directory $a is not writeable by the web server. Please change its permissions to be writeable by anyone.';
 $lang['ErrCodeExists']='Code already exists!';
 $lang['ErrCommitteeError']='Invalid Committee code or description';
 $lang['ErrConnection']='No connection to server $a';
@@ -16,4 +18,7 @@ $lang['ErrNoStartDate']='Missing Starting Date';
 $lang['ErrRedCard']='The committee undergone red card and cannot ask for competitions to be hosted on ianseo. Contact codes@ianseo.net for further explanations.';
 $lang['ErrUnknownNation']='Unknown Nation';
 $lang['ErrYellowCard']='The Committee undergone a Yellow Card because no competition results have been uploaded. Contact codes@ianseo.net for further explanations.';
+$lang['LockedProcedure']='This Procedure is LOCKED';
+$lang['TooManyArrows']='Too many total arrows: the maximum is $a';
+$lang['TooManyElimQualified']='Rounds of type $a[0] can only accept up to $a[1] archers';
 ?>

@@ -31,7 +31,7 @@ function SendBib()
 	var x=document.getElementById('bib').value;
 	if (x.length>0)
 	{
-		OpenPopup('WriteOp.php?bib=' + document.getElementById('bib').value,'Esegui',800,500);
+		OpenPopup('WriteOp.php?bib=' + encodeURIComponent(document.getElementById('bib').value),'Esegui',800,500);
 		document.Frm.submit();
 	}
 }
@@ -66,11 +66,11 @@ function getImage(Id)
 	Imposta il filtro di ricerca
 */
 function Filtra()
-{	
+{
 	var RemoveAcc = 0;
 	if (document.getElementById('RemoveAcc').checked==true)
 		RemoveAcc=1;
-		
+
 	window.location.href="Accreditation.php?RemoveAcc=" + RemoveAcc + "&txt_Cognome=" + document.getElementById('txt_Cognome').value + "&txt_Societa=" + document.getElementById('txt_Societa').value;
 	//window.location.href="Accreditation.php?txt_Cognome=" + document.getElementById('txt_Cognome').value + "&txt_Societa=" + document.getElementById('txt_Societa').value;
 }

@@ -1,7 +1,8 @@
 <?php
-$version='2011-05-13 08:13:00';
+$version='2017-05-01 00:00:00';
 
-$AllowedTypes=array(1,2,3,6,9,11);
+/* Ramon Keller 2017-05-01: Added Indoor 25m */
+$AllowedTypes=array(1,2,3,6,7,9,11);
 
 $SetType['CH']['descr']=get_text('Setup-CH', 'Install');
 $SetType['CH']['types']=array();

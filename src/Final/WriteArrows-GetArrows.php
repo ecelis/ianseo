@@ -35,11 +35,13 @@ if($Schedule) {
 		$Pre='Tf';
 		$Join='inner join Countries on TfTeam=CoId';
 		$Fields=", CoCode as Country, CoName as Athlete";
+        checkACL(AclTeams, AclReadWrite, false);
 	} else {
 		$Tab='Finals';
 		$Pre='Fin';
 		$Join='inner join Entries on FinAthlete=EnId inner join Countries on EnCountry=CoId';
 		$Fields=", concat(upper(EnFirstName), ' ', EnName) as Athlete, CoCode as Country";
+        checkACL(AclIndividuals, AclReadWrite, false);
 	}
 	$SQL="Select if(FsLetter, FsLetter, FsTarget) Target, EvMatchMode,
 		{$Pre}Score as Score, {$Pre}SetScore as SetScore, {$Pre}Tie as Tie, {$Pre}Arrowstring as Arrowstring $Fields, {$Pre}TieBreak as TieBreak, FsMatchNo as MatchNo,
@@ -52,7 +54,7 @@ if($Schedule) {
 		$Join
 		where FsTeamEvent=$Team and FsScheduledDate='$Date' and FsScheduledTime='$Time' and FsTournament={$_SESSION['TourId']}
 		".(empty($Events[$Team]) ? '' : 'and FsEvent in ('.implode(',', StrSafe_DB($Events[$Team])).')')
-		. "order by Target='', Target, EvProgr, FsMatchNo";
+		. "order by GrPhase ASC, Target='', Target, EvProgr, FsMatchNo";
 } else {
 	$tmp=array();
 	foreach($Events as $Team => $Event) {
@@ -61,11 +63,13 @@ if($Schedule) {
 			$Pre='Tf';
 			$Join='inner join Countries on TfTeam=CoId';
 			$Fields=", CoCode as Country, CoName as Athlete";
+            checkACL(AclTeams, AclReadWrite, false);
 		} else {
 			$Tab='Finals';
 			$Pre='Fin';
 			$Join='inner join Entries on FinAthlete=EnId inner join Countries on EnCountry=CoId';
 			$Fields=", concat(upper(EnFirstName), ' ', EnName) as Athlete, CoCode as Country";
+            checkACL(AclIndividuals, AclReadWrite, false);
 		}
 		$tmp[]="Select if(FsLetter, FsLetter, FsTarget) Target, EvMatchMode,
 			{$Pre}Score as Score, {$Pre}SetScore as SetScore, {$Pre}Tie as Tie, {$Pre}Arrowstring as Arrowstring $Fields, {$Pre}TieBreak as TieBreak, {$Pre}MatchNo as MatchNo,
@@ -79,7 +83,7 @@ if($Schedule) {
 			where {$Pre}Tournament={$_SESSION['TourId']}
 			and {$Pre}Event in (".implode(',', StrSafe_DB($Event)).")
 			and GrPhase in (".implode(',', StrSafe_DB($Phases[$Team])).")
-			order by Target='', Target, EvProgr, MatchNo";
+			order by GrPhase ASC, Target='', Target, EvProgr, MatchNo";
 	}
 	$SQL="(".implode(") union (", $tmp).")";
 }
@@ -101,7 +105,7 @@ while($r=safe_fetch($q)) {
 		$EndIdx=min($StartIdx+$Arrows, $MaxArrows);
 		$OldEvent=$r->EvCode;
 		$First=true;
-		$Cols=7+$EndIdx+($EndIdx==$MaxArrows ? $r->SO : 0)-$StartIdx;
+		$Cols=8+$EndIdx+($EndIdx==$MaxArrows ? (3*$r->SO) : 0)-$StartIdx;
 		$JSON['html'].='<tr><th colspan="'.$Cols.'" class="Title">'.$r->EvCode.' - '.$r->EvEventName.'</th></tr>';
 		$JSON['html'].='<tr>
 				<th>'.get_text('Target').'</th>
@@ -113,11 +117,11 @@ while($r=safe_fetch($q)) {
 		$JSON['html'].='<th>'.get_text('Total').'</th>';
 		$JSON['html'].='<th>'.get_text('SetPoints', 'Tournament').'</th>';
 		if($EndIdx==$MaxArrows) {
-			for($n=0; $n<$r->SO; $n++) {
+			for($n=0; $n<3*$r->SO; $n++) {
 				$JSON['html'].='<th>SO '.($n+1).'</th>';
 			}
 		}
-		$JSON['html'].='<th colspan="2"></th>
+		$JSON['html'].='<th colspan="3"></th>
 			</tr>';
 	}
 
@@ -147,11 +151,13 @@ while($r=safe_fetch($q)) {
 	$JSON['html'].='<td id="set_'.$id.'" class="Center">'.($r->EvMatchMode ? $r->SetScore : '').'</td>';
 	if($EndIdx==$MaxArrows) {
 		$r->TieBreak=str_pad($r->TieBreak, $r->SO, ' ', STR_PAD_RIGHT);
-		for($n=0; $n<$r->SO; $n++) {
-			$a='';
-			if(strlen(trim($r->TieBreak[$n]))) $a=DecodeFromLetter($r->TieBreak[$n]);
-			$JSON['html'].='<td><input type="text" size="2" id="tie_'.$id.'_'.$n.'" value="'.$a.'" onblur="SendToServer(this, this.value)" onfocus="this.select()" tabindex="'.(($Arrows*$Offset)+$TabIndex++).'"></td>';
-		}
+
+        for($pSo=0; $pSo<3; $pSo++ ) {
+            for ($n = 0; $n < $r->SO; $n++) {
+                $ArrI = $n+($pSo*$r->SO);
+                $JSON['html'] .= '<td><input type="text" size="2" id="tie_' . $id . '_' . $ArrI . '" value="' . (!empty($r->TieBreak[$ArrI]) ? DecodeFromLetter($r->TieBreak[$ArrI]):'') . '" onblur="SendToServer(this, this.value)" onfocus="this.select()" tabindex="' . (($Arrows * $Offset) + $TabIndex++) . '"></td>';
+            }
+        }
 	}
 	$JSON['html'].='<td>';
 	if($r->MatchNo%2==0 and $r->Tie!=2) {

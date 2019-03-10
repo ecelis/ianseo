@@ -6,7 +6,7 @@
 	require_once('Common/Fun_FormatText.inc.php');
 
 	CheckTourSession(true);
-
+    checkACL(AclTeams, AclReadWrite);
 
 	$PAGE_TITLE=get_text('ShootOff4Final') . ' - ' . get_text('Team');
 
@@ -19,25 +19,24 @@
 <tr>
 <th class="TitleLeft" width="15%"><?php print get_text('Event');?></th>
 <td>
-<select name="EventCode">
-<option value=""><?php echo get_text('AllEvents') ?></option>
 <?php
-	$Select
-		= "SELECT EvCode,EvTournament,	EvEventName, (EvCodeParent!='') as hasParent  "
-		. "FROM Events "
-		. "WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='1' AND EvFinalFirstPhase!=0 "
-		. "ORDER BY EvProgr ASC ";
-	$Rs=safe_r_sql($Select);
 
-	if (safe_num_rows($Rs)>0)
-	{
-		while($MyRow=safe_fetch($Rs))
-		{
-			print '<option value="' . $MyRow->EvCode . '"'.(in_array($MyRow->EvCode, $_SESSION['MenuFinT'])?' style="color:red"':''). ($MyRow->hasParent ? ' disabled':'') .'>' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true) . '</option>' . "\n";
-		}
-	}
+$Select
+    = "SELECT EvCode,EvTournament,	EvEventName, (EvCodeParent!='') as hasParent  "
+    . "FROM Events "
+    . "WHERE EvTournament=" . StrSafe_DB($_SESSION['TourId']) . " AND EvTeamEvent='1' AND EvFinalFirstPhase!=0 "
+    . "ORDER BY EvProgr ASC ";
+$Rs=safe_r_sql($Select);
+
+$rows=min(10, max(5, safe_num_rows($Rs)));
+
+echo '<select name="EventCodeMult[]" multiple="multiple" size="'.$rows.'">';
+while($MyRow=safe_fetch($Rs)) {
+    echo '<option value="' . $MyRow->EvCode . '"'.(in_array($MyRow->EvCode, $_SESSION['MenuFinT'])?' style="color:red"':''). ($MyRow->hasParent ? ' disabled':'') .'>' . $MyRow->EvCode . ' - ' . get_text($MyRow->EvEventName,'','',true) . '</option>' . "\n";
+}
+echo '</select>';
+
 ?>
-</select>
 </td>
 </tr>
 <tr><td class="Center" colspan="2"><input type="submit" value="<?php print get_text('CmdNext');?>"></td></tr>

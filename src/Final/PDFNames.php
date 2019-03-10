@@ -1,4 +1,6 @@
 <?php
+checkACL(array(AclIndividuals, AclTeams), AclReadOnly);
+
 $pdf = new IanseoPdf('',false);
 $pdf->setPrintHeader(false);
 $pdf->setPrintFooter(false);
@@ -20,23 +22,29 @@ $rep=array(
 
 $n=0;
 error_reporting(E_ALL);
+$EnIds=array();
 
-while($MyRow=safe_fetch($Rs))
-{
+while($MyRow=safe_fetch($Rs)) {
+	if(isset($MyRow->EnId)) {
+		if(in_array($MyRow->EnId, $EnIds)) {
+			continue;
+		}
+		$EnIds[]=$MyRow->EnId;
+	}
 	$match2=($n%2 == 0);
 	$n++;
-	if($match2)
-	{
+	if($match2) {
 		$pdf->AddPage();
 		$pdf->Line(5,($pdf->getPageHeight()/2),15,($pdf->getPageHeight()/2));
 		$pdf->Line($pdf->getPageWidth()-15,($pdf->getPageHeight()/2),$pdf->getPageWidth()-5,($pdf->getPageHeight()/2));
 	}
 
 
-	if($match2)
-		$pdf->SetXY(10,10);
-	else
-		$pdf->SetXY(10,($pdf->getPageHeight()/2)+10);
+	if($match2) {
+        $pdf->SetXY(10, 10);
+    } else {
+        $pdf->SetXY(10, ($pdf->getPageHeight() / 2) + 10);
+    }
 
 	$pdf->SetFont('','',220);
 	$pdf->Cell(($pdf->getPageWidth()-20),(($pdf->getPageHeight()/2)-20),str_replace(array_keys($rep), array_values($rep), $MyRow->Athlete),0,1,'L',0);
@@ -50,8 +58,7 @@ while($MyRow=safe_fetch($Rs))
 		$pdf->Cell(10,5, "G." . $MyRow->sGo,1,0,'C',0);
 		$pdf->SetX($pdf->getX()-20);
 		$pdf->Cell(10,5, "B." . $MyRow->sBr,1,0,'C',0);
-		for($i=2; $i<=$MyRow->EvFinalFirstPhase;$i=$i*2)
-		{
+		for($i=2; $i<=bitwisePhaseId($MyRow->EvFinalFirstPhase);$i=$i*2) {
 			$pdf->SetX($pdf->getX()-20);
 			$pdf->Cell(10,5, namePhase($MyRow->EvFinalFirstPhase,$i) . '.' . $MyRow->{'s' . $i},1,0,'C',0);
 		}

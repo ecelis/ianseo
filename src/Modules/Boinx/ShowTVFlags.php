@@ -1,11 +1,11 @@
 <?php
-	define('debug',false);	// settare a true per l'output di debug
 
 
 	require_once('./config.php');
 	require_once('Common/Lib/CommonLib.php');
 
 	$TourId=getIdFromCode($TourCode);
+    checkACL(AclOutput,AclReadWrite, true, $TourId);
 
 	$JS_SCRIPT[]='<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/js/Fun_JS.inc.js"></script>';
 	$JS_SCRIPT[]='<script type="text/javascript" src="'.$CFG->ROOT_DIR.'Common/ajax/ObjXMLHttpRequest.js"></script>';

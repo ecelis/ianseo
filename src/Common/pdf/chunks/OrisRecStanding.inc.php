@@ -23,13 +23,14 @@ if(empty($PdfData->Data['Items'])) {
 	foreach($PdfData->Data['Items'] as $Team => $Rows) {
 		if($AddPage) $pdf->addpage();
 		$AddPage=true;
-		$pdf->SamePage(count($Rows) + 2);
 		$pdf->lastY += 3.5;
+		$pdf->SamePage(count($Rows), 3.5, $pdf->lastY);
 		$first=true;
 		$lstPictures = array();
 		$lstDoB = array();
 	// 	$pdf->printSectionTitle('As of '.$PdfData->RecordAs);
 		foreach($Rows as $RecType => $MyRows) {
+            $pdf->SamePage(count($MyRows) + 6, 3.5, $pdf->lastY);
 			$pdf->printSectionTitle($PdfData->SubSections[$Team][$RecType].'§', $pdf->GetY()+10);
 			$pdf->ln();
 			$pdf->SetDataHeader($PdfData->Header, $PdfData->HeaderWidth);
@@ -69,7 +70,6 @@ if(empty($PdfData->Data['Items'])) {
 						$pdf->printDataRow($tmp);
 					}
 				}
-	// 			debug_svela($MyRow);
 
 		// 		$PdfData->HTML['Countries'][$MyRow->NationCode]['Description']=$MyRow->Nation;
 		// 		$PdfData->HTML['Countries'][$MyRow->NationCode]['Archers'][]=array(

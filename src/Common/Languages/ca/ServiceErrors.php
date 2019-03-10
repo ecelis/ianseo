@@ -1,4 +1,7 @@
 <?php
+$lang['ArcClassified']='Valor classificat incorrecte';
+$lang['ArcNative']='Estatus primera nació incorrecte';
+$lang['ArcPara']='Estatus "adaptat" incorrecte';
 $lang['ErrArcherCodeExists']='Número ID Arquer ja existeix';
 $lang['ErrArcherCodeFree']='Número ID Arquer està lliure';
 $lang['ErrArcherCodeTooLong']='Número ID Arquer massa llarg';
@@ -49,5 +52,7 @@ $lang['ErrPassToSet']='Inserir una nova contrasenya';
 $lang['ErrSubClass']='Subclasse no vàlida';
 $lang['ErrSubClassNotFound']='Subclasse no trobada';
 $lang['ErrWronglevel']='Club/Arquer nivel incorrecte';
+$lang['InvalidData']='Dades no vàlides';
 $lang['LoginTooManyArchers']='Més d\'1 arquer té aquest correu electrònic. Utilitzeu l\'ID de membre';
+$lang['WrongType']='Tipus incorrecte';
 ?>

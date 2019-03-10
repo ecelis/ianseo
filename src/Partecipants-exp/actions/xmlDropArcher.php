@@ -9,11 +9,11 @@
 	$row=(isset($_REQUEST['row']) ? $_REQUEST['row'] : null);
 	$col=(isset($_REQUEST['col']) ? $_REQUEST['col'] : null);
 
-	if (!CheckTourSession() || is_null($id) || is_null($row) || is_null($col))
-	{
+	if (!CheckTourSession() || is_null($id) || is_null($row) || is_null($col)) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite, false);
 
 	$tourId=$_SESSION['TourId'];
 
@@ -32,30 +32,20 @@
 
 		if (safe_num_rows($rs)==1)
 		{
-			$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+			$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 			$recalc=Params4Recalc($id);
 			if ($recalc!==false)
 			{
 				$recalc=true;
-				list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$recalc;
+				list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$recalc;
 			}
 
-		// cancello da Entries
-			if($EnSelect=GetAccBoothEnWhere($id, true, true)) {
-				LogAccBoothQuerry("delete from Qualifications where QuId=(select EnId from Entries where $EnSelect)");
-				LogAccBoothQuerry("delete from Entries where $EnSelect");
-			}
-
-			$query = "DELETE FROM Entries WHERE EnId=" . StrSafe_DB($id) . " AND EnTournament=" . StrSafe_DB($tourId) . " ";
-			$rs=safe_w_sql($query);
-
-		// cancello da Qualifications
-			$query = "DELETE FROM Qualifications WHERE QuId=" . StrSafe_DB($id) . " ";
-			$rs=safe_w_sql($query);
+			// Removes Entries
+			deleteArcher($id, true, true);
 
 			if ($recalc)
 			{
-				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+				RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 			// rank di classe x tutte le distanze
 				$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";

@@ -8,6 +8,7 @@ require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Sessions.inc.php');
 
 CheckTourSession(true);
+checkACL(AclEliminations,AclReadWrite);
 $EnBib='-';
 $archers=array();
 
@@ -54,15 +55,15 @@ if($_GET) {
 		// #Name/Surname
 		// _GET['target']
 		$archers=getScore($D, $_GET['B']);
+		// $D is now the real phase number (0 or 1)
 		if($EnBib=='-') {
-			$tmp=each($archers);
-			$EnBib=$tmp['key'];
+			$EnBib=key($archers);
 		}
 		// if we have a "C" input (beware of autoedit!) then do the action
 		if(!empty($_GET['C'])) {
 			$C=$_GET['C'];
 			unset($_GET['C']);
-			if(!empty($archers[$EnBib]) and !IsBlocked(BIT_BLOCK_QUAL)) {
+			if(!empty($archers[$EnBib]) and !IsBlocked(BIT_BLOCK_ELIM)) {
 				$archer=$archers[$EnBib];
 				switch(strtoupper($C)) {
 					case 'EDIT':
@@ -120,12 +121,12 @@ if($_GET) {
 // 								inner join Entries on EnId=QuId
 // 								inner join Tournament on EnTournament=ToId
 // 								WHERE ToId={$_SESSION['TourId']} and EnId={$archer->EnId}";
-
+//
 // 							$Rs=safe_r_sql($Select, false, true);
 // 							if($Rs and $MyRow=safe_fetch($Rs)) {
 // 								require_once('Common/Lib/ArrTargets.inc.php');
 // 								list($CurScore,$CurGold,$CurXNine) = ValutaArrowStringGX($MyRow->ArrowString,$MyRow->ToGoldsChars,$MyRow->ToXNineChars);
-
+//
 // 								$SQL="update Qualifications set QuD{$D}Xnine='$CurXNine', QuD{$D}Gold='$CurGold' where QuId={$archer->EnId}";
 // 								safe_w_sql($SQL);
 // 								updateArcher($archer, $D);
@@ -134,7 +135,6 @@ if($_GET) {
 // 						}
 // 						break;
 					case strtoupper($_GET['B']):
-// 						echo "qui";exit;
 						foreach($archers as $arc) updateArcher($arc, $D);
 						unset($_GET['C']);
 						unset($_GET['B']);
@@ -174,8 +174,7 @@ include('Common/Templates/head.php');
 $q=safe_r_sql("Select ToNumDist, ToGolds, ToXNine from Tournament where ToId={$_SESSION['TourId']}");
 $TOUR=safe_fetch($q);
 if(!empty($archers)) {
-	$ttt=each($archers);
-	$arctmp=$ttt['value'];
+	$arctmp=current($archers);
 	$D=$arctmp->ElElimPhase+1;
 	$_GET['T']=$arctmp->ElSession;
 }
@@ -202,10 +201,10 @@ if(!empty($archers)) {
 		<th><?php print get_text('Session');?></th>
 	</tr>
 	<tr>
-		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="Targets" <?php echo (!empty($_GET['Targets']) ? ' checked="checked"' : ''); ?>></td>
+		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="Targets" <?php echo ((empty($_GET) or !empty($_GET['Targets'])) ? ' checked="checked"' : ''); ?>></td>
 		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="AutoEdit"  <?php echo (!empty($_GET['AutoEdit']) ? ' checked="checked"' : ''); ?>></td>
-		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="ShowMiss"  <?php echo (!empty($_GET['ShowMiss']) ? ' checked="checked"' : ''); ?>></td>
-		<td class="Center"><select id="Distance" name="D"  onclick="document.Frm.bib.focus()"><option value="0"></option><?php
+		<td class="Center"><input type="checkbox" onclick="document.Frm.bib.focus()" name="ShowMiss"  <?php echo ((empty($_GET) or !empty($_GET['ShowMiss'])) ? ' checked="checked"' : ''); ?>></td>
+		<td class="Center"><select id="Distance" name="D"  onchange="document.Frm.bib.focus()"><option value="0"></option><?php
 
 foreach(range(1,2) as $d) {
 	echo '<option value="'.$d.'"'.(!empty($D) && $D==$d ? ' selected="selected"' : '').'>Elim '.$d.'</option>';
@@ -221,14 +220,14 @@ if(!empty($_GET['B'])) {
 
 
 ?></td>
-		<td class="Center"><select id="Session" name="T"  onclick="document.Frm.bib.focus()"><option value="0"></option><?php
+		<td class="Center"><select id="Session" name="T"  onchange="document.Frm.bib.focus()"><option value="0"></option><?php
 $q=safe_r_sql("Select distinct SesOrder, SesName from Session where SesType='E' and SesTournament={$_SESSION['TourId']} order by SesOrder");
 while($r=safe_fetch($q)) echo '<option value="'.$r->SesOrder.'" '.(!empty($_GET['T']) && $_GET['T']==$r->SesOrder ? ' selected="selected"' : '').'>'.($r->SesName ? $r->SesName : $r->SesOrder).'</option>';
 ?></select></td>
 </tr>
 	<tr>
 		<td class="Center" colspan="2"><input type="submit" value="<?php print get_text('CmdGo','Tournament');?>" id="Vai" onClick="javascript:SendBib();"></td>
-		<td class="Center"><input type="button" value="<?php print get_text('BarcodeMissing','Tournament');?>" onClick="window.open('./GetScoreBarCodeMissing.php?D='+document.getElementById('Distance').value+'&T='+document.getElementById('Session').value);"></td>
+		<td class="Center"><input type="button" value="<?php print get_text('BarcodeMissing','Tournament');?>" onClick="window.open('./GetScoreBarCodeMissing.php?S=E&D='+document.getElementById('Distance').value+'&T='+document.getElementById('Session').value);"></td>
 	</tr>
 
 	<tr>
@@ -309,7 +308,7 @@ if($ShowMiss) {
 		left join Session on SesOrder=ElSession and SesTournament=EnTournament and SesType='E'
 		WHERE EnAthlete=1
 			AND EnTournament = {$_SESSION['TourId']} AND EnStatus<=1
-			AND EnId not in (select AEId from AccEntries where AETournament={$_SESSION['TourId']} and AEOperation=".(120+$D).")
+			AND ElConfirm=0
 		ORDER BY ElTargetNo ";
 	$Q=safe_r_sql($MyQuery);
 	while($r=safe_fetch($Q)) {
@@ -323,7 +322,7 @@ if($ShowMiss) {
 include('Common/Templates/tail.php');
 
 
-function getScore($dist, $barcode, $strict=false) {
+function getScore(&$dist, $barcode, $strict=false) {
 	global $EnBib, $T;
 	$ret=array();
 	$div='';
@@ -345,6 +344,7 @@ function getScore($dist, $barcode, $strict=false) {
 		$tmp=@explode($_SESSION['BarCodeSeparator'], $barcode, 3);
 		$bib=$tmp[0];
 		$pha=$tmp[1];
+		$dist=$tmp[1];
 		$evt=$tmp[2];
 
 		if(substr($bib, 0, 2)=='UU') $bib='_'.substr($bib, 2);
@@ -380,16 +380,10 @@ function getScore($dist, $barcode, $strict=false) {
 }
 
 function updateArcher($archer, $D) {
-	$SQL= "INSERT INTO AccEntries "
-		. "(AEId,AEOperation,AETournament,AEWhen,AEFromIp) "
-		. "VALUES("
-		. StrSafe_DB($archer->EnId) . ","
-		. StrSafe_DB(120+$D) . ","
-		. StrSafe_DB($_SESSION['TourId']) . ","
-		. StrSafe_DB(date('Y-m-d H:i')) . ","
-		. "INET_ATON('" . ($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1') . "') "
-		. ") ON DUPLICATE KEY UPDATE "
-		. "AEWhen=" . StrSafe_DB(date('Y-m-d H:i')) . ","
-		. "AEFromIp=INET_ATON('" . ($_SERVER['REMOTE_ADDR']!='::1' ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1') . "') ";
-	safe_w_sql($SQL);
+    $SQL= "update Eliminations set ElConfirm=1 
+        where ElId=$archer->EnId
+            and ElElimPhase=$D
+            and ElEventCode='$archer->ElEventCode'
+            and ElTournament={$_SESSION['TourId']}";
+    safe_w_sql($SQL);
 }

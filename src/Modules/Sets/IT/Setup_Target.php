@@ -163,39 +163,76 @@ switch($TourType) {
 		}
 		break;
 	case 3:
+        switch($SubRule) {
+            case '1':
+                CreateDistance($TourId, $TourType, 'OLS_', '70m-1', '70m-2');
+                CreateDistance($TourId, $TourType, 'OLJ_', '70m-1', '70m-2');
+                CreateDistance($TourId, $TourType, 'OLA_', '60m-1', '60m-2');
+                CreateDistance($TourId, $TourType, 'OLM_', '60m-1', '60m-2');
+                CreateDistance($TourId, $TourType, 'OLR_', '40m-1', '40m-2');
+                CreateDistance($TourId, $TourType, 'OLG_', '25m-1', '25m-2');
+                CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+                break;
+            case '2':
+                CreateDistance($TourId, $TourType, 'OL%', '70m-1', '70m-2');
+                CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+                break;
+            case '3':
+                CreateDistance($TourId, $TourType, 'OLJ_', '70m-1', '70m-2');
+                CreateDistance($TourId, $TourType, 'OLA_', '60m-1', '60m-2');
+                CreateDistance($TourId, $TourType, 'OLR_', '40m-1', '40m-2');
+                CreateDistance($TourId, $TourType, 'OLG_', '25m-1', '25m-2');
+                CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+                break;
+            case '4':
+                CreateDistance($TourId, $TourType, 'OLS_', '70m-1', '70m-2');
+                CreateDistance($TourId, $TourType, 'OLM_', '60m-1', '60m-2');
+                CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
+                CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+                break;
+        }
+        break;
+    case 39:
 		switch($SubRule) {
 			case '1':
-				CreateDistance($TourId, $TourType, 'OLS_', '70m-1', '70m-2');
-				CreateDistance($TourId, $TourType, 'OLJ_', '70m-1', '70m-2');
-				CreateDistance($TourId, $TourType, 'OLA_', '60m-1', '60m-2');
-				CreateDistance($TourId, $TourType, 'OLM_', '60m-1', '60m-2');
-				CreateDistance($TourId, $TourType, 'OLR_', '40m-1', '40m-2');
-				CreateDistance($TourId, $TourType, 'OLG_', '25m-1', '25m-2');
-				CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+				CreateDistance($TourId, $TourType, 'OLS_', '70m-1');
+				CreateDistance($TourId, $TourType, 'OLJ_', '70m-1');
+				CreateDistance($TourId, $TourType, 'OLA_', '60m-1');
+				CreateDistance($TourId, $TourType, 'OLM_', '60m-1');
+				CreateDistance($TourId, $TourType, 'OLR_', '40m-1');
+				CreateDistance($TourId, $TourType, 'OLG_', '25m-1');
+				CreateDistance($TourId, $TourType, 'CO%', '50m-1');
+				CreateDistance($TourId, $TourType, 'W1%', '50m-1');
+				CreateDistance($TourId, $TourType, 'V%', '30m-1');
 				break;
 			case '2':
-				CreateDistance($TourId, $TourType, 'OL%', '70m-1', '70m-2');
-				CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+				CreateDistance($TourId, $TourType, 'OL%', '70m-1');
+				CreateDistance($TourId, $TourType, 'CO%', '50m-1');
+				CreateDistance($TourId, $TourType, 'W1%', '50m-1');
+				CreateDistance($TourId, $TourType, 'V%', '30m-1');
 				break;
 			case '3':
-				CreateDistance($TourId, $TourType, 'OLJ_', '70m-1', '70m-2');
-				CreateDistance($TourId, $TourType, 'OLA_', '60m-1', '60m-2');
-				CreateDistance($TourId, $TourType, 'OLR_', '40m-1', '40m-2');
-				CreateDistance($TourId, $TourType, 'OLG_', '25m-1', '25m-2');
-				CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+				CreateDistance($TourId, $TourType, 'OLJ_', '70m-1');
+				CreateDistance($TourId, $TourType, 'OLA_', '60m-1');
+				CreateDistance($TourId, $TourType, 'OLR_', '40m-1');
+				CreateDistance($TourId, $TourType, 'OLG_', '25m-1');
+				CreateDistance($TourId, $TourType, 'CO%', '50m-1');
+				CreateDistance($TourId, $TourType, 'W1%', '50m-1');
+				CreateDistance($TourId, $TourType, 'V%', '30m-1');
 				break;
 			case '4':
-				CreateDistance($TourId, $TourType, 'OLS_', '70m-1', '70m-2');
-				CreateDistance($TourId, $TourType, 'OLM_', '60m-1', '60m-2');
-				CreateDistance($TourId, $TourType, 'CO%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'W1%', '50m-1', '50m-2');
-				CreateDistance($TourId, $TourType, 'V%', '30m-1', '30m-2');
+				CreateDistance($TourId, $TourType, 'OLS_', '70m-1');
+				CreateDistance($TourId, $TourType, 'OLM_', '60m-1');
+				CreateDistance($TourId, $TourType, 'CO%', '50m-1');
+				CreateDistance($TourId, $TourType, 'W1%', '50m-1');
+				CreateDistance($TourId, $TourType, 'V%', '30m-1');
 				break;
 		}
 		break;
@@ -231,7 +268,7 @@ switch($TourType) {
 		break;
 }
 
-if($TourType<5 or $TourType==6 or $TourType==18) {
+if($TourType<5 or $TourType==6 or $TourType==18 or $TourType==39) {
 	// default Events
 	CreateStandardEvents($TourId, $TourType, $SubRule, $TourType!=6);
 
@@ -240,6 +277,11 @@ if($TourType<5 or $TourType==6 or $TourType==18) {
 
 	// Finals & TeamFinals
 	CreateFinals($TourId);
+}
+
+//Specific Lookup for sperimental indoor class
+if($TourType >= 6 AND $TourType <= 8) {
+    $tourDetIocCode = 'ITA_i';
 }
 
 // Default Target
@@ -278,6 +320,12 @@ switch($TourType) {
 		CreateTargetFace($TourId, $i++, '~Default W1', 'REG-^W1', '1',  5, 80, 5, 80);
 		CreateTargetFace($TourId, $i++, '~DefaultVI', 'REG-^V', '1',  5, 80, 5, 80);
 		break;
+    case 39:
+        CreateTargetFace($TourId, $i++, '~Default', '%', '1', 5, 122);
+        CreateTargetFace($TourId, $i++, '~DefaultCO', 'REG-^CO', '1',  9, 80);
+        CreateTargetFace($TourId, $i++, '~Default W1', 'REG-^W1', '1',  5, 80);
+        CreateTargetFace($TourId, $i++, '~DefaultVI', 'REG-^V', '1',  5, 80);
+        break;
 	case 5:
 		CreateTargetFace($TourId, $i++, '~Default', '%', '1',  5, 122, 5, 122, 5, 122);
 		CreateTargetFace($TourId, $i++, '~DefaultVI', 'V%', '1',  5, 80, 5, 80, 5, 80);

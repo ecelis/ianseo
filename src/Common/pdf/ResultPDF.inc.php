@@ -1,6 +1,7 @@
 <?php
 require_once('Common/pdf/IanseoPdf.php');
 require_once('Common/Lib/Fun_DateTime.inc.php');
+require_once('Common/Lib/CommonLib.php');
 
 class ResultPDF extends IanseoPdf {
 
@@ -11,11 +12,18 @@ class ResultPDF extends IanseoPdf {
 	var $FontSizeHeadSmall=6;
 	var $FontSizeLines=8;
 	var $RealCellHeight=4;
+	var $PoolMatches=array();
+	var $PoolMatchesWA=array();
+	var $PoolWinners=array();
 
 	//Constructor
 	function __construct($DocTitolo, $Portrait=true, $Headers='', $StaffVisibility=true) {
 		parent::__construct($DocTitolo, $Portrait, $Headers, $StaffVisibility);
 
+		$this->PoolMatches=getPoolMatchesShort();
+		$this->PoolMatchesWA=getPoolMatchesShortWA();
+		$this->PoolWinners=getPoolMatchesWinners();
+		$this->PoolWinnersWA=getPoolMatchesWinnersWA();
 
 		$this->startPageGroup();
 		$this->AddPage();
@@ -182,18 +190,21 @@ class ResultPDF extends IanseoPdf {
 	   	$this->SetFont($this->FontStd,'B',$this->FontSizeLines);
 		$this->Cell(190, 5, $this->LegendStatus, 1, 1, 'C', 1);
 		$TmpCnt=0;
-		foreach($Arr_StrStatus as $Key => $Value)
-		{
-			if($Key!=0)
+		if(!empty($Arr_StrStatus)) {
+			foreach($Arr_StrStatus as $Key => $Value)
 			{
-			   	$this->SetFont($this->FontStd,'B',$this->FontSizeHead);
-				$this->Cell(10, 4,  $Key, 1, 0, 'C', 1);
-			   	$this->SetFont($this->FontStd,'',$this->FontSizeHead);
-				$this->Cell(85, 4,  $Value, 1, ($TmpCnt++ % 2), 'L', 0);
+				if($Key!=0)
+				{
+				    $this->SetFont($this->FontStd,'B',$this->FontSizeHead);
+					$this->Cell(10, 4,  $Key, 1, 0, 'C', 1);
+				    $this->SetFont($this->FontStd,'',$this->FontSizeHead);
+					$this->Cell(85, 4,  $Value, 1, ($TmpCnt++ % 2), 'L', 0);
+				}
 			}
 		}
-		if(($TmpCnt++ % 2))
-		$this->Cell(95, 4, '' , 1, 0, 'L', 0);
+		if($TmpCnt++ % 2) {
+			$this->Cell(95, 4, '' , 1, 0, 'L', 0);
+		}
 	}
 
 	function DrawParticipantHeader()
@@ -230,6 +241,7 @@ class ResultPDF extends IanseoPdf {
 		$this->SetX($this->GetX()+0.5);
 		$this->Cell(2, 2,  '', $draw ? 1-$TeamMix : 0, 0, 'C', $TeamMix);
 		$this->SetXY($this->GetX()+1, $this->GetY()-1);
+		$this->SetDefaultColor();
 	}
 
 	function DrawPartecipantLegend()
@@ -560,18 +572,18 @@ class ResultPDF extends IanseoPdf {
 		}
 		// testastampa
 		if (strlen($section['printHeader']))
-			$this->Cell(190, 7.5, $section['printHeader'], 0, 1, 'R', 0);
+			$this->Cell(0, 7.5, $section['printHeader'], 0, 1, 'R', 0);
 		else if(strlen($tmpHeader)!=0 && !$section['running'])
-			$this->Cell(190, 7.5, $tmpHeader, 0, 1, 'R', 0);
+			$this->Cell(0, 7.5, $tmpHeader, 0, 1, 'R', 0);
 
 
 		$this->SetFont($this->FontStd,'B',$this->FontSizeTitle);
-		$this->Cell(190, 6,  $section['descr'], 1, 1, 'C', 1);
+		$this->Cell(0, 6,  $section['descr'], 1, 1, 'C', 1);
 		if($follows)
 		{
 			$this->SetXY(170,$this->GetY()-6);
 		   	$this->SetFont($this->FontStd,'',6);
-			$this->Cell(30, 6, $this->Continue, 0, 1, 'R', 0);
+			$this->Cell(0, 6, $this->Continue, 0, 1, 'R', 0);
 		}
 	   	$this->SetFont($this->FontStd,'B',$this->FontSizeHead);
 		$this->Cell(8, 4 * ($double ? 2 : 1),  $section['fields']['rank'], 1, 0, 'C', 1);
@@ -611,7 +623,7 @@ class ResultPDF extends IanseoPdf {
 		else
 			$this->Cell(8, 4 * ($double ? 2 : 1),  '', 1, 1, 'C', 1);
 		$this->SetFont($this->FontStd,'',1);
-		$this->Cell(190, 0.5,  '', 1, 1, 'C', 0);
+		$this->Cell(0, 0.5,  '', 1, 1, 'C', 0);
 	}
 
 	function writeGroupHeaderPrnTeamAbs($section,$follows=false)

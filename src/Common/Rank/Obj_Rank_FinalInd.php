@@ -106,7 +106,7 @@
 			return true;
 		}
 
-		public function read()
+		public function read($StraightRank=false)
 		{
 			$f=$this->safeFilterR();
 
@@ -131,10 +131,10 @@
 			$q="
 				SELECT
 					EnId,EnCode, EnSex, EnNameOrder, upper(EnIocCode) EnIocCode, EnName AS Name, EnFirstName AS FirstName, upper(EnFirstName) AS FirstNameUpper, CoId, CoCode, CoName, if(CoNameComplete>'', CoNameComplete, CoName) as CoNameComplete,
-					EvCode,EvEventName,EvProgr,
+					EvCode,EvEventName,EvProgr,EvElimType,
 					EvFinalPrintHead as PrintHeader,
-					EvFinalFirstPhase,	EvElim1, 	EvElim2,EvMatchMode, EvMedals,
-					IndRank as QualRank, IF(EvShootOff+EvE1ShootOff+EvE2ShootOff=0, IndRank, IndRankFinal) as FinalRank, QuScore AS QualScore,
+					EvFinalFirstPhase,	EvElim1, 	EvElim2,EvMatchMode, EvMedals, EvCodeParent, 
+					IndRank as QualRank, ".($StraightRank ? "IndRankFinal" : "IF(EvShootOff+EvE1ShootOff+EvE2ShootOff=0, IndRank, IndRankFinal)")." as FinalRank, QuScore AS QualScore,
 					e1.ElRank AS E1Rank,e1.ElScore AS E1Score,
 					e2.ElRank AS E2Rank,e2.ElScore AS E2Score,
 					IndTimestamp,IndTimestampFinal,
@@ -176,7 +176,7 @@
 					ON IndId=e2.ElId AND IndTournament=e2.ElTournament AND IndEvent=e2.ElEventCode AND e2.ElElimPhase=1
 
 				WHERE
-					EnAthlete=1 AND EnIndFEvent=1 AND EnStatus <= 1  AND QuScore != 0 AND ToId = {$this->tournament}
+					EnAthlete=1 AND EnIndFEvent=1 AND EnStatus <= 1  AND (QuScore != 0 OR IndRankFinal != 0) AND ToId = {$this->tournament}
 					{$filter}
 					{$EnFilter}
 				ORDER BY
@@ -249,12 +249,9 @@
 							'finals'=>array()
 						);
 
-						foreach($phases as $k => $v)
-						{
-							if($v<=valueFirstPhase($myRow->EvFinalFirstPhase))
-							{
-								if(!($v==32 && ($myRow->EvFinalFirstPhase==24 || $myRow->EvFinalFirstPhase==48)))
-									$fields['finals'][$v]=get_text(namePhase($myRow->EvFinalFirstPhase,$v)  . "_Phase");
+						foreach($phases as $k => $v) {
+							if($v<=valueFirstPhase($myRow->EvFinalFirstPhase)) {
+								$fields['finals'][$v]=get_text(namePhase($myRow->EvFinalFirstPhase,$v)  . "_Phase");
 							}
 						}
 
@@ -275,8 +272,10 @@
 								'descr' => get_text($myRow->EvEventName,'','',true),
 								'printHeader'=>get_text($myRow->PrintHeader,'','',true),
 								'firstPhase'=>$myRow->EvFinalFirstPhase,
+								'elimType'=>$myRow->EvElimType,
 								'elim1'=>($myRow->EvElim1!=0),
 								'elim2'=>($myRow->EvElim2!=0),
+                                'parent'=>$myRow->EvCodeParent,
 								'matchMode'=>$myRow->EvMatchMode,
 								'order'=>$myRow->EvProgr,
 								'lastUpdate'=>'0000-00-00 00:00:00',
@@ -310,9 +309,9 @@
 						'countryName' => $myRow->CoName,
 						'countryNameLong' => $myRow->CoNameComplete,
 						'qualScore'=>$myRow->QualScore,
-						'qualRank'=>$myRow->QualRank,
-						'rank'=>($myRow->FinalRank == 9999 ? 'DSQ' : $myRow->FinalRank),
-						'preseed'=>($myRow->EvFinalFirstPhase==48 or $myRow->EvFinalFirstPhase==24) and $myRow->QualRank<=8 ? '1' : '',
+						'qualRank'=>($myRow->QualRank == 9999 ? 'DSQ' : ($myRow->QualRank == 9998 ? 'DNS' : $myRow->QualRank)),
+						'rank'=>($myRow->FinalRank == 9999 ? 'DSQ' : ($myRow->FinalRank == 9998 ? 'DNS' : $myRow->FinalRank)),
+						'preseed'=>(($Saved=SavedInPhase($myRow->EvFinalFirstPhase)) and $myRow->QualRank<=$Saved) ? '1' : '',
 						'elims'=>array(),
 						'finals'=>array()
 					);
@@ -350,7 +349,7 @@
 
 			$q="(
 				SELECT
-					f1.FinEvent AS `event`,f1.FinAthlete AS `athlete`,f1.FinMatchNo AS `matchNo`,f1.FinScore AS `score`,f1.FinSetScore AS `setScore`,f1.FinSetPoints AS `setPoints`,f1.FinSetPointsByEnd AS `setPointsByEnd`,f1.FinTie AS `tie`,f1.FinArrowstring AS `arrowstring`,f1.FinTiebreak AS `tiebreak`, f1.FinNotes as Notes,
+					EvElimType, f1.FinEvent AS `event`,f1.FinAthlete AS `athlete`,f1.FinMatchNo AS `matchNo`,f1.FinScore AS `score`,f1.FinSetScore AS `setScore`,f1.FinSetPoints AS `setPoints`,f1.FinSetPointsByEnd AS `setPointsByEnd`,f1.FinTie AS `tie`,f1.FinArrowstring AS `arrowstring`,f1.FinTiebreak AS `tiebreak`, f1.FinNotes as Notes,
 					f2.FinAthlete AS `oppAthlete`,f2.FinMatchNo AS `oppMatchNo`,f2.FinScore AS `oppScore`,f2.FinSetScore AS `oppSetScore`,f2.FinSetPoints AS `oppSetPoints`,f2.FinSetPointsByEnd AS `oppSetPointsByEnd`,f2.FinTie AS `oppTie`,f2.FinArrowstring AS `oppArrowstring`,f2.FinTiebreak AS `oppTiebreak`, f2.FinNotes as OppNotes,
 					GrPhase, EvProgr, IndRankFinal
 					FROM Finals AS f1
@@ -359,7 +358,7 @@
 					INNER JOIN Finals AS f2
 						ON f2.FinEvent=f1.FinEvent AND f2.FinTournament=f1.FinTournament AND f2.FinMatchNo=f1.FinMatchNo+1
 					INNER JOIN Grids
-						ON GrMatchNo=f1.FinMatchNo
+						ON GrMatchNo=f1.FinMatchNo and if(EvElimType=3, GrPhase<=EvFinalFirstPhase, true)
 					INNER JOIN Individuals
 						ON IndTournament={$this->tournament} AND IndEvent=f1.FinEvent AND IndId=f1.FinAthlete
 					WHERE
@@ -367,7 +366,7 @@
 						{$filter}
 				) union (
 				SELECT
-					f1.FinEvent AS `event`,f1.FinAthlete AS `athlete`,f1.FinMatchNo AS `matchNo`,f1.FinScore AS `score`,f1.FinSetScore AS `setScore`,f1.FinSetPoints AS `setPoints`,f1.FinSetPointsByEnd AS `setPointsByEnd`,f1.FinTie AS `tie`,f1.FinArrowstring AS `arrowstring`,f1.FinTiebreak AS `tiebreak`, f1.FinNotes as Notes,
+					EvElimType, f1.FinEvent AS `event`,f1.FinAthlete AS `athlete`,f1.FinMatchNo AS `matchNo`,f1.FinScore AS `score`,f1.FinSetScore AS `setScore`,f1.FinSetPoints AS `setPoints`,f1.FinSetPointsByEnd AS `setPointsByEnd`,f1.FinTie AS `tie`,f1.FinArrowstring AS `arrowstring`,f1.FinTiebreak AS `tiebreak`, f1.FinNotes as Notes,
 					f2.FinAthlete AS `oppAthlete`,f2.FinMatchNo AS `oppMatchNo`,f2.FinScore AS `oppScore`,f2.FinSetScore AS `oppSetScore`,f2.FinSetPoints AS `oppSetPoints`,f2.FinSetPointsByEnd AS `oppSetPointsByEnd`,f2.FinTie AS `oppTie`,f2.FinArrowstring AS `oppArrowstring`,f2.FinTiebreak AS `oppTiebreak`, f2.FinNotes as OppNotes,
 					GrPhase, EvProgr, IndRankFinal
 					FROM Finals AS f1
@@ -376,7 +375,7 @@
 					INNER JOIN Finals AS f2
 						ON f2.FinEvent=f1.FinEvent AND f2.FinTournament=f1.FinTournament AND f2.FinMatchNo=f1.FinMatchNo-1
 					INNER JOIN Grids
-						ON GrMatchNo=f1.FinMatchNo
+						ON GrMatchNo=f1.FinMatchNo and if(EvElimType=3, GrPhase<=EvFinalFirstPhase, true)
 					INNER JOIN Individuals
 						ON IndTournament={$this->tournament} AND IndEvent=f1.FinEvent AND IndId=f1.FinAthlete
 					WHERE
@@ -429,7 +428,25 @@
 						}
 					}
 
-					if(!empty($this->data['sections'][$row->event]['items'][$row->athlete]))
+					if(!empty($this->data['sections'][$row->event]['items'][$row->athlete])) {
+						if($row->GrPhase > $this->data['sections'][$row->event]['meta']['firstPhase']) {
+							$phases=getPhasesId($row->GrPhase);
+							$PhPools=getPoolMatchesHeadersWA();
+							$Finals=array();
+							foreach($phases as $k => $v) {
+								if($v<=valueFirstPhase($row->GrPhase)) {
+									if($row->EvElimType==4 and $v>=4) {
+										$Finals[$v]=$PhPools[$v];
+									} else {
+										$Finals[$v]=get_text(namePhase($row->GrPhase,$v)  . "_Phase");
+									}
+								}
+							}
+
+							$this->data['sections'][$row->event]['meta']['firstPhase']=$row->GrPhase;
+							$this->data['sections'][$row->event]['meta']['fields']['finals']=$Finals;
+
+						}
 						$this->data['sections'][$row->event]['items'][$row->athlete]['finals'][$row->GrPhase]=array(
 							'score'=>$row->score,
 							'setScore'=>$row->setScore,
@@ -450,6 +467,7 @@
 							'oppArrowstring'=>implode('|',$oppArrowstring),
 						 	'oppTiebreak'=>implode('|',$oppTiebreak)
 						);
+					}
 				}
 			}
 		}

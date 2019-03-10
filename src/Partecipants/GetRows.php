@@ -9,11 +9,11 @@
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	$Errore = 0;
 
@@ -35,7 +35,7 @@
 		$Row=safe_fetch($Rs);
 
 		for ($i=1; $i<=$Row->ToNumSession;++$i)
-			$Sessions.= '<session_num>' . $i . '</session_num>' . "\n";
+			$Sessions.= '<session_num>' . $i . '</session_num>';
 	}
 	else
 		$Errore=1;
@@ -50,7 +50,7 @@
 		{
 			while ($Row=safe_fetch($Rs))
 			{
-				$Divisions.= '<div_id><![CDATA[' . $Row->DivId . ']]></div_id>' . "\n";
+				$Divisions.= '<div_id><![CDATA[' . $Row->DivId . ']]></div_id>';
 			}
 		}
 
@@ -62,7 +62,7 @@
 		{
 			while ($Row=safe_fetch($Rs))
 			{
-				$SubClasses.= '<subcl_id><![CDATA[' . $Row->ScId . ']]></subcl_id>' . "\n";
+				$SubClasses.= '<subcl_id><![CDATA[' . $Row->ScId . ']]></subcl_id>';
 			}
 		}
 
@@ -74,7 +74,7 @@
 		{
 			while ($Row=safe_fetch($Rs))
 			{
-				$AllClasses.= '<cl_id><![CDATA[' . $Row->ClId . ']]></cl_id>' . "\n";
+				$AllClasses.= '<cl_id><![CDATA[' . $Row->ClId . ']]></cl_id>';
 			}
 		}
 	}
@@ -83,11 +83,11 @@
 	if (!debug)
 		header('Content-Type: text/xml; charset=UTF-8');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
 	if ($Errore==0)
 	{
-		print '<PARAM>' . "\n";
+		print '<PARAM>';
 		print $Sessions;
 		print $Divisions;
 		print $AllClasses;
@@ -96,12 +96,12 @@
 		print '<confirm_msg2><![CDATA[' . get_text('Country') . ']]></confirm_msg2>';
 		print '<confirm_msg3><![CDATA[' . get_text('OpDelete','Tournament') . ']]></confirm_msg3>';
 		print '<confirm_msg4><![CDATA[' . get_text('MsgAreYouSure') . ']]></confirm_msg4>';
-		print '</PARAM>' . "\n";
+		print '</PARAM>';
 
 		if ($OrderBy!='')
 			print GetRows($EnId,$OrderBy);
 		else
 			print GetRows($EnId);
 	}
-	print '</response>' . "\n";
+	print '</response>';
 ?>

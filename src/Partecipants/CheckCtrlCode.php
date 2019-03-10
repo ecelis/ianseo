@@ -11,13 +11,11 @@
 	require_once('Common/Lib/Fun_DateTime.inc.php');
 	require_once('Fun_Partecipants.local.inc.php');
 
-	if (!CheckTourSession() ||
-		!isset($_REQUEST['d_e_EnCtrlCode']) ||
-		!isset($_REQUEST['d_e_EnSex']))
-	{
+	if (!CheckTourSession() || !isset($_REQUEST['d_e_EnCtrlCode']) || !isset($_REQUEST['d_e_EnSex'])) {
 		print get_text('CrackError');
 		exit;
 	}
+	checkACL(AclParticipants, AclReadOnly, false);
 
 	$Errore=0;
 	$AgeClass = '';
@@ -88,13 +86,13 @@
 
 	header('Content-Type: text/xml');
 
-	print '<response>' . "\n";
-	print '<error>' . $Errore . '</error>' . "\n";
-	print '<dob><![CDATA[' . RevertDate($ctrlCode) . ']]></dob>' . "\n";
-	print '<divisions><![CDATA[' . $Divisions . ']]></divisions>' . "\n";
-	print '<ageclass><![CDATA[' . $AgeClass . ']]></ageclass>' . "\n";
-	print '<classes><![CDATA[' . $Classes . ']]></classes>' . "\n";
-	print '<sql><![CDATA[' . "$Select1\n$Select2\n$Select3" . ']]></sql>' . "\n";
-	print '</response>' . "\n";
+	print '<response>';
+	print '<error>' . $Errore . '</error>';
+	print '<dob><![CDATA[' . RevertDate($ctrlCode) . ']]></dob>';
+	print '<divisions><![CDATA[' . $Divisions . ']]></divisions>';
+	print '<ageclass><![CDATA[' . $AgeClass . ']]></ageclass>';
+	print '<classes><![CDATA[' . $Classes . ']]></classes>';
+	print '<sql><![CDATA[' . "$Select1\n$Select2\n$Select3" . ']]></sql>';
+	print '</response>';
 ?>
 

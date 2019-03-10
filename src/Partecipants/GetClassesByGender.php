@@ -5,11 +5,11 @@
 	$div=isset($_REQUEST['div']) ? preg_replace('/[^0-9A-Z]/sim', '', $_REQUEST['div']) : '';
 	$age=isset($_REQUEST['age']) ? $_REQUEST['age'] : '';
 
-	if (!CheckTourSession() || is_null($sex) )
-	{
+	if (!CheckTourSession() || is_null($sex) ) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadOnly, false);
 
 	if(!empty($age)) {
 		preg_match('/(?P<age>[0-9]{4})/',$age,$tmp);

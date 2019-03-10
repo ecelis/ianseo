@@ -65,9 +65,11 @@ function rotAbs($TVsettings, $RULE) {
 
 	if($SubBlock>count($rankData['sections'])) $SubBlock=1;
 
-	while($SubBlock) {
-		list($IdEvent, $data)=each($rankData['sections']);
+	foreach($rankData['sections'] as $IdEvent => $data) {
 		$SubBlock--;
+		if(!$SubBlock) {
+			break;
+		}
 	}
 
 	$FieldForGold=($data['meta']['running'] ? 'completeScore' : 'gold');
@@ -110,7 +112,7 @@ function rotAbs($TVsettings, $RULE) {
 			$rec=round($r->RtRecTotal*max($data['meta']['arrowsShot'])/($data['meta']['numDist']*$data['meta']['maxArrows']),1);
 			if($r->TrBars) {
 				$NumRecords++;
-				$ExtraCSS.=".Rec_{$r->RtRecType}_{$r->RtRecCode} {font-size:1.5rem;background-color:#{$r->TrColor}; color:white;}";
+				$ExtraCSS.=".Rec_{$r->RtRecType}_{$r->RtRecCode} {font-size:1.5vw;background-color:#{$r->TrColor}; color:white;}";
 				$tmp='<div class="QualRow Rec_'.$r->RtRecType.'_'. $r->RtRecCode.'">
 						<div class="Record">'.get_text('Record-'.$r->RtRecType.'-'.$r->RtRecCode.($Final ? '' : '-avg'), 'InfoSystem').'</div>
 					<div class="Score">' . ($data['meta']['running'] ? number_format($rec/($data['meta']['numDist']*$data['meta']['maxArrows']), 3) : number_format($rec, $Final ? 0 : 1)) . '</div>
@@ -130,8 +132,8 @@ function rotAbs($TVsettings, $RULE) {
 // DELETED FOR OLYMPICS!!!!
 // 	$ret[]='<div class="Title">'.$data['meta']['descr'].$Title2Rows.$RecTitle .'</div>';
 	$ret[]='<div class="Title">
-				<div style="display:inline-block;margin:-1rem;padding:0.1rem;background-color:white;float:left;"><img style="height:4.5rem;width:auto" src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
-				<div style="display:inline-block;margin:-1rem;padding:0.1rem;background-color:white;float:right;"><img style="height:4.5rem;width:auto" src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
+				<div class="TitleImg" style="float:left;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToLeft.jpg"></div>
+				<div class="TitleImg" style="float:right;"><img src="'.$CFG->ROOT_DIR.'TV/Photos/'.$IsCode.'-ToRight.jpg"></div>
 				'.$data['meta']['descr'].$Title2Rows .'
 			</div>';
 
@@ -187,7 +189,6 @@ function rotAbs($TVsettings, $RULE) {
 
 	// Inserisci adesso le singole righe
 	foreach($data['items'] as $key => $archer) {
-// 		debug_svela($archer);
 		if($Fixed and $archer['rank']>$Fixed and !$FixedDone) {
 			$ret[]='<div id="content" data-direction="up">';
 			$FixedDone=true;
@@ -251,7 +252,7 @@ function rotAbs($TVsettings, $RULE) {
 				if($data['meta']['fields']['dist_'.$i]=='-') continue;
 				list($rank, $score, $gold, $xnine)=explode('|', $archer['dist_'.$i]);
 				$tmp.='<div class="DistScore">' . $score . '</div>';
-				$tmp.='<div class="DistPos">/'.($TourType != 14 ? $rank : $xnine).'</div>';
+				$tmp.='<div class="DistPos">/'.(($TourType != 14 and $TourType != 32) ? $rank : $xnine).'</div>';
 			}
 		}
 		if($ViewArrows) $tmp.='<div class="Arrows">' . $archer['hits'] . '</div>';
@@ -298,25 +299,25 @@ function rotAbsSettings($Settings) {
 function getPageDefaults(&$RMain) {
 	global $CFG;
 	$ret=array(
-			'Title' => '',
-			'RankOld' => 'background-repeat:no-repeat; background-size: contain; background-position:center;color:#FFFFFF; font-weight:bold; font-size:60%;',
-			'RankNone' => '',
-			'RankUp' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Up.png\');',
-			'RankDown' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Down.png\');',
-			'RankMinus' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Minus.png\');',
-			'Rank' => 'flex: 0 0 4rem; text-align:right;',
-			'CountryCode' => 'flex: 1 0 5rem; font-size:0.5em; margin-left:-3.5rem',
-			'FlagDiv' => 'flex: 0 0 3.95rem;',
-			'Flag' => 'height:2.5rem; border:0.1rem solid #888;',
-			'Target' => 'flex: 0 0 4rem; font-size:75%; text-align:right;',
-			'Athlete' => 'flex: 1 1 3rem;',
-			'CountryDescr' => 'flex: 1 1 1rem;',
-			'Arrows' => 'flex: 0 0 5rem; text-align:right; font-size:1em;margin-right:0.5rem;',
-			'DistScore' => 'flex: 0 0 5rem; text-align:right; font-size:0.8em;',
-			'DistPos' => 'flex: 0 0 3rem; text-align:left; font-size:0.7em;',
-			'Score' => 'flex: 0 0 6rem; text-align:right; font-size:1.25em;margin-right:0.5rem;',
-			'Gold' => 'flex: 0 0 3rem; text-align:right; font-size:1em;',
-			'XNine' => 'flex: 0 0 3rem; text-align:right; font-size:1em;',
+		'Title' => '',
+		'RankOld' => 'background-repeat:no-repeat; background-size: contain; background-position:center;color:#FFFFFF; font-weight:bold; font-size:60%;',
+		'RankNone' => '',
+		'RankUp' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Up.png\');',
+		'RankDown' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Down.png\');',
+		'RankMinus' => 'background: url(\'' . $CFG->ROOT_DIR . 'Common/Images/Minus.png\');',
+		'Rank' => 'flex: 0 0 4vw; text-align:right;',
+		'CountryCode' => 'flex: 0 0 3.5vw; font-size:0.8vw; margin-left:-3.75ch',
+		'FlagDiv' => 'flex: 0 0 4.35vw;',
+		'Flag' => 'height:2.8vw; border:0.05vw solid #888;box-sizing:border-box;',
+		'Target' => 'flex: 0 0 6vw; text-align:right;margin-right:0.5em;',
+		'Athlete' => 'flex: 1 1 20vw;white-space:nowrap;overflow:hidden;',
+		'CountryDescr' => 'flex: 0 1 20vw;white-space:nowrap;overflow:hidden;',
+		'Arrows' => 'flex: 0 0 5vw; text-align:right; font-size:1em;margin-right:0.5rem;',
+		'DistScore' => 'flex: 0 0 5vw; text-align:right; font-size:0.8em;',
+		'DistPos' => 'flex: 0 0 3vw; text-align:left; font-size:0.7em;',
+		'Score' => 'flex: 0 0 6vw; text-align:right; font-size:1.25em;margin-right:0.5rem;',
+		'Gold' => 'flex: 0 0 3vw; text-align:right; font-size:1em;',
+		'XNine' => 'flex: 0 0 3vw; text-align:right; font-size:1em;',
 	);
 	foreach($ret as $k=>$v) {
 		if(!isset($RMain[$k])) $RMain[$k]=$v;

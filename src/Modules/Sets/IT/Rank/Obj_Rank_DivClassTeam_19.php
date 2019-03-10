@@ -192,13 +192,13 @@
 			if (array_key_exists('cutRank',$this->opts) && is_numeric($this->opts['cutRank']) && $this->opts['cutRank']>0)
 				$filter.= "AND TeRank<={$this->opts['cutRank']} ";
 
-			$orderBy= "DivViewOrder, ClViewOrder, TeRank ASC,CoCode ASC, TcOrder ";
+			$orderBy= "DivViewOrder, ClViewOrder, TeEvent, TeRank ASC, CoCode ASC, TcOrder ";
 
 			$q="
 				SELECT
 					ToId,TeRank,CoId,CoCode,CoName,	TeSubTeam 	,TeEvent,ClDescription, DivDescription,
 					EnId,EnCode,EnFirstName,upper(EnFirstName) EnFirstNameUpper,EnName,Q,EnClass,EnDivision,EnAgeClass,EnSubClass,
-					(QuHits*Q) AS Arrows_Shot, QuSession AS Session, QuScore,QuGold,	QuXnine, QuClRank, TeScore, TeGold, TeXnine, TeHits, ToGolds, ToXNine, TeTimeStamp
+					TeHits AS Arrows_Shot, QuSession AS Session, QuScore,QuGold,	QuXnine, QuClRank, TeScore, TeGold, TeXnine, TeHits, ToGolds, ToXNine, TeTimeStamp
 				FROM
 					Tournament
 					INNER JOIN
@@ -244,7 +244,6 @@
 					{$orderBy}
 			";
 
-			//print $q;exit;
 			$r=safe_r_sql($q);
 
 			$this->data['meta']['title']=get_text('ResultClass','Tournament') . ' - ' . get_text('Teams');
@@ -401,6 +400,7 @@
 
 						$section['items'][count($section['items'])-1]['athletes'][]=$athlete;
 					}
+
 				}
 
 				foreach($section["meta"]["arrowsShot"] as $k => $v) {

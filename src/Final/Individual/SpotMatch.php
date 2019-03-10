@@ -694,19 +694,21 @@ Conteggio i punti di Set
 						$Tmp .='&amp;HMOUT=1';
 					else if($MyTargetField)
 						$Tmp .='&amp;FIELD=1';
-					$SemaforoSx.='<tr><td class="FontMedium Bold">' . ($i+1) . '</td><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td></tr>';
+					//$SemaforoSx.='<tr><td class="FontMedium Bold">' . ($i+1) . '</td><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td></tr>';
+					$SemaforoSx.='<tr><td class="FontMedium Bold">' . ($i+1) . '</td><td class="Center"></td></tr>';
 				}
 			}
 			else
 			{
 				for($j=0;$j<$nTieBreak;$j++)
 				{
-					$SemaforoSx .= '<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150&amp;Arrow=' . $PosTieSx[$j];
-					if($MyTargetHitMiss)
-						$SemaforoSx .='&amp;HMOUT=1';
-					else if($MyTargetField)
-						$SemaforoSx .='&amp;FIELD=1';
-					$SemaforoSx .= ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target"></td></tr>';
+					//$SemaforoSx .= '<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150&amp;Arrow=' . $PosTieSx[$j];
+					//if($MyTargetHitMiss)
+					//	$SemaforoSx .='&amp;HMOUT=1';
+					//else if($MyTargetField)
+					//	$SemaforoSx .='&amp;FIELD=1';
+					//$SemaforoSx .= ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target"></td></tr>';
+					$SemaforoSx .= '<tr><td class="Center"></td></tr>';
 				}
 			}
 			$SemaforoSx.='</table>' . "\n";
@@ -739,19 +741,21 @@ Conteggio i punti di Set
 						$Tmp.='&amp;HMOUT=1';
 					else if($MyTargetField)
 						$Tmp.='&amp;FIELD=1';
-					$SemaforoDx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td><td class="FontMedium Bold">' . ($i+1) . '</td></tr>';
+					//$SemaforoDx.='<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=120' . $Tmp . ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target" border="0"></td><td class="FontMedium Bold">' . ($i+1) . '</td></tr>';
+					$SemaforoDx.='<tr><td class="Center"></td><td class="FontMedium Bold">' . ($i+1) . '</td></tr>';
 				}
 			}
 			else
 			{
 				for($j=0;$j<$nTieBreak;$j++)
 				{
-					$SemaforoDx .= '<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150&amp;Arrow=' . $PosTieDx[$j];
-					if($MyTargetHitMiss)
-						$SemaforoDx .= '&amp;HMOUT=1';
-					else if($MyTargetField)
-						$SemaforoDx .= '&amp;FIELD=1';
-					$SemaforoDx .= ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target"></td></tr>';
+					//$SemaforoDx .= '<tr><td class="Center"><img src="'.$CFG->ROOT_DIR.'Common/target.php?Size=150&amp;Arrow=' . $PosTieDx[$j];
+					//if($MyTargetHitMiss)
+					//	$SemaforoDx .= '&amp;HMOUT=1';
+					//else if($MyTargetField)
+					//	$SemaforoDx .= '&amp;FIELD=1';
+					//$SemaforoDx .= ($MyTargetComplete ? '&amp;complete': '') .  '" class="Target"></td></tr>';
+					$SemaforoDx .= '<tr><td class="Center"></td></tr>';
 				}
 			}
 
@@ -811,8 +815,9 @@ Conteggio i punti di Set
 	else if($MyTargetField)
 		$Tmp.='&amp;FIELD=1';
 
+	//echo '<input name="TargetSx" style="cursor:crosshair" type="image" src="../../Common/target.php?Size=300&amp;'.$Tmp.'&amp;noborder'.($MyTargetComplete ? '&amp;complete': '').'">';
 ?>
-<input name="TargetSx" style="cursor:crosshair" type="image" src="../../Common/target.php?Size=300&amp;<?php print $Tmp;?>&amp;noborder<?php echo ($MyTargetComplete ? '&amp;complete': ''); ?>">
+
 </td>
 <td class="Center">
 <?php
@@ -844,8 +849,9 @@ Conteggio i punti di Set
 	else if($MyTargetField)
 		$Tmp.='&amp;FIELD=1';
 
+//echo '<input name="TargetDx" style="cursor:crosshair" type="image" src="../../Common/target.php?Size=300&amp;'.$Tmp.'&amp;noborder'.($MyTargetComplete ? '&amp;complete': '').'">';
+
 ?>
-<input name="TargetDx" style="cursor:crosshair" type="image" src="../../Common/target.php?Size=300&amp;<?php print $Tmp;?>&amp;noborder<?php echo ($MyTargetComplete ? '&amp;complete': ''); ?>">
 </td>
 </tr>
 <tr>

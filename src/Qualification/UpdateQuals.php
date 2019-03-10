@@ -12,11 +12,11 @@
 	require_once('Common/Lib/ArrTargets.inc.php');
 	require_once('Common/Lib/Obj_RankFactory.php');	// nuovo by simo
 
-	if (!CheckTourSession())
-	{
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclQualification, AclReadWrite, false);
 
 	$Errore=0;
 	$Cosa = "";
@@ -32,12 +32,9 @@
 
 	$MyRow=NULL;
 
-	foreach ($_REQUEST as $Key => $Value)
-	{
-		if (substr($Key,0,2)=='d_')
-		{
-			if (!IsBlocked(BIT_BLOCK_QUAL))
-			{
+	foreach ($_REQUEST as $Key => $Value) {
+		if (substr($Key,0,2)=='d_') {
+			if (!IsBlocked(BIT_BLOCK_QUAL)) {
 				list(,$Cosa,$Atleta)=explode('_',$Key);
 
 			/*
@@ -53,21 +50,14 @@
 
 				$OldValue='';
 
-				if (safe_num_rows($RsSel)==1)
-				{
+				if (safe_num_rows($RsSel)==1) {
 					$rr=safe_fetch($RsSel);
 					$OldValue=$rr->OldValue;
 				}
 
 			// Controllo errori
-				if (strpos($Key,'Score')!==false)
-				{
+				if (strpos($Key,'Score')!==false) 	{
 					$MaxScore=0;
-					/*$Select
-						= "SELECT TtMaxDistScore "
-						. "FROM Tournament INNER JOIN Tournament*Type ON ToType=TtId "
-						. "WHERE ToId=" . StrSafe_DB($_SESSION['TourId']) . " ";*/
-
 					$Select
 						= "SELECT ToMaxDistScore AS TtMaxDistScore "
 						. "FROM Tournament "
@@ -75,27 +65,21 @@
 
 					$RsMax=safe_r_sql($Select);
 
-					if (safe_num_rows($RsMax)==1)
-					{
+					if (safe_num_rows($RsMax)==1) {
 						$rr=safe_fetch($RsMax);
 						$MaxScore=$rr->TtMaxDistScore;
-						if ($Value>$MaxScore)
-							$Errore=1;
-					}
-					else
-						$Errore=1;
-				}
-				else	// gold o xnine
-				{
-					if ($Value!=0)
-					{
+						if ($Value>$MaxScore) {
+                            $Errore = 1;
+                        }
+					} else {
+                        $Errore = 1;
+                    }
+				} else {
+					if ($Value!=0) {
 					// distanza trattata
 						$Dist=substr($Cosa,3,1);
-
-
 						$Select
 							= "SELECT QuD" . $Dist . "Score AS Score,QuD" . $Dist . "Gold AS Gold,QuD" . $Dist . "Xnine AS Xnine,"
-							//. "ToGolds AS TtGolds,ToXNine AS TtXNine "
 							. "ToGoldsChars AS TtGolds,ToXNineChars AS TtXNine "
 							. "FROM Qualifications "
 							. "INNER JOIN Entries ON QuId=EnId  "
@@ -104,11 +88,7 @@
 
 						$RsGX=safe_r_sql($Select);
 
-						if (debug)
-							print '..'. $Select . '<br><br>';
-
-						if (safe_num_rows($RsGX)==1)
-						{
+						if (safe_num_rows($RsGX)==1) {
 							$Row=safe_fetch($RsGX);
 
 						/*
@@ -135,30 +115,23 @@
 							$minX=100;
 
 						// minimo dei gold
-							for($i=0;$i<count($arrG);++$i)
-							{
+							for($i=0;$i<count($arrG);++$i) {
 								$tmp=ValutaArrowString($arrG[$i]);
 								if ($tmp<$minG)
 									$minG=$tmp;
 							}
 
 						// minimo delle x
-							for($i=0;$i<count($arrX);++$i)
-							{
+							for($i=0;$i<count($arrX);++$i) {
 								$tmp=ValutaArrowString($arrX[$i]);
 								if ($tmp<$minX)
 									$minX=$tmp;
 							}
 
-						// controllo i gold
-							if (strpos($Key,'Gold')!==false)
-							{
+							if (strpos($Key,'Gold')!==false) {
 								if (($Row->Score - ($Value*$minG))<0)
 									$Errore=1;
-							}
-						// controllo gli xnine
-							elseif(strpos($Key,'Xnine')!==false)
-							{
+							} elseif(strpos($Key,'Xnine')!==false) {
 							/*
 							 * Se l'intersezione delle colonne P delle x e degli ori non è vuota oppure non lo è
 							 * quella delle colonne N, allora le x sono incluse negli ori
@@ -166,180 +139,123 @@
 							 */
 								$arrG_P=array();
 								$arrG_N=array();
-								for ($i=0;$i<count($arrG);++$i)
-								{
-									//print $arrG[$i].'<br>';
+								for ($i=0;$i<count($arrG);++$i) {
 									$arrG_P[]=DecodeFromLetter($arrG[$i]);
-									//$arrG_N[]=$LetterPoint[$arrG[$i]]['N'];
 									$arrG_N[]=ValutaArrowString($arrG[$i]);
 								}
 
-//								print '<pre>';
-//								print_r($arrG_P);
-//								print_r($arrG_N);
-//								print '</pre>';
-//								exit;
-
 								$arrX_P=array();
 								$arrX_N=array();
-								for ($i=0;$i<count($arrX);++$i)
-								{
+								for ($i=0;$i<count($arrX);++$i) {
 									$arrX_P[]=DecodeFromLetter($arrX[$i]);
 									//$arrX_N[]=$LetterPoint[$arrX[$i]]['N'];
 									$arrX_N[]=ValutaArrowString($arrX[$i]);
 								}
 
 							// inclusione
-								if (array_intersect($arrX_P,$arrG_P)!==array() || array_intersect($arrX_N,$arrG_N)!==array())
-								{
-									if ($Value>$Row->Gold)
-										$Errore=1;
-								}
-								else	// no inclusione
-								{
-									if (($Row->Score - ($Row->Gold*$minG) - ($Value*$minX))<0)
-										$Errore=1;
+								if (array_intersect($arrX_P,$arrG_P)!==array() || array_intersect($arrX_N,$arrG_N)!==array()) {
+									if ($Value>$Row->Gold) {
+                                        $Errore = 1;
+                                    }
+								} else {
+									if (($Row->Score - ($Row->Gold*$minG) - ($Value*$minX))<0) {
+                                        $Errore = 1;
+                                    }
 								}
 							}
-						}
-						else
-							$Errore=1;
+						} else {
+                            $Errore = 1;
+                        }
 					}
 
 				}
-			}
-			else
-				$Errore=1;
+			} else {
+                $Errore = 1;
+            }
 
-			if (debug)
-				print 'Errore prima di aggiornare: ' . $Errore . '<br>';
 
-			if ($Errore==0)
-			{
-			// scrivo il dato e aggiorno i totali
-				$Update
-					= "UPDATE Qualifications SET "
-					. $Cosa . "=" . StrSafe_DB($Value) . ", "
-					. "QuScore=QuD1Score+QuD2Score+QuD3Score+QuD4Score+QuD5Score+QuD6Score+QuD7Score+QuD8Score,"
-					. "QuGold=QuD1Gold+QuD2Gold+QuD3Gold+QuD4Gold+QuD5Gold+QuD6Gold+QuD7Gold+QuD8Gold,"
-					. "QuXnine=QuD1Xnine+QuD2Xnine+QuD3Xnine+QuD4Xnine+QuD5Xnine+QuD6Xnine+QuD7Xnine+QuD8Xnine, "
-					. "QuHits=QuD1Hits+QuD2Hits+QuD3Hits+QuD4Hits+QuD5Hits+QuD6Hits+QuD7Hits+QuD8Hits, "
-					. "QuTimestamp=" . StrSafe_DB(date('Y-m-d H:i:s')) . " "
-					. "WHERE QuId=" . StrSafe_DB($Atleta) . " ";
-				$RsUp=safe_w_sql($Update);
-				//print $Update;exit;
-				if (debug)
-					print $Update  .' <br><br>';
+			if ($Errore==0) {
+			    if($OldValue!=$Value) {
+                    // scrivo il dato e aggiorno i totali
+                    $Update
+                        = "UPDATE Qualifications SET "
+                        . $Cosa . "=" . StrSafe_DB($Value) . ", "
+                        . "QuConfirm = QuConfirm & (255-" . pow(2, intval(substr($Cosa, 3, 1))) . "), "
+                        . "QuScore=QuD1Score+QuD2Score+QuD3Score+QuD4Score+QuD5Score+QuD6Score+QuD7Score+QuD8Score,"
+                        . "QuGold=QuD1Gold+QuD2Gold+QuD3Gold+QuD4Gold+QuD5Gold+QuD6Gold+QuD7Gold+QuD8Gold,"
+                        . "QuXnine=QuD1Xnine+QuD2Xnine+QuD3Xnine+QuD4Xnine+QuD5Xnine+QuD6Xnine+QuD7Xnine+QuD8Xnine, "
+                        . "QuHits=QuD1Hits+QuD2Hits+QuD3Hits+QuD4Hits+QuD5Hits+QuD6Hits+QuD7Hits+QuD8Hits, "
+                        . "QuTimestamp=" . StrSafe_DB(date('Y-m-d H:i:s')) . " "
+                        . "WHERE QuId=" . StrSafe_DB($Atleta);
+                    $RsUp = safe_w_sql($Update);
+                    //print $Update;exit;
+                    if (safe_w_affected_rows() == 1 AND $OldValue != $Value) {
 
-				//print '..' . safe_w_affected_rows() . '<br>';
-				if (safe_w_affected_rows()==1 && $OldValue!=$Value)
-				{
+                        // distruggo e ricreo le eliminatorie
+                        // scopro in che evento elim si trova la divcl del tipo
+                        $q = "SELECT EvCode
+                            FROM Individuals 
+                            INNER JOIN Events on EvCode=IndEvent and EvTournament=IndTournament and EvTeamEvent=0 AND (EvElim1+EvElim2)>0
+                            WHERE IndId={$Atleta}";
+                        $r = safe_r_sql($q);
+                        //print $q;exit;
+                        if ($r && safe_num_rows($r) > 0) {
+                            while ($row = safe_fetch($r)) {
+                                $ev = $row->EvCode;
+                                for ($j = 1; $j <= 2; ++$j) {
+                                    ResetElimRows($ev, $j);
+                                }
+                            }
+                        }
 
-				// distruggo e ricreo le eliminatorie
-				// scopro in che evento elim si trova la divcl del tipo
-					$q="
-						SELECT EvCode
-						FROM
-							Entries
-							INNER JOIN
-								EventClass
-							ON EnTournament=EcTournament AND EcTeamEvent=0 AND EnDivision=EcDivision AND EnClass=EcClass
-							INNER JOIN
-								Events
-							ON EcCode=EvCode AND EcTournament=EvTournament AND EvTeamEvent=EcTeamEvent AND EcTeamEvent=0 AND (EvElim1+EvElim2)>0
-						WHERE
-							EnId={$Atleta}
-					";
-					$r=safe_r_sql($q);
-					//print $q;exit;
-					if ($r && safe_num_rows($r)>0)
-					{
-						while ($row=safe_fetch($r))
-						{
-							$ev=$row->EvCode;
-
-							for ($j=1;$j<=2;++$j)
-							{
-								//print 'pp';
-								ResetElimRows($ev,$j);
-							}
-						}
-					}
-
-				// azzero gli shootoff
-					$q="
-						SELECT DISTINCT EvCode,EvTeamEvent
-						FROM
-							Events
-							INNER JOIN
-								EventClass
-							ON EvCode=EcCode AND (EvTeamEvent='0' OR EvTeamEvent='1') AND EcTournament={$_SESSION['TourId']}
-							INNER JOIN
-								Entries
-							ON TRIM(EcDivision)=TRIM(EnDivision) AND TRIM(EcClass)=TRIM(EnClass)  AND EnId={$Atleta}
-						WHERE
-							 (EvTeamEvent='0' AND EnIndFEvent='1') OR (EvTeamEvent='1' AND EnTeamFEvent='1') AND EvTournament={$_SESSION['TourId']}
-					";
-					//print $q;
-					$Rs=safe_r_sql($q);
-					if ($Rs && safe_num_rows($Rs)>0)
-					{
-						while ($row=safe_fetch($Rs))
-						{
-							ResetShootoff($row->EvCode,$row->EvTeamEvent,0);
-						}
-					}
-
-					if (debug)
-						print $Update . '<br>';
-				}
+                        // azzero gli shootoff
+                        $q = " SELECT DISTINCT EvCode,EvTeamEvent
+                            FROM Events
+                            INNER JOIN EventClass ON EvCode=EcCode AND if(EvTeamEvent=0, EcTeamEvent=0, EcTeamEvent>0) AND EcTournament={$_SESSION['TourId']}
+                            INNER JOIN Entries ON EcDivision=EnDivision AND EcClass=EnClass and if(EcSubClass='', true, EcSubClass=EnSubClass) AND EnId={$Atleta}
+                            WHERE (EvTeamEvent='0' AND EnIndFEvent='1') OR (EvTeamEvent='1' AND EnTeamFEvent+EnTeamMixEvent>0) AND EvTournament={$_SESSION['TourId']}";
+                        //print $q;
+                        $Rs = safe_r_sql($q);
+                        if ($Rs && safe_num_rows($Rs) > 0) {
+                            while ($row = safe_fetch($Rs)) {
+                                ResetShootoff($row->EvCode, $row->EvTeamEvent, 0);
+                            }
+                        }
+                    }
+                }
 
 			// estraggo i totali
-				$Select
-					= "SELECT QuId,QuScore,QuGold,QuXnine, "
-					. $Cosa . " "
-					. "FROM Qualifications WHERE QuId=" . StrSafe_DB($Atleta) . " ";
+				$Select = "SELECT QuId,QuScore,QuGold,QuXnine, {$Cosa} 
+					FROM Qualifications WHERE QuId=" . StrSafe_DB($Atleta);
 				$Rs=safe_r_sql($Select);
 				//print $Select;exit;
 				$Errore = 0;	// no error
 				$MyRow=NULL;
-				if (safe_num_rows($Rs)==1)
-				{
+				if (safe_num_rows($Rs)==1) {
 					$MyRow=safe_fetch($Rs);
 
 				// se il valore del campo passato � uguale a quello in db ok, altrimenti errore
-					if ($Value!=$MyRow->{$Cosa})
-					{
+					if ($Value!=$MyRow->{$Cosa}) {
 						$Errore=1;
-						//print 'oo';exit;
 					}
-				}
-				else
-				{
+				} else {
 					$Errore=1;
-					//print 'pp';exit;
 				}
 			}
 
-			if ($OldValue!=$Value && !isset($_REQUEST["NoRecalc"]))
-			{
-				if ($Errore==0)
-				{
-					if (debug)
-						print 'Faccio la rank di distanza<br>';
+			if ($OldValue!=$Value AND !isset($_REQUEST["NoRecalc"])) {
+				if ($Errore==0) {
 
 				// Se non ho errori, calcolo la rank della distanza per l'evento
 					$Distanza = array();
 					preg_match("/[1-8]/", $Cosa, $Distanza);
 
-					$Select
-						= "SELECT CONCAT(EnDivision,EnClass) AS MyEvent, EnCountry as MyTeam, EnDivision, EnClass "
+					$Select = "SELECT CONCAT(EnDivision,EnClass) AS MyEvent, EnCountry as MyTeam, EnDivision, EnClass "
 						. "FROM Entries "
 						. "WHERE EnId=" . StrSafe_DB($Atleta) . " AND EnTournament=" . StrSafe_DB($_SESSION['TourId']) . " ";
 					$Rs=safe_r_sql($Select);
 
-					if (safe_num_rows($Rs)==1)
-					{
+					if (safe_num_rows($Rs)==1) {
 						$rr=safe_fetch($Rs);
 						$Evento=$rr->MyEvent;
 						$Category = $rr->MyEvent;
@@ -347,93 +263,66 @@
 						$Div = $rr->EnDivision;
 						$Cl = $rr->EnClass;
 
-						if (CalcQualRank($Distanza[0],$Evento))
-						{
+						if (CalcQualRank($Distanza[0],$Evento)) {
 							$Errore=1;
 							//print 'errore CalcQualRank distanza';exit;
 						}
-					}
-					else
-						$Errore=1;
+					} else {
+                        $Errore = 1;
+                    }
 				}
 
-				if ($Errore==0)
-				{
-					if (debug) print $Evento . '<br>';
-
+				if ($Errore==0) {
 				// se non ho errori calcolo la rank globale per l'evento
-
-					if (CalcQualRank(0,$Evento))
-					{
-						//print 'errore CalcQualRank 0';exit;
+					if (CalcQualRank(0,$Evento)) {
 						$Errore=1;
 					}
 				}
 
 			// eventi di cui calcolare le rank assolute
 				$events4abs=array();
-				$q="SELECT EcCode FROM EventClass WHERE EcTournament={$_SESSION['TourId']} AND EcTeamEvent=0 AND EcDivision='" . $Div . "' AND EcClass='" . $Cl . "' ";
+				$q="SELECT distinct IndEvent from Individuals where IndId='$Atleta' and IndTournament={$_SESSION['TourId']}";
 
 				$r=safe_r_sql($q);
 
-				if ($r)
-				{
-					while ($tmp=safe_fetch($r))
-					{
-						$events4abs[]=$tmp->EcCode;
+				if ($r) {
+					while ($tmp=safe_fetch($r)) {
+						$events4abs[]=$tmp->IndEvent;
 					}
-				}
-				else
-					$Errore=1;
+				} else {
+                    $Errore = 1;
+                }
 
 
 			// rank abs di distanza
-				if ($Errore==0)
-				{
-					if (debug)
-						print 'Faccio la rank abs di distanza<br>';
-
-					if (count($events4abs)>0)
-					{
-						if (!Obj_RankFactory::create('Abs',array('events'=>$events4abs,'dist'=>$Distanza[0]))->calculate())
-						{
+				if ($Errore==0) {
+					if (count($events4abs)>0) {
+						if (!Obj_RankFactory::create('Abs',array('events'=>$events4abs,'dist'=>$Distanza[0]))->calculate()) {
 							$Errore=1;
-							//print 'errore abs distanza';exit;
 						}
 					}
 				}
 
-				if ($Errore==0)
-				{
-					if (debug)
-						print 'Faccio la rank abs totale<br>';
-
-					if (count($events4abs)>0)
-					{
-						if (!Obj_RankFactory::create('Abs',array('events'=>$events4abs,'dist'=>0))->calculate())
-						{
+				if ($Errore==0) {
+					if (count($events4abs)>0) {
+						if (!Obj_RankFactory::create('Abs',array('events'=>$events4abs,'dist'=>0))->calculate()) {
 							$Errore=1;
-							//print 'errore abs 0';exit;
 						}
 					}
 				}
 
-				if ($Errore==0)
-				{
-					if (debug)
-						print 'Faccio la classifica a squadre di classe <br>';
+				if ($Errore==0) {
 				// se non ho errori calcolo la rank globale per l'evento
-					if (MakeTeams($Societa, $Evento))
-						$Errore=1;
+					if (MakeTeams($Societa, $Evento)) {
+                        $Errore = 1;
+                    }
 				}
 
-				if ($Errore==0)
-				{
-					if (debug)
-						print 'Faccio la classifica a squadre assoluta <br>';
+				if ($Errore==0) {
 				// se non ho errori calcolo la rank globale per l'evento
-					if (MakeTeamsAbs($Societa,$Div,$Cl))
-						$Errore=1;
+					if (MakeTeamsAbs($Societa,$Div,$Cl)) {
+                        $Errore = 1;
+                    }
 				}
 			}
 

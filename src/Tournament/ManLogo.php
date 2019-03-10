@@ -1,9 +1,9 @@
 <?php
 	define('debug',false);	// settare a true per l'output di debug
-
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
-	if (!CheckTourSession())
-	{
+    checkACL(AclCompetition, AclReadWrite);
+
+	if (!CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}

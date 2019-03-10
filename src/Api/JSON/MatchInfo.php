@@ -40,8 +40,6 @@ if($EvType) {
 $rank->read();
 $Data=$rank->getData();
 
-//debug_svela($Data);
-
 foreach($Data['sections'] as $kSec=>$vSec) {
 	if(!empty($vSec['phases'])) {
 		foreach($vSec['phases'] as $kPh=>$vPh) {

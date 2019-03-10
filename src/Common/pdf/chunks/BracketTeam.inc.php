@@ -36,8 +36,8 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 	//MArgine Sinistro Iniziale
 	$CellL = $InitMargin;
 
-	$CellHSp=10;
-	$tmpCell= ($LarghezzaPagina - $MisPos - log($section['meta']['firstPhase'],2)*$CellHSp) / (6*(log($section['meta']['firstPhase'],2)+1));
+	$CellHSp=5;
+	$tmpCell= ($LarghezzaPagina - $MisPos - ceil(log($section['meta']['firstPhase'],2))*$CellHSp) / (6*(ceil(log($section['meta']['firstPhase'],2))+1));
 	$MisName=$tmpCell*4; //20
 	$MisScore=$tmpCell; //6.5
 	$MisTie=$tmpCell;
@@ -50,7 +50,11 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 
 	$FirstPhase=true;
 	$Componenti=($section['meta']['maxTeamPerson'] ? $section['meta']['maxTeamPerson'] : 3);
-	$CellHeight=$Cella+($Componenti*$CellaNomi);
+    if($section['meta']['firstPhase']>8) {
+        $Componenti=0;
+    }
+
+    $CellHeight=$Cella+($Componenti*$CellaNomi);
 
 	$pdf->SetXY($InitMargin,25+($PaginaUtile-(2*$section['meta']['firstPhase']*$CellHeight))/$section['meta']['firstPhase']/2);
 	$pdf->SetFont($pdf->FontStd,'B',12);
@@ -133,7 +137,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 				$OppSetScore=explode('|', $Match['oppSetPoints']);
 				$StartXpos=$pdf->GetX()-3*max(count($FinSetScore), count($OppSetScore));
 				$pdf->SetXY($StartXpos, $OrgY+ 2*($Cella+($FirstPhase? $Componenti*$CellaNomi : 0)));
-				$smallCella=$Cella-0.5;
+				$smallCella=$Cella-1.5;
 				foreach($FinSetScore as $score) $pdf->Cell(3, $smallCella, $score?$score:'', 1, 0);
 				$pdf->SetXY($StartXpos, $OrgY+2*($Cella+($FirstPhase? $Componenti*$CellaNomi : 0))+$smallCella);
 				foreach($OppSetScore as $score) $pdf->Cell(3, $smallCella, $score?$score:'', 1, 0);
@@ -166,7 +170,7 @@ foreach($PdfData->rankData['sections'] as $Event => $section) {
 				}
 				$pdf->SetXY($MyX, $OrgY+$CellHeight);
 			   	$pdf->SetFont($pdf->FontStd, 'B', 8);
-			   	$pdf->Cell($MisName+$AddSize, $Cella, $Match['oppCountryName'], 'TLR', 0, 'L', 0);
+			   	$pdf->Cell($MisName+$AddSize, $Cella, $Match['oppCountryName'], 'TLR'.($Componenti==0 ? 'B' : ''), 0, 'L', 0);
 				$pdf->SetFont($pdf->FontStd,'',6);
 				//Components
 				for($n=0; $n<$Componenti; $n++) {

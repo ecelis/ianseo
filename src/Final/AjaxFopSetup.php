@@ -1,8 +1,8 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once('Common/Lib/CommonLib.php');
-
 CheckTourSession(true);
+checkACL(AclCompetition, AclReadWrite, false);
 
 $Value=array('error' => 1);
 

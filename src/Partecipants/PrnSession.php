@@ -1,5 +1,6 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/config.php');
+checkACL(AclParticipants, AclReadOnly);
 require_once('Common/pdf/ResultPDF.inc.php');
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/OrisFunctions.php');
@@ -7,7 +8,6 @@ require_once('Common/pdf/PdfChunkLoader.php');
 
 // the defines have been moved in OrisFunctions
 $PdfData = getStartList();
-//debug_svela($PdfData);
 
 if(!isset($isCompleteResultBook))
 	$pdf = new ResultPDF($PdfData->Description);

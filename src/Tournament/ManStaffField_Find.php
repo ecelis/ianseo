@@ -5,9 +5,8 @@
 	Se la query ritorna un solo risultato allora viene ritornato nell'xml
 */
 	require_once(dirname(dirname(__FILE__)) . '/config.php');
-
-	if (!isset($_REQUEST['Matr']) || !isset($_REQUEST['IdReturn']) || !CheckTourSession())
-	{
+    checkACL(AclCompetition, AclReadWrite, false);
+	if (!isset($_REQUEST['Matr']) || !isset($_REQUEST['IdReturn']) || !CheckTourSession()) {
 		print get_text('CrackError');
 		exit;
 	}

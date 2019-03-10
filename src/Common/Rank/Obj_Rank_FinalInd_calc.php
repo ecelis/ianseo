@@ -99,7 +99,7 @@
 						Events
 					ON IndEvent=EvCode AND IndTournament=EvTournament
 				SET
-					IndRankFinal=IF(IndRank>IF(EvElim1=0 && EvElim2=0, IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56,(EvFinalFirstPhase*2))) ,IF(EvElim1=0,EvElim2,EvElim1)),IndRank,0),
+					IndRankFinal=IF(IndRank>IF(EvElim1=0 && EvElim2=0, EvNumQualified, IF(EvElim1=0,EvElim2,EvElim1)),IndRank,0),
 					IndTimestampFinal='{$date}'
 				WHERE
 					IndTournament={$this->tournament} AND EvCode='{$event}' AND EvTeamEvent=0
@@ -166,7 +166,7 @@
 		 * e copio dentro a IndRankFinal
 		 */
 			$num=0;
-			$q="SELECT IF(EvFinalFirstPhase=48, 104, IF(EvFinalFirstPhase=24, 56, (EvFinalFirstPhase*2))) AS `Num` FROM Events WHERE EvCode='{$event}' AND EvTournament={$this->tournament} AND EvTeamEvent=0 ";
+			$q="SELECT EvNumQualified AS `Num` FROM Events WHERE EvCode='{$event}' AND EvTournament={$this->tournament} AND EvTeamEvent=0 ";
 			$r=safe_r_sql($q);
 			if ($r && safe_num_rows($r)==1)
 				$num=safe_fetch($r)->Num;
@@ -196,10 +196,8 @@
 	 * @param int $phase: fase
 	 * @return boolean: true ok false altrimenti. In un ciclo il primo errore fa terminare il metodo con false!
 	 */
-		protected function calcFromPhase($event,$phase)
-		{
-		// trasformo la fase
-			$phase=valueFirstPhase($phase);
+		protected function calcFromPhase($event,$realphase) {
+
 
 			$date=date('Y-m-d H:i:s');
 
@@ -212,12 +210,12 @@
 					ON IndId=FinAthlete AND IndTournament=FinTournament AND IndEvent=FinEvent
 					INNER JOIN
 						Grids
-					ON FinMatchNo=GrMatchNo AND GrPhase={$phase}
+					ON FinMatchNo=GrMatchNo AND GrPhase={$realphase}
 				SET
 					IndRankFinal=0,
 					IndTimestampFinal='{$date}'
 				WHERE
-					GrPhase={$phase} AND IndTournament={$this->tournament} AND IndEvent='{$event}'
+					GrPhase={$realphase} AND IndTournament={$this->tournament} AND IndEvent='{$event}'
 			";
 			//print $q.'<br><br>';
 			$r=safe_w_sql($q);
@@ -229,156 +227,179 @@
 		 *  Tiro fuori gli scontri con i perdenti nei non Opp
 		 */
 			$q="
-				SELECT
-					f.FinAthlete AS AthId,
-					f2.FinAthlete AS OppAthId,
+				SELECT EvElimType, EvWinnerFinalRank, SubCodes, EvCodeParent, GrPhase, EvFinalFirstPhase, least(f.FinMatchNo,f2.FinMatchNo) as MatchNo,
+					f.FinAthlete AS AthId, i.IndRank as AthRank,
+					f2.FinAthlete AS OppAthId, i2.IndRank as OppAthRank,
 					IF(EvMatchMode=0,f.FinScore,f.FinSetScore) AS Score, f.FinScore AS CumScore,f.FinTie AS Tie,
 					IF(EvMatchMode=0,f2.FinScore,f2.FinSetScore) as OppScore, f2.FinScore AS OppCumScore,f2.FinTie as OppTie
 				FROM
 					Finals AS f
 
-					INNER JOIN
-						Finals AS f2
-					ON f.FinEvent=f2.FinEvent AND f.FinMatchNo=IF((f.FinMatchNo % 2)=0,f2.FinMatchNo-1,f2.FinMatchNo+1) AND f.FinTournament=f2.FinTournament
+					INNER JOIN Finals AS f2 ON f.FinEvent=f2.FinEvent AND f.FinMatchNo=IF((f.FinMatchNo % 2)=0,f2.FinMatchNo-1,f2.FinMatchNo+1) AND f.FinTournament=f2.FinTournament
+					left JOIN Individuals AS i ON i.IndId=f.FinAthlete AND i.IndTournament=f.FinTournament and i.IndEvent=f.FinEvent
+					left JOIN Individuals AS i2 ON i2.IndId=f2.FinAthlete AND i2.IndTournament=f2.FinTournament and i2.IndEvent=f2.FinEvent
 
-					INNER JOIN
-						Grids
-					ON f.FinMatchNo=GrMatchNo
+					INNER JOIN Grids ON f.FinMatchNo=GrMatchNo
 
-					INNER JOIN
-						Events
-					ON f.FinEvent=EvCode AND f.FinTournament=EvTournament AND EvTeamEvent=0
+					INNER JOIN Events ON f.FinEvent=EvCode AND f.FinTournament=EvTournament AND EvTeamEvent=0
+					left join (select group_concat(DISTINCT concat(EvCode, '@', EvFinalFirstPhase)) SubCodes, EvCodeParent SubMainCode, EvFinalFirstPhase SubFirstPhase from Events where EvCodeParent!='' and EvTeamEvent=0 and EvTournament={$this->tournament} group by EvCodeParent, EvFinalFirstPhase) Secondary on SubMainCode=EvCode and SubFirstPhase=GrPhase/2
 
 				WHERE
-					f.FinTournament={$this->tournament} AND f.FinEvent='{$event}' AND GrPhase={$phase}
+					f.FinTournament={$this->tournament} AND f.FinEvent='{$event}' AND GrPhase={$realphase}
 					AND (f.FinWinLose=1 OR f2.FinWinLose=1)
 					AND (IF(EvMatchMode=0,f.FinScore,f.FinSetScore) < IF(EvMatchMode=0,f2.FinScore,f2.FinSetScore) OR (IF(EvMatchMode=0,f.FinScore,f.FinSetScore)=IF(EvMatchMode=0,f2.FinScore,f2.FinSetScore) AND f.FinTie < f2.FinTie))
 				ORDER BY
 					IF(EvMatchMode=0,f.FinScore,f.FinSetScore) DESC,f.FinScore DESC
 			";
-			//print $q.'<br><br>';
+
 			$rs=safe_r_sql($q);
 
-			if ($rs)
-			{
-				if (safe_num_rows($rs)>0)
-				{
-				/*
-				 * Se fase 0 (oro) il perdente ha la rank=2 e il vincente piglia 1,
-				 * se fase 1 (bronzo) il perdente ha la rank=4 e il vincete piglia 3
-				 * e in entrambi i casi avrò sempre e solo una riga.
-				 *
-				 * Se fase 2 (semi) non succede nulla.
-				 *
-				 * Per le altre fasi si cicla nel recordset che ha il numero di righe >=0
-				 */
-					if ($phase==0 || $phase==1)
-					{
-						$myRow=safe_fetch($rs);
+			if (safe_num_rows($rs)>0) {
+			/*
+			 * Se fase 0 (oro) il perdente ha la rank=2 e il vincente piglia 1,
+			 * se fase 1 (bronzo) il perdente ha la rank=4 e il vincete piglia 3
+			 * e in entrambi i casi avrò sempre e solo una riga.
+			 *
+			 * Se fase 2 (semi) non succede nulla.
+			 *
+			 * Per le altre fasi si cicla nel recordset che ha il numero di righe >=0
+			 */
+				$myRow=safe_fetch($rs);
 
-						$toWrite=array();
+				// trasformo la fase
+					$phase=namePhase($myRow->EvFinalFirstPhase, $realphase);
 
-						if ($phase==0)
-						{
-						// vincente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->OppAthId,'rank'=>1);
-						// perdente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->AthId,'rank'=>2);
-						}
-						elseif ($phase==1)
-						{
-						// vincente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->OppAthId,'rank'=>3);
-						// perdente
-							$toWrite[]=array('event'=>$event,'id'=>$myRow->AthId,'rank'=>4);
-						}
-
-						foreach ($toWrite as $values)
-						{
-							$x=$this->writeRow($values['id'],$values['event'],$values['rank']);
-							if ($x === false)
-								return false;
-						}
+				// get the parent chain for this event if any
+				$EventToUse=$event;
+				$ParentCode=$myRow->EvCodeParent;
+				while($ParentCode) {
+					$EventToUse=$ParentCode;
+					$t=safe_r_sql("select EvCodeParent from Events where EvCode=".StrSafe_DB($ParentCode));
+					if($u=safe_fetch($t)) {
+						$ParentCode=$u->EvCodeParent;
+					} else {
+						$ParentCode='';
 					}
-					elseif ($phase==2)
+				}
+				if ($phase==0 || $phase==1) {
+
+					$toWrite=array();
+
+					if ($phase==0)
 					{
-					// non faccio nulla!
+					// vincente
+						$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->OppAthId,'rank'=>$myRow->EvWinnerFinalRank);
+					// perdente
+						$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->AthId,'rank'=>$myRow->EvWinnerFinalRank+1);
+					}
+					elseif ($phase==1)
+					{
+					// vincente
+						$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->OppAthId,'rank'=>$myRow->EvWinnerFinalRank+2);
+					// perdente
+						$toWrite[]=array('event'=>$EventToUse,'id'=>$myRow->AthId,'rank'=>$myRow->EvWinnerFinalRank+3);
+					}
+
+					foreach ($toWrite as $values)
+					{
+						$x=$this->writeRow($values['id'],$values['event'],$values['rank']);
+						if ($x === false)
+							return false;
+					}
+				}
+				elseif ($phase==2 or $myRow->SubCodes)
+				{
+				// non faccio nulla!
+				}
+				else
+				{
+
+				// qui posso avere tante righe
+					$pos=0;
+
+				/*
+				 *  per la fase 4 pos viene inizializzato al valore iniziale -1
+				 *  perchè poi nel ciclo come prima cosa ho un suo incremento dato che la if
+				 *  che decide se incrementare o no sarà vera. Per gli altri non ci sarà
+				 *  l'incremento così avrò sempre il valore iniziale (senza il -1)
+				 */
+					if($realphase==4) {
+						// these are all ranked one by one
+						$pos=max(4,8-safe_num_rows($rs));		// dovendo partire dal fondo, recupero l'ultimo posto disponibile
+					} elseif($realphase>4) {
+						$pos=numMatchesByPhase($phase)+SavedInPhase($phase)+1;
+					} else {
+						// no need to rerank
+						return false;
+					}
+					//switch ($phase)
+					//{
+					//	case 4:
+					//		$pos=8-safe_num_rows($rs);		// dovendo partire dal fondo, recupero l'ultimo posto disponibile
+					//		break;
+					//	case 8:
+					//		$pos=9;
+					//		break;
+					//	case 16:
+					//		$pos=17;
+					//		break;
+					//	case 32: // (e 24)
+					//		$pos=33;
+					//		break;
+					//	case 48:
+					//		$pos=57;
+					//		break;
+					//	case 64:
+					//		// gets the real firstpase of the event
+					//		$tt=safe_r_sql("select EvFinalFirstPhase from Events WHERE EvTournament={$this->tournament} AND EvCode='{$event}' ");
+					//		$uu=safe_fetch($tt);
+					//		$pos=$uu->EvFinalFirstPhase==48 ? 57 : 65;
+					//		break;
+					//	default:
+					//		return false;
+					//}
+
+					if ($phase==4)
+					{
+						$rank=$pos+1;
 					}
 					else
 					{
-					// qui posso avere tante righe
-						$pos=0;
+						$rank=$pos;
+					}
 
-					/*
-					 *  per la fase 4 pos viene inizializzato al valore iniziale -1
-					 *  perchè poi nel ciclo come prima cosa ho un suo incremento dato che la if
-					 *  che decide se incrementare o no sarà vera. Per gli altri non ci sarà
-					 *  l'incremento così avrò sempre il valore iniziale (senza il -1)
-					 */
-						switch ($phase)
-						{
-							case 4:
-								$pos=8-safe_num_rows($rs);		// dovendo partire dal fondo, recupero l'ultimo posto disponibile
-								break;
-							case 8:
-								$pos=9;
-								break;
-							case 16:
-								$pos=17;
-								break;
-							case 32: // (e 24)
-								$pos=33;
-								break;
-							case 48:
-								$pos=57;
-								break;
-							case 64:
-								// gets the real firstpase of the event
-								$tt=safe_r_sql("select EvFinalFirstPhase from Events WHERE EvTournament={$this->tournament} AND EvCode='{$event}' ");
-								$uu=safe_fetch($tt);
-								$pos=$uu->EvFinalFirstPhase==48 ? 57 : 65;
-								break;
-							default:
-								return false;
-						}
+					$scoreOld=0;
+					$cumOld=0;
 
-						if ($phase==4)
-						{
-							$rank=$pos+1;
-						}
-						else
-						{
-							$rank=$pos;
-						}
-
-						$scoreOld=0;
-						$cumOld=0;
-
-						while ($myRow=safe_fetch($rs))
-						{
-							if ($phase==4)
-							{
-								++$pos;
-								if (!($myRow->Score==$scoreOld && $myRow->CumScore==$cumOld))
-								{
-									$rank=$pos;
-								}
+					while ($myRow) {
+						if ($phase==4) {
+							++$pos;
+							if (!($myRow->Score==$scoreOld && $myRow->CumScore==$cumOld)) {
+								$rank=$pos;
 							}
-
-							$scoreOld=$myRow->Score;
-							$cumOld=$myRow->CumScore;
-
-						// devo scrivere solo il perdente
-							$x=$this->writeRow($myRow->AthId,$event,$rank);
-
-							if ($x===false)
-								return false;
 						}
+
+						$scoreOld=$myRow->Score;
+						$cumOld=$myRow->CumScore;
+
+					// devo scrivere solo il perdente
+						if($myRow->EvElimType==3 and $myRow->GrPhase>$myRow->EvFinalFirstPhase) {
+							// needs to get his final rank, based on the matchno
+							$rank=getPoolLooserRank($myRow->MatchNo);
+						} elseif($myRow->EvElimType==4 and $myRow->GrPhase>$myRow->EvFinalFirstPhase) {
+							// needs to get his final rank, based on the matchno
+							$rank=getPoolLooserRankWA($myRow->MatchNo);
+						}
+						$x=$this->writeRow($myRow->AthId,$event,$rank+$myRow->EvWinnerFinalRank-1);
+
+						if ($x===false) {
+							return false;
+						}
+
+						$myRow=safe_fetch($rs);
 					}
 				}
-			}
-			else
-			{
+			} else {
 				return false;
 			}
 

@@ -34,7 +34,7 @@ switch($RankType) {
 				if($EvCode!=$ev) {
 					continue;
 				}
-				$json_array = array("RankingName"=>$TVMainTitle, "Event"=>$ev, "EventName"=>"", "Type"=>"1", "Results"=>array());
+                $json_array = array("RankingName"=>$TVMainTitle, "Event"=>$ev, "EventName"=>"", "Type"=>"1", "Results"=>array(), "RankType"=>$RankType);
 				$Select = "SELECT EvEventName as Name FROM Events WHERE EvCode=" . StrSafe_DB($EvCode) . " AND EvTeamEvent=0 AND EvTournament=" . StrSafe_DB(getIdFromCode($headerCompetition)) . " ";
 				$Rs=safe_r_sql($Select);
 				if (safe_num_rows($Rs)==1) {
@@ -144,6 +144,8 @@ switch($RankType) {
 		
 					$i=0;
 					$stillCompeting = false;
+                    $canRed=true;
+                    $isAnEventWinner = false;
 					foreach($ScoreInd[$ev][$waid] as $detailPoint){
 						$Stage=array("Stage"=>strval($i+1), "Points"=>"0", "PresentInStage"=>false, "StillCompeting"=>false);
 						if($PosInd[$ev][$waid][$i] == -999) {
@@ -158,8 +160,15 @@ switch($RankType) {
 								$Stage["Points"]=strval(abs($detailPoint));
 								$Stage["StillCompeting"]=true;
 								$stillCompeting = true;
-							} else
-								$Stage["Points"]=strval($detailPoint);
+                                if($detailPoint==-21) {
+                                    $canRed = false;
+                                }
+							} else {
+                                $Stage["Points"] = strval($detailPoint);
+                                if($detailPoint == $Bonus[1]) {
+                                    $isAnEventWinner = true;
+                                }
+                            }
 						}
 						$tmpRow["Stages"][] = $Stage;
 						$i++;
@@ -172,8 +181,12 @@ switch($RankType) {
 						$ExistingNOC[$AthInd[$waid][1]] = 1;
 					}
 					$qualified=0;
-					
-					if($ExistingNOC[$AthInd[$waid][1]]>$MaxByNoc) {
+
+                    if($isAnEventWinner) {
+                        $tmpRow["Status"] = "1";
+                        $tmpRow["StatusText"] = "Qualified";
+                        $EvQualifiedNo++;
+                    } elseif($ExistingNOC[$AthInd[$waid][1]]>$MaxByNoc AND !in_array($waid,$pendingIds)) {
 						$tmpRow["Status"] = "-1";
 						$tmpRow["StatusText"] = "Not Eligible";
 						if($ExistingNOC[$AthInd[$waid][1]]==$MaxByNoc+1)
@@ -181,10 +194,13 @@ switch($RankType) {
 					} elseif($point>=$SureScoreH && $point>$SureScoreL) {
 						$tmpRow["Status"] = "1";
 						$tmpRow["StatusText"] = "Qualified";
-					} elseif($actRank>$EvQualifiedNo && $CutScore>$MaxInd[$waid]) {
+					} elseif($actRank>$EvQualifiedNo AND $CutScore>$MaxInd[$waid] AND $canRed AND !in_array($waid,$pendingIds)) {
 						$tmpRow["Status"] = "-1";
 						$tmpRow["StatusText"] = "Not Qualified";
 					}
+                    if(!$canRed) {
+                        $EvQualifiedNo++;
+                    }
 					/*	ANTALYA - TO RE-ENABLE if something weird
 					 } elseif($actRank>$EvQualifiedNo && (!$stillCompeting || $CutScore>$MaxInd[$waid])) {
 					 $qualified=-1;
@@ -206,19 +222,16 @@ switch($RankType) {
 							}
 						}
 					}
-					if($CanDoBetter<$QualifiedNo-$actRank) {
+					if($CanDoBetter<$QualifiedNo-$actRank OR in_array($waid,$qualifiedIds)) {
 						$tmpRow["Status"] = "1";
 						$tmpRow["StatusText"] = "Qualified";
 					}
+                    if(in_array($waid,$notQualifiedIds)) {
+                        $tmpRow["Status"] = "-1";
+                        $tmpRow["StatusText"] = "Not Qualified";
+                    }
 					
-					if($waid==12305 || $waid==17207 || $waid==8734 || $waid==9088) {
-						$tmpRow["Status"] = "0";
-						$tmpRow["StatusText"] = "";
-					} elseif($waid==6910) {
-						$tmpRow["Status"] = "1";
-						$tmpRow["StatusText"] = "Qualified";
-					}
-					
+
 					if($CutRank === false || $CutRank>=$actRank) {
 						$json_array["Results"][] = $tmpRow;
 					}
@@ -338,6 +351,11 @@ switch($RankType) {
 					if($CanDoBetter<=$MixedTeamQualifiedNo-$actRank) {
 						$tmpRow["Status"] = "1";
 						$tmpRow["StatusText"] = "Qualified";
+/*						if($waid=='TPE') {
+                            $tmpRow["Status"] = "-1";
+                            $tmpRow["StatusText"] = "Not Qualified";
+                        }
+*/
 					}
 					
 					

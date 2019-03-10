@@ -10,47 +10,30 @@
 	require_once('Qualification/Fun_Qualification.local.inc.php');
 	require_once('Partecipants/Fun_Partecipants.local.inc.php');
 
-	if (!isset($_REQUEST['id']) || !CheckTourSession())
-	{
+	if (!isset($_REQUEST['id']) || !CheckTourSession())	{
 		print get_text('CrackError');
 		exit;
 	}
+    checkACL(AclParticipants, AclReadWrite);
 
 	if (!IsBlocked(BIT_BLOCK_PARTICIPANT))
 	{
-		$indFEvent=$teamFEvent=$country=$div=$cl=$zero=null;
+		$indFEvent=$teamFEvent=$country=$div=$cl=$subCl=$zero=null;
 		$recalc=Params4Recalc($_REQUEST['id']);
 		if ($recalc!==false)
 		{
 			$recalc=true;
-			list($indFEvent,$teamFEvent,$country,$div,$cl,$zero)=$recalc;
+			list($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero)=$recalc;
 		}
 
 		if($Id=intval($_REQUEST['id'])) {
-			if($Where=GetAccBoothEnWhere($Id, true, true)) {
-				LogAccBoothQuerry("DELETE FROM Qualifications WHERE QuId=(select EnId from Entries where $Where)");
-				LogAccBoothQuerry("delete from AccEntries where AEId=(select EnId from Entries where $Where)");
-				LogAccBoothQuerry("delete from Photos where PhEnId=(select EnId from Entries where $Where)");
-				LogAccBoothQuerry("DELETE FROM Qualifications WHERE QuId=(select EnId from Entries where $Where)");
-				LogAccBoothQuerry("DELETE FROM ElabQualifications WHERE EqId=(select EnId from Entries where $Where)");
-				LogAccBoothQuerry("DELETE FROM ExtraData WHERE EdId=(select EnId from Entries where $Where)");
-				LogAccBoothQuerry("DELETE FROM Entries WHERE $Where");
-			}
-
-			safe_w_sql("DELETE FROM Entries WHERE EnId=$Id");
-			safe_w_sql("DELETE FROM Qualifications WHERE QuId=$Id");
-			safe_w_sql("delete from AccEntries where AEId=$Id");
-			safe_w_sql("delete from Photos where PhEnId=$Id");
-			safe_w_sql("DELETE FROM Qualifications WHERE QuId=$Id");
-			safe_w_sql("DELETE FROM ElabQualifications WHERE EqId=$Id");
-			safe_w_sql("DELETE FROM ExtraData WHERE EdId=$Id");
-
+			deleteArcher($Id, true, true);
 		}
 
 	// ricalcolo
 		if ($recalc)
 		{
-			RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$zero);
+			RecalculateShootoffAndTeams($indFEvent,$teamFEvent,$country,$div,$cl,$subCl,$zero);
 
 		// rank di classe x tutte le distanze
 			$q="SELECT ToNumDist FROM Tournament WHERE ToId={$_SESSION['TourId']}";

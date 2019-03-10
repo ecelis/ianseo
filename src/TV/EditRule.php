@@ -157,6 +157,7 @@ if($_POST) {
 		$params[]="TVPViewTeamComponents=".strsafe_DB(!empty($_POST['d_TVViewTeamComponents']));
 		$params[]="TVPViewPartials=".strsafe_DB(!empty($_POST['d_TVViewPartials']));
 		$params[]="TVPViewDetails=".strsafe_DB(!empty($_POST['d_TVViewDetails']));
+
 		$tmpInd=array();
 		if(!empty($_POST['d_TVPhaseInd'])) {
 			foreach($_POST['d_TVPhaseInd'] as $k=>$v) {
