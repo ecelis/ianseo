@@ -64,6 +64,9 @@ environment variables are required, you can either pass them inline with
 the `-e` flag or write them to a file, like in the example below.
 
 
-        docker run -d --name ianseo \
-            -d --name ianseo --link inaseodb:mysql \
-            --env-file=.env arqueria/ianseo
+        docker run -it --name ianseo \
+            --link ianseodb:mysql \
+            --env-file=.env \
+            -p 8080:80 arqueria/ianseo
+
+Browse to http://127.0.0.1:8080/ianseo/
